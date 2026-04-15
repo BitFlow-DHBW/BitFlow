@@ -31,7 +31,7 @@ function WireComp({wire, remove, onMouseDownNode, onMouseUpNode}: {wire: Wire, r
     <g id={`wire_${wire.id}`}>
       <polyline 
         {...wire_svg_props} 
-        cursor= {((wire.state === "preview") ? undefined : "not-allowed")}
+        cursor={((wire.state === "preview") ? undefined : "not-allowed")}
         stroke={fillColor}
         points={svg_points.toString()} 
         onMouseDown={handleMouseDownWire}
