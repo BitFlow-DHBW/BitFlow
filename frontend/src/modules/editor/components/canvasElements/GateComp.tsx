@@ -10,17 +10,21 @@ function GateComp({gate, onMouseDownGate, onMouseDownInput}: {gate: Gate, onMous
     stroke: "black",
     fill: "white",
   }
+  
+  // Beim Rotieren die Höhe mit der Breite des Gatters tauschen
+  const isHorizontal = ["East", "West"].includes(gate.rotation);
+  const rotatedWidth = isHorizontal ? gate.width : gate.height;
+
+  const isVertical = ["North", "South"].includes(gate.rotation);
+  const rotatedHeight = isVertical ? gate.width : gate.height;
 
   let svg_pos = {
     x: gate.x * gridSize + 0.5 * gate_svg_props.strokeWidth,
     y: gate.y * gridSize + 0.5 * gate_svg_props.strokeWidth,
-    width: gate.width * gridSize - gate_svg_props.strokeWidth,
-    height: gate.height * gridSize - gate_svg_props.strokeWidth,
+    width: rotatedWidth * gridSize - gate_svg_props.strokeWidth,
+    height: rotatedHeight * gridSize - gate_svg_props.strokeWidth,
   }
-  // >> temp
 
-  let rotation: Rotation = "East";
-  // << temp
   const rot_distrib_offset: Record<Rotation, { x: number; y: number }> = {
     North: { x: 1, y: 0 },
     East:  { x: 0, y: 1 },
@@ -67,9 +71,9 @@ function GateComp({gate, onMouseDownGate, onMouseDownInput}: {gate: Gate, onMous
   }
 
   let input_pos = gate.inputs.map((_input: Input, index: number) => {
-    const distrib_offset = rot_distrib_offset[rotation]
-    const start_offset = rot_start_offset["input"][rotation]
-    const end_offset = rot_end_offset["input"][rotation]
+    const distrib_offset = rot_distrib_offset[gate.rotation]
+    const start_offset = rot_start_offset["input"][gate.rotation]
+    const end_offset = rot_end_offset["input"][gate.rotation]
 
     // Gleichmäßig verteilen
     /* alt (auch zwischen Kästchen möglich)
@@ -78,8 +82,8 @@ function GateComp({gate, onMouseDownGate, onMouseDownInput}: {gate: Gate, onMous
     */
 
     return {
-      x: (gate.x + distrib_offset.x + (index * distrib_offset.x) + (start_offset.x * gate.width)),
-      y: (gate.y + distrib_offset.y + (index * distrib_offset.y) + (start_offset.y * gate.height)),
+      x: (gate.x + distrib_offset.x + (index * distrib_offset.x) + (start_offset.x * rotatedWidth)),
+      y: (gate.y + distrib_offset.y + (index * distrib_offset.y) + (start_offset.y * rotatedHeight)),
       x_offset: end_offset.x * (gridSize * 0.5),
       y_offset: end_offset.y * (gridSize * 0.5)
     }
@@ -103,13 +107,13 @@ function GateComp({gate, onMouseDownGate, onMouseDownInput}: {gate: Gate, onMous
   }
 
   let output_pos = gate.outputs.map((_output: Output, index: number) => {
-    const distrib_offset = rot_distrib_offset[rotation]
-    const start_offset = rot_start_offset["output"][rotation]
-    const end_offset = rot_end_offset["output"][rotation]
+    const distrib_offset = rot_distrib_offset[gate.rotation]
+    const start_offset = rot_start_offset["output"][gate.rotation]
+    const end_offset = rot_end_offset["output"][gate.rotation]
 
     return {
-      x: (gate.x + distrib_offset.x + (index * distrib_offset.x) + (start_offset.x * gate.width)),
-      y: (gate.y + distrib_offset.y + (index * distrib_offset.y) + (start_offset.y * gate.height)),
+      x: (gate.x + distrib_offset.x + (index * distrib_offset.x) + (start_offset.x * rotatedWidth)),
+      y: (gate.y + distrib_offset.y + (index * distrib_offset.y) + (start_offset.y * rotatedHeight)),
       x_offset: end_offset.x * (gridSize * 0.5),
       y_offset: end_offset.y * (gridSize * 0.5)
     }
@@ -128,8 +132,8 @@ function GateComp({gate, onMouseDownGate, onMouseDownInput}: {gate: Gate, onMous
     <g>
       <rect {...gate_svg_props} {...svg_pos} onMouseDown={onMouseDownGate} cursor="grab" />
       <text 
-        x={svg_pos.x + (gate.width * gridSize) / 2}
-        y={svg_pos.y + (gate.height * gridSize) / 2}
+        x={svg_pos.x + (rotatedWidth * gridSize) / 2}
+        y={svg_pos.y + (rotatedHeight * gridSize) / 2}
         dominantBaseline="middle"
         textAnchor="middle"
         style={{ pointerEvents: "none", userSelect: "none" }}
