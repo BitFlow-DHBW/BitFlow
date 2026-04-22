@@ -80,6 +80,7 @@ function Canvas() {
     return { x, y };
   };
 
+
   const handlers = createCanvasHandlers({
     gridSize,
 
@@ -115,7 +116,11 @@ function Canvas() {
       updateWireStart,
       resetWireDragging,
     },
+
+  
+    createGate: newGate
   });
+
 
   return (
     <svg
