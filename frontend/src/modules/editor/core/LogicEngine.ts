@@ -1,2 +1,0 @@
-/*In dieser Datei werden die Outputs von Logikbausteinen basierend auf ihren Eingängen evauluiert.
-Es handelt sich hierbei um eine Klasse, die eine Funktion bereitstellt, die eine Liste als Parameter entgegennimmt */
