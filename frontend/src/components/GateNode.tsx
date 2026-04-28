@@ -7,12 +7,16 @@ interface Props {
   onDrag: (id: string, x: number, y: number) => void;
   onDelete: (id: string) => void;
   onStartConnect: (gateId: string, pinId: string, clientX: number, clientY: number) => void;
+  onToggleSwitch: (gateId: string) => void;
+  signals: Record<string, boolean>;
 }
 
-export default function GateNode({ gate, onDrag, onDelete, onStartConnect }: Props) {
+export default function GateNode({ gate, onDrag, onDelete, onStartConnect, onToggleSwitch, signals }: Props) {
   const gRef = useRef<SVGGElement | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const startRef = useRef<{ sx: number; sy: number; gx: number; gy: number } | null>(null);
+  const switchValue = Boolean(gate.outputs[0]?.value);
+  const ledValue = Boolean(gate.inputs[0] && signals[gate.inputs[0].id]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     // only start drag when clicking body, not pins
@@ -75,6 +79,45 @@ export default function GateNode({ gate, onDrag, onDelete, onStartConnect }: Pro
         {gate.meta?.name ?? gate.type}
       </text>
 
+      {gate.type === "SWITCH" && (
+        <foreignObject x={16} y={22} width={gate.width - 32} height={gate.height - 26}>
+          <button
+            type="button"
+            aria-label={`Toggle switch ${gate.id}`}
+            aria-pressed={switchValue}
+            onPointerDown={(ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+            }}
+            onClick={(ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              onToggleSwitch(gate.id);
+            }}
+            className={`w-full h-full rounded text-xs font-bold border ${
+              switchValue
+                ? "bg-green-500 border-green-700 text-white"
+                : "bg-gray-200 border-gray-500 text-gray-800"
+            }`}
+            style={{ userSelect: "none" }}
+          >
+            {switchValue ? "ON" : "OFF"}
+          </button>
+        </foreignObject>
+      )}
+
+      {gate.type === "LED" && (
+        <circle
+          cx={gate.width / 2}
+          cy={gate.height / 2 + 6}
+          r={9}
+          fill={ledValue ? "#22c55e" : "#4b5563"}
+          stroke={ledValue ? "#166534" : "#111827"}
+          strokeWidth={2}
+          aria-label={`LED ${gate.id} ${ledValue ? "on" : "off"}`}
+        />
+      )}
+
       {/* Inputs */}
       {gate.inputs.map((pin, i) => {
         const px = (pin.offsetX ?? 0) * gate.width!;
@@ -86,6 +129,7 @@ export default function GateNode({ gate, onDrag, onDelete, onStartConnect }: Pro
               cy={0}
               r={6}
               className="fill-gray-100 dark:fill-gray-700 stroke-gray-800 dark:stroke-gray-200"
+              style={{ fill: signals[pin.id] ? "#22c55e" : undefined }}
               data-pin="true"
               onPointerDown={(ev) => {
                 ev.preventDefault();
@@ -119,6 +163,7 @@ export default function GateNode({ gate, onDrag, onDelete, onStartConnect }: Pro
               cy={0}
               r={6}
               className="fill-gray-100 dark:fill-gray-700 stroke-gray-800 dark:stroke-gray-200"
+              style={{ fill: (signals[pin.id] ?? pin.value) ? "#22c55e" : undefined }}
               data-pin="true"
               onPointerDown={(ev) => {
                 ev.preventDefault();

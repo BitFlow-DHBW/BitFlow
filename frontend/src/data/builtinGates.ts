@@ -133,7 +133,7 @@ export const builtinGates = {
     width: 4 * GRID_SIZE,
     height: 2 * GRID_SIZE,
     inputs: [],
-    outputs: [{ id: id + "_out", type: "output", offsetX: 1, offsetY: 0.5 }],
+    outputs: [{ id: id + "_out", type: "output", offsetX: 1, offsetY: 0.5, value: false }],
     meta: { name: "SWT" }
   }),
 

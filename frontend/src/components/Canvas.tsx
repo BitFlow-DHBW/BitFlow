@@ -10,6 +10,8 @@ interface Props {
   onChange: (c: Circuit) => void;
   onDeleteGate: (id: string) => void;
   onMoveGate: (id: string, x: number, y: number) => void;
+  onToggleSwitch: (id: string) => void;
+  signals: Record<string, boolean>;
 }
 
 type DraggingState = {
@@ -21,7 +23,7 @@ type DraggingState = {
   startSvgY: number;
 } | null;
 
-export default function Canvas({ circuit, onChange, onDeleteGate, onMoveGate }: Props) {
+export default function Canvas({ circuit, onChange, onDeleteGate, onMoveGate, onToggleSwitch, signals }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dragging, setDragging] = useState<DraggingState>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -73,6 +75,45 @@ export default function Canvas({ circuit, onChange, onDeleteGate, onMoveGate }: 
     return best;
   };
 
+  const getPin = (gateId: string, pinId: string) => {
+    const gate = circuit.gates.find(g => g.id === gateId);
+    const pin = gate ? [...gate.inputs, ...gate.outputs].find(p => p.id === pinId) : undefined;
+    return gate && pin ? { gate, pin } : null;
+  };
+
+  const createConnection = (targetGateId: string, targetPinId: string): Connection | null => {
+    const start = getPin(dragging!.fromGateId, dragging!.fromPinId);
+    const target = getPin(targetGateId, targetPinId);
+
+    if (!start || !target) return null;
+    if (start.gate.id === target.gate.id) return null;
+    if (start.pin.id === target.pin.id) return null;
+    if (start.pin.type === target.pin.type) return null;
+
+    const output = start.pin.type === "output" ? start : target;
+    const input = start.pin.type === "input" ? start : target;
+
+    const alreadyExists = circuit.connections.some(c =>
+      c.fromGateId === output.gate.id &&
+      c.fromPinId === output.pin.id &&
+      c.toGateId === input.gate.id &&
+      c.toPinId === input.pin.id
+    );
+    const inputAlreadyDriven = circuit.connections.some(c =>
+      c.toGateId === input.gate.id && c.toPinId === input.pin.id
+    );
+
+    if (alreadyExists || inputAlreadyDriven) return null;
+
+    return {
+      id: uuidv4(),
+      fromGateId: output.gate.id,
+      fromPinId: output.pin.id,
+      toGateId: input.gate.id,
+      toPinId: input.pin.id
+    };
+  };
+
   function clientToSvgSnapped(clientX: number, clientY: number) {
     const svg = svgRef.current;
     if (!svg) return snapPoint(clientX, clientY);
@@ -97,15 +138,8 @@ export default function Canvas({ circuit, onChange, onDeleteGate, onMoveGate }: 
     const svgPt = clientToSvgSnapped(e.clientX, e.clientY);
     const snap = findNearestPin(svgPt.x, svgPt.y, 14);
     if (snap) {
-      // avoid connecting pin to itself or same gate same pin
-      if (!(dragging.fromGateId === snap.gateId && dragging.fromPinId === snap.pinId)) {
-        const conn: Connection = {
-          id: uuidv4(),
-          fromGateId: dragging.fromGateId,
-          fromPinId: dragging.fromPinId,
-          toGateId: snap.gateId,
-          toPinId: snap.pinId
-        };
+      const conn = createConnection(snap.gateId, snap.pinId);
+      if (conn) {
         onChange({ ...circuit, connections: [...circuit.connections, conn] });
       }
     }
@@ -155,6 +189,8 @@ export default function Canvas({ circuit, onChange, onDeleteGate, onMoveGate }: 
               onDrag={onMoveGate}
               onDelete={onDeleteGate}
               onStartConnect={handleStartConnect}
+              onToggleSwitch={onToggleSwitch}
+              signals={signals}
             />
           ))}
         </g>

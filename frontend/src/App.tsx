@@ -12,6 +12,12 @@ import { ExportButton, ImportButton } from "./components/ImportExport";
 
 const initialCircuit: Circuit = { gates: [], connections: [], name: "untitled", version: 0 };
 
+function toSignalRecord(pinMap: Map<string, boolean>) {
+  const obj: Record<string, boolean> = {};
+  pinMap.forEach((v, k) => (obj[k] = v));
+  return obj;
+}
+
 export default function App() {
   const { present: circuit, set: setCircuit, undo, redo, canUndo, canRedo } = useUndoRedo(initialCircuit);
   const [signals, setSignals] = React.useState<Record<string, boolean>>({});
@@ -34,12 +40,30 @@ export default function App() {
     setCircuit(next);
   };
 
-  const onSimulate = () => {
-    const pinMap = simulate(circuit);
-    const obj: Record<string, boolean> = {};
-    pinMap.forEach((v, k) => (obj[k] = v));
-    setSignals(obj);
+  const toggleSwitch = (id: string) => {
+    const next = {
+      ...circuit,
+      gates: circuit.gates.map(g => {
+        if (g.id !== id || g.type !== "SWITCH") return g;
+        const nextValue = !Boolean(g.outputs[0]?.value);
+
+        return {
+          ...g,
+          outputs: g.outputs.map((pin, index) => index === 0 ? { ...pin, value: nextValue } : pin)
+        };
+      })
+    };
+
+    setCircuit(next);
   };
+
+  const onSimulate = () => {
+    setSignals(toSignalRecord(simulate(circuit)));
+  };
+
+  React.useEffect(() => {
+    setSignals(toSignalRecord(simulate(circuit)));
+  }, [circuit]);
 
   const onSave = () => {
     const name = prompt("Project name", circuit.name || "untitled") || "untitled";
@@ -69,7 +93,6 @@ export default function App() {
   
   return (
     <div className="h-screen flex flex-col dark:bg-gray-900 dark:text-white">
-      dasdad
       <Toolbar onSave={onSave} onLoad={onLoad} onSimulate={onSimulate} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo} onClear={onClear} />
       <div className="flex flex-1">
         <div className="w-48">
@@ -86,6 +109,8 @@ export default function App() {
           //onCreateConnection={createConnection}
           onDeleteGate={deleteGate}
           onMoveGate={moveGate}
+          onToggleSwitch={toggleSwitch}
+          signals={signals}
         />
         <div className="w-64 border-l p-2 dark:border-gray-700">
           <SettingsPanel />

@@ -1,4 +1,4 @@
-import type { Circuit, Gate, Connection } from "../types/circuit";
+import type { Circuit, Gate } from "../types/circuit";
 
 /**
  * Simple synchronous simulation:
@@ -27,9 +27,7 @@ function evalGate(g: Gate, inputValues: boolean[]): boolean {
     case "BUF":
       return Boolean(inputValues[0]);
     case "SWITCH":
-      // SWITCH has no inputs; its output should be provided via overrides (handled outside)
-      // If no override, default false
-      return inputValues[0] ?? false;
+      return Boolean(g.outputs[0]?.value ?? false);
     case "LED":
       // LED is a sink; return its input so UI can display it; does not drive others
       return Boolean(inputValues[0]);
@@ -51,7 +49,6 @@ export function simulate(circuit: Circuit, inputOverrides: Record<string, boolea
   // apply overrides (e.g., switches)
   Object.entries(inputOverrides).forEach(([pinId, val]) => pinValues.set(pinId, val));
 
-  const gateById = new Map(circuit.gates.map(g => [g.id, g]));
   const outMap = new Map<string, string[]>();
   circuit.connections.forEach(c => {
     outMap.set(c.fromPinId, [...(outMap.get(c.fromPinId) || []), c.toPinId]);
