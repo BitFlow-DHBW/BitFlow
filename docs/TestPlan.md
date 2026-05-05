@@ -11,6 +11,7 @@
 | Date | Version | Description | Author |
 |---|---|---|---|
 | 28.04.2026 | 1.0 | Initialer Testplan für Woche 4 / aktuelle Testiteration | BitFlow-Team |
+| 05.05.2026 | 1.1 | Korrektur: "Installation Testing" entfernt | BitFlow-Team |
 
 ---
 
@@ -507,7 +508,7 @@ Aktuell relevante Recovery-Fälle:
 ### 3.1.11 Configuration Testing
 
 **Test Objective:**  
-Prüfen, ob BitFlow in den vorgesehenen Entwicklungs- und Browserumgebungen lauffähig ist.
+Prüfen, ob BitFlow in den vorgesehenen Browserumgebungen lauffähig ist.
 
 **Technique:**  
 
@@ -537,22 +538,6 @@ Entwicklungsumgebung:
 - Eine vollständige Browsermatrix ist in dieser Iteration nicht geplant.
 - Safari kann später ergänzt werden.
 
----
-
-### 3.1.12 Installation Testing
-
-**Test Objective:**  
-Prüfen, ob das Projekt lokal eingerichtet und gestartet werden kann.
-
-**Technique:**  
-
-Typischer Installationsablauf:
-
-```bash
-npm install
-npm run dev
-npm test
-````
 
 ## 3.2 Tools
 
