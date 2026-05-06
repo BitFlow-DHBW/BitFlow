@@ -740,7 +740,7 @@ flowchart LR
 - **Auslöser:** Klick und Ziehen von Pin zu Pin.  
 - **Hauptablauf:**
 	1. Benutzer startet Verbindung am Ausgangspin.
-	2. System zeigt Gummiband-Leitung.
+	2. System zeigt Leitung.
 	3. Benutzer verbindet mit Zielpin.
 	4. System validiert Verbindung.  
 - **Alternativabläufe:**  
@@ -755,7 +755,7 @@ sequenceDiagram
     participant System as Validierungsmodul
 
     Benutzer ->>+ Canvas: Klick auf Ausgangspin
-    Canvas ->>- Benutzer: Zeigt Gummiband-Leitung
+    Canvas ->>- Benutzer: Zeigt Leitung
     Benutzer ->>+ Canvas: Verbindung mit Zielpin herstellen
     Canvas ->>+ System: Verbindung prüfen
     alt Verbindung gültig
@@ -769,7 +769,7 @@ sequenceDiagram
 ```mermaid
 flowchart LR
 	K1([Start]) --> K2["Benutzer startet Verbindung am Ausgangspin"]
-	K2 --> K3["System zeigt Gummiband-Leitung"]
+	K2 --> K3["System zeigt Leitung"]
 	K3 --> K4["Benutzer verbindet mit Zielpin"]
 	K4 --> K5{"Verbindung gültig?"}
 	K5 -->|Ja| K6["System stellt Signalleitung her"]
