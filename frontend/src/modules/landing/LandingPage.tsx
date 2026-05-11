@@ -61,7 +61,7 @@ export function LandingPage() {
         <div className="feature-grid">
           <article>
             <h3>Visueller Editor</h3>
-            <p>SVG-Canvas, Raster, Drag & Drop, Pins und Leitungen bilden die Grundlage für Logisim-ähnliche Arbeit.</p>
+            <p>SVG-Canvas, Raster, Drag & Drop, Pins und Leitungen bilden die Grundlage für das Arbeiten mit BitFlow.</p>
           </article>
           <article>
             <h3>Projektverwaltung</h3>
