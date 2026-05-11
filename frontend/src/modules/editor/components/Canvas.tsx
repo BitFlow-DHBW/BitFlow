@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { GateComp } from './GateComp';
 import { WireComp, wireBranchPoint } from './WireComp';
 import { isInteractiveSourceGate } from '../../../schematic/symbolGeometry';
-import { GRID_SIZE } from '../../../simulation/gateLibrary';
+import { GRID_SIZE, snapToGrid } from '../../../simulation/gateLibrary';
 import { createPinLookup, getWirePoints, normalizeWireEndpoint, resolveWireEndpoint } from '../../../simulation/wireUtils';
 import type {
   Circuit,
@@ -66,7 +66,7 @@ export function Canvas({
   onToggleInput,
 }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const gatePointerRef = useRef<{ gateId: string; point: Point; moved: boolean } | null>(null);
+  const gatePointerRef = useRef<{ gateId: string; point: Point; moved: boolean; toggleOnRelease: boolean } | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: FALLBACK_WIDTH, height: FALLBACK_HEIGHT });
 
   useEffect(() => {
@@ -150,15 +150,21 @@ export function Canvas({
           gatePointerRef.current.moved = gatePointerRef.current.moved || distanceX > 4 || distanceY > 4;
         }
         if (mode === 'edit' && dragState) onDragMove(point);
-        if (mode === 'edit' && wireDraft) onWirePreview(point);
+        if (mode === 'edit' && wireDraft) onWirePreview({ x: snapToGrid(point.x), y: snapToGrid(point.y) });
       }}
       onPointerUp={(event) => {
+        const pointer = gatePointerRef.current;
+        if (mode === 'simulate' && pointer?.toggleOnRelease && !pointer.moved) {
+          onToggleInput(pointer.gateId);
+        }
+        gatePointerRef.current = null;
         onDragEnd();
         if (mode === 'edit' && wireDraft) {
           onWireEnd({ kind: 'point', point: getPoint(event) });
         }
       }}
       onPointerLeave={() => {
+        gatePointerRef.current = null;
         onDragEnd();
         if (wireDraft) onWireCancel();
       }}
@@ -259,19 +265,18 @@ export function Canvas({
             event.stopPropagation();
             event.currentTarget.setPointerCapture(event.pointerId);
             const point = getPoint(event);
-            gatePointerRef.current = { gateId: selectedGate.id, point, moved: false };
+            gatePointerRef.current = {
+              gateId: selectedGate.id,
+              point,
+              moved: false,
+              toggleOnRelease: mode === 'simulate' && event.button === 0 && isInteractiveSourceGate(selectedGate),
+            };
             onSelectGate(selectedGate.id);
             onSelectWire(null);
             if (mode === 'edit') onGateDragStart(selectedGate, point);
           }}
-          onGateClick={(event, clickedGate) => {
+          onGateClick={(event) => {
             event.stopPropagation();
-            const pointer = gatePointerRef.current;
-            gatePointerRef.current = null;
-
-            if (mode === 'simulate' && isInteractiveSourceGate(clickedGate) && pointer?.gateId === clickedGate.id && !pointer.moved) {
-              onToggleInput(clickedGate.id);
-            }
           }}
           onPinPointerDown={(event, pin) => {
             const entry = pinMap.get(pin.id);

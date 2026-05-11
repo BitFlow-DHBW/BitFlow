@@ -1,3 +1,4 @@
+import { snapToGrid } from '../../../simulation/gateLibrary';
 import type { Point } from '../../../types/circuit';
 
 interface WireCompProps {
@@ -10,14 +11,14 @@ interface WireCompProps {
 }
 
 export function wirePath(from: Point, to: Point): string {
-  const midX = from.x + (to.x - from.x) / 2;
+  const midX = snapToGrid(from.x + (to.x - from.x) / 2);
   return `M ${from.x} ${from.y} L ${midX} ${from.y} L ${midX} ${to.y} L ${to.x} ${to.y}`;
 }
 
 export function wireBranchPoint(from: Point, to: Point): Point {
   return {
-    x: from.x + (to.x - from.x) / 2,
-    y: from.y + (to.y - from.y) / 2,
+    x: snapToGrid(from.x + (to.x - from.x) / 2),
+    y: snapToGrid(from.y + (to.y - from.y) / 2),
   };
 }
 
