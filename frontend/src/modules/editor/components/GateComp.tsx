@@ -7,6 +7,7 @@ interface GateCompProps {
   signals: SignalState;
   selected: boolean;
   selectedTool: EditorTool | null;
+  preview?: boolean;
   onGatePointerDown: (event: React.PointerEvent<SVGGElement>, gate: Gate) => void;
   onGateClick: (event: React.MouseEvent<SVGGElement>, gate: Gate) => void;
   onPinPointerDown: (event: React.PointerEvent<SVGCircleElement>, pin: Pin) => void;
@@ -18,6 +19,7 @@ export function GateComp({
   signals,
   selected,
   selectedTool,
+  preview = false,
   onGatePointerDown,
   onGateClick,
   onPinPointerDown,
@@ -30,7 +32,7 @@ export function GateComp({
 
   return (
     <g
-      className={`gate-node ${selected ? 'is-selected' : ''} ${selectedTool ? 'is-tool-active' : ''}`}
+      className={`gate-node ${selected ? 'is-selected' : ''} ${selectedTool ? 'is-tool-active' : ''} ${preview ? 'is-preview' : ''}`}
       onPointerDown={(event) => onGatePointerDown(event, gate)}
       onClick={(event) => onGateClick(event, gate)}
     >

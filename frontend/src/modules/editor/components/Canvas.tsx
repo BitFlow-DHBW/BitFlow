@@ -26,8 +26,12 @@ interface CanvasProps {
   selectedWireId: string | null;
   dragState: DragState | null;
   wireDraft: WireDraft | null;
+  draggedTool: EditorTool | null;
+  toolPreviewGate: Gate | null;
   onCanvasClick: (point: Point) => void;
   onToolDrop: (tool: EditorTool, point: Point) => void;
+  onToolDragPreview: (point: Point) => void;
+  onToolDragCancel: () => void;
   onGateDragStart: (gate: Gate, point: Point) => void;
   onDragMove: (point: Point) => void;
   onDragEnd: () => void;
@@ -52,8 +56,12 @@ export function Canvas({
   selectedWireId,
   dragState,
   wireDraft,
+  draggedTool,
+  toolPreviewGate,
   onCanvasClick,
   onToolDrop,
+  onToolDragPreview,
+  onToolDragCancel,
   onGateDragStart,
   onDragMove,
   onDragEnd,
@@ -132,11 +140,19 @@ export function Canvas({
         if (mode === 'simulate') return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'copy';
+        if (draggedTool) onToolDragPreview(getPoint(event));
+      }}
+      onDragLeave={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const isOutside =
+          event.clientX <= rect.left || event.clientX >= rect.right || event.clientY <= rect.top || event.clientY >= rect.bottom;
+        if (isOutside) onToolDragCancel();
       }}
       onDrop={(event) => {
         if (mode === 'simulate') return;
         event.preventDefault();
-        const tool = readDraggedTool(event);
+        const tool = readDraggedTool(event) ?? draggedTool;
+        onToolDragCancel();
         if (!tool) return;
         onSelectGate(null);
         onSelectWire(null);
@@ -289,6 +305,20 @@ export function Canvas({
           }}
         />
       ))}
+
+      {toolPreviewGate && (
+        <GateComp
+          gate={toolPreviewGate}
+          signals={{}}
+          selected={false}
+          selectedTool={null}
+          preview
+          onGatePointerDown={(event) => event.stopPropagation()}
+          onGateClick={(event) => event.stopPropagation()}
+          onPinPointerDown={(event) => event.stopPropagation()}
+          onPinPointerUp={(event) => event.stopPropagation()}
+        />
+      )}
     </svg>
   );
 }

@@ -193,7 +193,7 @@ export function createGate(type: BuiltInGateType, x: number, y: number, id = cre
   const template = templateFor(normalizedType);
   const height = template.configurableInputs ? Math.max(template.height, template.inputs + 1) : template.height;
 
-  return {
+  return alignGateHeight({
     id,
     type: normalizedType,
     label: template.label,
@@ -205,13 +205,13 @@ export function createGate(type: BuiltInGateType, x: number, y: number, id = cre
     height,
     inputs: createPins(id, template.inputs, 'input', template.inputLabels, template.inputElectricalType),
     outputs: createPins(id, template.outputs, 'output', template.outputLabels, template.outputElectricalType),
-  };
+  });
 }
 
 export function createCustomGate(component: CustomComponent, x: number, y: number, id = createId('gate')): Gate {
   const pinCount = Math.max(component.inputLabels.length, component.outputLabels.length, 1);
 
-  return {
+  return alignGateHeight({
     id,
     type: 'CUSTOM',
     customComponentId: component.id,
@@ -224,7 +224,7 @@ export function createCustomGate(component: CustomComponent, x: number, y: numbe
     height: Math.max(3, pinCount + 1),
     inputs: createPins(id, component.inputLabels.length, 'input', component.inputLabels),
     outputs: createPins(id, component.outputLabels.length, 'output', component.outputLabels),
-  };
+  });
 }
 
 export function canConfigureInputs(gate: Gate): boolean {
@@ -248,12 +248,12 @@ export function configureGatePins(gate: Gate, inputCount: number, outputCount = 
     : gate.outputs.length;
   const pinCount = Math.max(nextInputCount, nextOutputCount, 1);
 
-  return {
+  return alignGateHeight({
     ...gate,
     height: Math.max(template.height, pinCount + 1),
     inputs: createPins(gate.id, nextInputCount, 'input', template.inputLabels, template.inputElectricalType),
     outputs: createPins(gate.id, nextOutputCount, 'output', template.outputLabels, template.outputElectricalType),
-  };
+  });
 }
 
 export function configureGateInputs(gate: Gate, inputCount: number): Gate {
@@ -264,19 +264,57 @@ export function snapToGrid(value: number): number {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 }
 
+function canDistributePinsOnGridLines(height: number, pinCount: number): boolean {
+  if (pinCount === 0) return true;
+  const hasCenterGridLine = height % 2 === 0;
+  if (pinCount % 2 === 1) return hasCenterGridLine && height >= pinCount + 1;
+  return height >= pinCount + (hasCenterGridLine ? 2 : 1);
+}
+
+function alignedGateHeight(gate: Gate): number {
+  const pinCounts = [gate.inputs.length, gate.outputs.length];
+  let height = Math.max(1, gate.height);
+
+  while (!pinCounts.every((pinCount) => canDistributePinsOnGridLines(height, pinCount))) {
+    height += 1;
+  }
+
+  return height;
+}
+
+function alignGateHeight(gate: Gate): Gate {
+  const height = alignedGateHeight(gate);
+  return height === gate.height ? gate : { ...gate, height };
+}
+
 export function gateRectPx(gate: Gate): { width: number; height: number } {
   return {
     width: gate.width * GRID_SIZE,
-    height: gate.height * GRID_SIZE,
+    height: alignedGateHeight(gate) * GRID_SIZE,
   };
 }
 
+function pinSlot(height: number, pinCount: number, index: number): number {
+  const center = height / 2;
+
+  if (pinCount % 2 === 1) {
+    return center - (pinCount - 1) / 2 + index;
+  }
+
+  if (height % 2 === 1) {
+    return center - pinCount / 2 + 0.5 + index;
+  }
+
+  const lowerHalfCount = pinCount / 2;
+  return index < lowerHalfCount ? center - lowerHalfCount + index : center + (index - lowerHalfCount) + 1;
+}
+
 export function pinPosition(gate: Gate, pin: Pin): { x: number; y: number } {
-  const { width, height } = gateRectPx(gate);
+  const { width } = gateRectPx(gate);
   const pinCount = pin.direction === 'input' ? gate.inputs.length : gate.outputs.length;
-  const spacing = height / (pinCount + 1);
-  const y = gate.y + spacing * (pin.index + 1);
-  const x = pin.direction === 'input' ? gate.x : gate.x + width;
+  const slot = pinSlot(alignedGateHeight(gate), pinCount, pin.index);
+  const y = snapToGrid(gate.y + slot * GRID_SIZE);
+  const x = snapToGrid(pin.direction === 'input' ? gate.x : gate.x + width);
   return { x, y };
 }
 

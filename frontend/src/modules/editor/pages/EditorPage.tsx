@@ -71,6 +71,8 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
   return true;
 }
 
+const TOOL_PREVIEW_GATE_ID = 'tool_preview';
+
 export function EditorPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -133,6 +135,8 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragStartCircuit, setDragStartCircuit] = useState<Circuit | null>(null);
   const [wireDraft, setWireDraft] = useState<WireDraft | null>(null);
+  const [draggedTool, setDraggedTool] = useState<EditorTool | null>(null);
+  const [toolPreviewGate, setToolPreviewGate] = useState<Gate | null>(null);
   const [inputSignals, setInputSignals] = useState<SignalState>(project.inputSignals);
   const [simulationMemory, setSimulationMemory] = useState<SignalState>({});
   const [customComponents, setCustomComponents] = useState<CustomComponent[]>(project.customComponents);
@@ -174,28 +178,33 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     placeTool(selectedTool, point);
   }
 
+  function createGateDraft(tool: EditorTool, id?: string): Gate | null {
+    if (tool.kind === 'builtin') return createGate(tool.type, 0, 0, id);
+
+    const component =
+      customComponents.find((entry) => entry.id === tool.componentId) ??
+      history.state.customComponents.find((entry) => entry.id === tool.componentId);
+    return component ? createCustomGate(component, 0, 0, id) : null;
+  }
+
+  function positionGateAt(gateDraft: Gate, point: Point): Gate {
+    const rect = gateRectPx(gateDraft);
+    return {
+      ...gateDraft,
+      x: Math.max(0, snapToGrid(point.x - rect.width / 2)),
+      y: Math.max(0, snapToGrid(point.y - rect.height / 2)),
+    };
+  }
+
   function placeTool(tool: EditorTool, point: Point) {
-    const gateDraft =
-      tool.kind === 'builtin'
-        ? createGate(tool.type, 0, 0)
-        : (() => {
-          const component =
-              customComponents.find((entry) => entry.id === tool.componentId) ??
-              history.state.customComponents.find((entry) => entry.id === tool.componentId);
-            return component ? createCustomGate(component, 0, 0) : null;
-          })();
+    const gateDraft = createGateDraft(tool);
 
     if (!gateDraft) {
       setSelectedTool(null);
       return;
     }
 
-    const rect = gateRectPx(gateDraft);
-    const gate = {
-      ...gateDraft,
-      x: Math.max(0, snapToGrid(point.x - rect.width / 2)),
-      y: Math.max(0, snapToGrid(point.y - rect.height / 2)),
-    };
+    const gate = positionGateAt(gateDraft, point);
 
     commitCircuit({
       ...history.state,
@@ -204,6 +213,34 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     setSelectedGateId(gate.id);
     setSelectedWireId(null);
     setMode('edit');
+  }
+
+  function handleToolDragStart(tool: EditorTool) {
+    setDraggedTool(tool);
+    setToolPreviewGate(null);
+    setSelectedTool(null);
+    setMode('edit');
+  }
+
+  function handleToolDragPreview(point: Point) {
+    if (!draggedTool) return;
+    const gateDraft = createGateDraft(draggedTool, TOOL_PREVIEW_GATE_ID);
+    if (!gateDraft) return;
+    const nextGate = positionGateAt(gateDraft, point);
+
+    setToolPreviewGate((current) =>
+      current?.type === nextGate.type &&
+      current.customComponentId === nextGate.customComponentId &&
+      current.x === nextGate.x &&
+      current.y === nextGate.y
+        ? current
+        : nextGate,
+    );
+  }
+
+  function clearToolDragPreview() {
+    setDraggedTool(null);
+    setToolPreviewGate(null);
   }
 
   function handleGateDragStart(gate: Gate, point: Point) {
@@ -341,6 +378,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         setSelectedTool(null);
         setWireDraft(null);
         setDragState(null);
+        clearToolDragPreview();
         return;
       }
 
@@ -449,6 +487,8 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         <Library
           customComponents={customComponents}
           selectedTool={selectedTool}
+          onToolDragStart={handleToolDragStart}
+          onToolDragEnd={clearToolDragPreview}
           onSelectTool={(tool) => {
             setSelectedTool(tool);
             setMode('edit');
@@ -465,8 +505,12 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
             selectedWireId={selectedWireId}
             dragState={dragState}
             wireDraft={wireDraft}
+            draggedTool={draggedTool}
+            toolPreviewGate={toolPreviewGate}
             onCanvasClick={handleCanvasClick}
             onToolDrop={(tool, point) => placeTool(tool, point)}
+            onToolDragPreview={handleToolDragPreview}
+            onToolDragCancel={() => setToolPreviewGate(null)}
             onGateDragStart={handleGateDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}

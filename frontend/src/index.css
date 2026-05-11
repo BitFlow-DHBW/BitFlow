@@ -50,6 +50,7 @@ html,
 body,
 #root {
   min-height: 100%;
+  user-select: none;
 }
 
 body {
@@ -67,7 +68,8 @@ a {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -76,7 +78,15 @@ button {
 }
 
 input,
-textarea {
+textarea,
+select,
+[contenteditable='true'] {
+  user-select: text;
+}
+
+input,
+textarea,
+select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -916,6 +926,16 @@ button:disabled {
 
 .gate-node.is-tool-active {
   cursor: copy;
+}
+
+.gate-node.is-preview {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.gate-node.is-preview .schematic-symbol .symbol-body {
+  stroke: var(--primary);
+  stroke-dasharray: 6 4;
 }
 
 .gate-node:active {

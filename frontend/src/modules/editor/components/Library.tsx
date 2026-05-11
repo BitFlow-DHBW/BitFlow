@@ -5,6 +5,8 @@ interface LibraryProps {
   customComponents: CustomComponent[];
   selectedTool: EditorTool | null;
   onSelectTool: (tool: EditorTool | null) => void;
+  onToolDragStart: (tool: EditorTool) => void;
+  onToolDragEnd: () => void;
 }
 
 function isBuiltInTool(selectedTool: EditorTool | null, type: BuiltInGateType): boolean {
@@ -15,12 +17,13 @@ function isCustomTool(selectedTool: EditorTool | null, componentId: string): boo
   return selectedTool?.kind === 'custom' && selectedTool.componentId === componentId;
 }
 
-function startToolDrag(event: React.DragEvent<HTMLButtonElement>, tool: EditorTool) {
+function startToolDrag(event: React.DragEvent<HTMLButtonElement>, tool: EditorTool, onToolDragStart: (tool: EditorTool) => void) {
   event.dataTransfer.effectAllowed = 'copy';
   event.dataTransfer.setData('application/x-bitflow-tool', JSON.stringify(tool));
+  onToolDragStart(tool);
 }
 
-export function Library({ customComponents, selectedTool, onSelectTool }: LibraryProps) {
+export function Library({ customComponents, selectedTool, onSelectTool, onToolDragStart, onToolDragEnd }: LibraryProps) {
   return (
     <aside className="editor-panel library-panel">
       <div className="panel-heading">
@@ -44,7 +47,8 @@ export function Library({ customComponents, selectedTool, onSelectTool }: Librar
             className={`tool-tile ${isBuiltInTool(selectedTool, template.type) ? 'is-selected' : ''}`}
             type="button"
             draggable
-            onDragStart={(event) => startToolDrag(event, { kind: 'builtin', type: template.type })}
+            onDragStart={(event) => startToolDrag(event, { kind: 'builtin', type: template.type }, onToolDragStart)}
+            onDragEnd={onToolDragEnd}
             onClick={() => onSelectTool({ kind: 'builtin', type: template.type })}
           >
             <span>{template.type === 'INPUT' ? 'I' : template.type === 'OUTPUT' ? 'O' : template.type}</span>
@@ -68,7 +72,8 @@ export function Library({ customComponents, selectedTool, onSelectTool }: Librar
               className={`tool-tile custom-tool ${isCustomTool(selectedTool, component.id) ? 'is-selected' : ''}`}
               type="button"
               draggable
-              onDragStart={(event) => startToolDrag(event, { kind: 'custom', componentId: component.id })}
+              onDragStart={(event) => startToolDrag(event, { kind: 'custom', componentId: component.id }, onToolDragStart)}
+              onDragEnd={onToolDragEnd}
               onClick={() => onSelectTool({ kind: 'custom', componentId: component.id })}
             >
               <span>C</span>
