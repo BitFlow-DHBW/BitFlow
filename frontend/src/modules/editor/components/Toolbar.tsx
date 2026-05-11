@@ -19,7 +19,7 @@ interface ToolbarProps {
 }
 
 const modes: Array<{ value: EditorMode; label: string; description: string }> = [
-  { value: 'edit', label: 'Edit', description: 'Platzieren, verschieben, verbinden, loeschen' },
+  { value: 'edit', label: 'Edit', description: 'Platzieren, verschieben, verbinden, löschen' },
   { value: 'simulate', label: 'Simulate', description: 'Inputs schalten' },
 ];
 
@@ -43,7 +43,7 @@ export function Toolbar({
   return (
     <header className="editor-toolbar">
       <div className="toolbar-title">
-        <button className="icon-button" type="button" onClick={onBack} aria-label="Zur Projektuebersicht">
+        <button className="icon-button" type="button" onClick={onBack} aria-label="Zur Projektübersicht">
           {'<'}
         </button>
         <div>
@@ -74,7 +74,7 @@ export function Toolbar({
           Redo
         </button>
         <button className="ghost-button" type="button" onClick={onDeleteSelected} disabled={!canDelete}>
-          Loeschen
+          Löschen
         </button>
         <button className="secondary-button" type="button" onClick={onAddNetLabel}>
           Net Label

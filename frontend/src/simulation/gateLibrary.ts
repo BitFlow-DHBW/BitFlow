@@ -105,7 +105,7 @@ export const GATE_TEMPLATES: GateTemplate[] = [
   {
     type: 'DFF',
     label: 'D Flip-Flop',
-    description: 'Uebernimmt D bei steigender CLK-Flanke',
+    description: 'Übernimmt D bei steigender CLK-Flanke',
     width: 5,
     height: 4,
     inputs: 2,

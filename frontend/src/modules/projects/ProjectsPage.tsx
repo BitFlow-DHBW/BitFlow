@@ -46,7 +46,7 @@ export function ProjectsPage() {
         <div>
           <p className="eyebrow">Projektverwaltung</p>
           <h1>Schaltungen und Workspaces</h1>
-          <p>Projekte werden aktuell lokal gespeichert. Die Service-Schicht ist fuer REST/ASP.NET vorbereitet.</p>
+          <p>Projekte werden aktuell lokal gespeichert. Die Service-Schicht ist für REST/ASP.NET vorbereitet.</p>
         </div>
       </section>
 
@@ -55,7 +55,7 @@ export function ProjectsPage() {
           {projects.length === 0 ? (
             <div className="empty-state">
               <h2>Noch keine Projekte</h2>
-              <p>Erstelle links dein erstes Projekt und oeffne direkt den Editor.</p>
+              <p>Erstelle links dein erstes Projekt und öffne direkt den Editor.</p>
             </div>
           ) : (
             projects.map((project) => (
@@ -71,10 +71,10 @@ export function ProjectsPage() {
                 </div>
                 <div className="card-actions">
                   <button className="primary-button" type="button" onClick={() => navigate(`/editor/${project.id}`)}>
-                    Oeffnen
+                    Öffnen
                   </button>
                   <button className="ghost-button danger" type="button" onClick={() => void handleDelete(project.id)}>
-                    Loeschen
+                    Löschen
                   </button>
                 </div>
               </article>
