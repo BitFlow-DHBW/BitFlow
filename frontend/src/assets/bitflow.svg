@@ -1,0 +1,26 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">
+    Logisim Online Icon
+  </title>
+  <desc id="desc">
+    Minimalistisches Icon mit Logikgatter und digitalem Look
+  </desc>
+  <!-- Hintergrund -->
+    <rect x="0" y="0" width="256" height="256" rx="40" fill="#111318" />
+    <!-- Eingangsleitungen -->
+      <line x1="40" y1="96" x2="96" y2="96" stroke="#E5E7EB" stroke-width="10" stroke-linecap="round" />
+      <line x1="40" y1="160" x2="96" y2="160" stroke="#E5E7EB" stroke-width="10" stroke-linecap="round" />
+      <!-- AND-Gatter-Körper (vereinfachte Form) -->
+        <path d="M96 64 H144 C176 64 192 80 192 128 C192 176 176 192 144 192 H96 Z" fill="none" stroke="#22C55E" stroke-width="10" stroke-linejoin="round" />
+        <!-- Ausgangsleitung -->
+          <line x1="192" y1="128" x2="224" y2="128" stroke="#E5E7EB" stroke-width="10" stroke-linecap="round" />
+          <!-- Kleiner „Online“-Indikator (Punkt) -->
+            <circle cx="210" cy="72" r="8" fill="#22C55E" />
+            <!-- Untere digitale Leiste -->
+              <rect x="64" y="200" width="128" height="28" rx="6" fill="#050816" />
+              <!-- Stilisiertes 1|0-Muster -->
+                <rect x="76" y="206" width="16" height="16" fill="#22C55E" />
+                <rect x="104" y="206" width="16" height="16" fill="#4B5563" />
+                <rect x="132" y="206" width="16" height="16" fill="#22C55E" />
+                <rect x="160" y="206" width="16" height="16" fill="#4B5563" />
+              </svg>
