@@ -3,14 +3,13 @@ import { GateComp } from './GateComp';
 import { WireComp, wireBranchPoint } from './WireComp';
 import { isInteractiveSourceGate } from '../../../schematic/symbolGeometry';
 import { GRID_SIZE, snapToGrid } from '../../../simulation/gateLibrary';
-import { createPinLookup, getWirePoints, normalizeWireEndpoint, resolveWireEndpoint } from '../../../simulation/wireUtils';
+import { createPinLookup, getWirePoints, normalizeWireEndpoint } from '../../../simulation/wireUtils';
 import type {
   Circuit,
   DragState,
   EditorMode,
   EditorTool,
   Gate,
-  Pin,
   Point,
   SignalState,
   WireDraft,

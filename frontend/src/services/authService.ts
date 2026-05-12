@@ -10,8 +10,12 @@ function hashPassword(password: string): string {
 }
 
 function publicUser(user: StoredUser): User {
-  const { passwordHash: _passwordHash, ...safeUser } = user;
-  return safeUser;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+  };
 }
 
 function readUsers(): StoredUser[] {

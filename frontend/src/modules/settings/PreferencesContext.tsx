@@ -39,6 +39,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePreferences() {
   const context = useContext(PreferencesContext);
   if (!context) {

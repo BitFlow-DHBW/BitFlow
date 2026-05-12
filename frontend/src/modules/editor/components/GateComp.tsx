@@ -1,4 +1,4 @@
-import { gateRectPx, pinPosition } from '../../../simulation/gateLibrary';
+import { pinPosition } from '../../../simulation/gateLibrary';
 import { componentSymbolSvg } from '../../../schematic/svgPrimitives';
 import type { EditorTool, Gate, Pin, SignalState } from '../../../types/circuit';
 
@@ -25,7 +25,6 @@ export function GateComp({
   onPinPointerDown,
   onPinPointerUp,
 }: GateCompProps) {
-  const { width, height } = gateRectPx(gate);
   const isSourceOn = ['INPUT', 'SWITCH', 'CLOCK'].includes(gate.type) && Boolean(signals[gate.id]);
   const isIndicatorOn = ['OUTPUT', 'LED'].includes(gate.type) && Boolean(signals[gate.id]);
   const pins = [...gate.inputs, ...gate.outputs];
@@ -38,7 +37,7 @@ export function GateComp({
     >
       <g
         className={`schematic-symbol ${isSourceOn || isIndicatorOn ? 'is-live' : ''}`}
-        dangerouslySetInnerHTML={{ __html: componentSymbolSvg(gate, isSourceOn || isIndicatorOn) }}
+        dangerouslySetInnerHTML={{ __html: componentSymbolSvg(gate) }}
       />
 
       {pins.map((pin) => {

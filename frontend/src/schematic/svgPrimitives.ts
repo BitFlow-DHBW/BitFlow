@@ -42,7 +42,7 @@ function blockSvg(gate: Gate, operator?: string): string {
   `;
 }
 
-export function componentSymbolSvg(gate: Gate, _active = false): string {
+export function componentSymbolSvg(gate: Gate): string {
   switch (gate.type) {
     case 'AND':
       return blockSvg(gate, 'AND');

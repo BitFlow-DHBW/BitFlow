@@ -70,7 +70,7 @@ function evaluateFlipFlop(gate: Gate, inputValues: boolean[], state: SignalState
     if (gate.type === 'DFF') {
       nextQ = Boolean(inputValues[0]);
     } else if (gate.type === 'TFF') {
-      nextQ = Boolean(inputValues[0]) ? !previousQ : previousQ;
+      nextQ = inputValues[0] ? !previousQ : previousQ;
     } else if (gate.type === 'JKFF') {
       const j = Boolean(inputValues[0]);
       const k = Boolean(inputValues[1]);

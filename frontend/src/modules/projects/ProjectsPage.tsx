@@ -66,8 +66,8 @@ export function ProjectsPage() {
                   <p>{project.description || 'Keine Beschreibung hinterlegt.'}</p>
                 </div>
                 <div className="project-stats">
-                  <span>{project.circuit.gates.length} Gates</span>
-                  <span>{project.circuit.wires.length} Wires</span>
+                  <span>{project.circuit.gates.length} Gatter</span>
+                  <span>{project.circuit.wires.length} Kabel</span>
                 </div>
                 <div className="card-actions">
                   <button className="primary-button" type="button" onClick={() => navigate(`/editor/${project.id}`)}>

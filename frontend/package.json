@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "lint:complexity": "eslint -c eslint.complexity.config.js \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
@@ -35,6 +36,7 @@
     "globals": "^16.4.0",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
     "vite": "npm:rolldown-vite@7.1.14",
     "vitest": "^4.1.6"
   },

@@ -1,6 +1,8 @@
 import { snapToGrid } from '../../../simulation/gateLibrary';
 import type { Point } from '../../../types/circuit';
 
+/* eslint-disable react-refresh/only-export-components */
+
 interface WireCompProps {
   from: Point;
   to: Point;
