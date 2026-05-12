@@ -1,192 +1,324 @@
-import { useEffect, useState } from "react";
-import WireComp from "./canvasElements/WireComp";
-import GateComp from "./canvasElements/GateComp";
-import { createNewWire, type Wire } from "../types/Wire";
-import { newGate, rotationNext, type Gate } from "../types/Gate";
-import { canvasLeft, canvasTop, canvasWidth, canvasHeight, gridSize } from "./constants";
-import { calculateWireGroups } from "./WireGroup";
-import type { WireGroup } from "../types/WireGroup";
-import type { Input } from "../types/Input";
-import type { Output } from "../types/Output";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { GateComp } from './GateComp';
+import { WireComp, wireBranchPoint } from './WireComp';
+import { isInteractiveSourceGate } from '../../../schematic/symbolGeometry';
+import { GRID_SIZE, snapToGrid } from '../../../simulation/gateLibrary';
+import { createPinLookup, getWirePoints, normalizeWireEndpoint, resolveWireEndpoint } from '../../../simulation/wireUtils';
+import type {
+  Circuit,
+  DragState,
+  EditorMode,
+  EditorTool,
+  Gate,
+  Pin,
+  Point,
+  SignalState,
+  WireDraft,
+  WireEndpoint,
+} from '../../../types/circuit';
 
-import { createCanvasHandlers } from "./canvasHandlers";
+interface CanvasProps {
+  circuit: Circuit;
+  signals: SignalState;
+  mode: EditorMode;
+  selectedTool: EditorTool | null;
+  selectedGateId: string | null;
+  selectedWireId: string | null;
+  dragState: DragState | null;
+  wireDraft: WireDraft | null;
+  draggedTool: EditorTool | null;
+  toolPreviewGate: Gate | null;
+  onCanvasClick: (point: Point) => void;
+  onToolDrop: (tool: EditorTool, point: Point) => void;
+  onToolDragPreview: (point: Point) => void;
+  onToolDragCancel: () => void;
+  onGateDragStart: (gate: Gate, point: Point) => void;
+  onDragMove: (point: Point) => void;
+  onDragEnd: () => void;
+  onSelectGate: (gateId: string | null) => void;
+  onSelectWire: (wireId: string | null) => void;
+  onWireStart: (endpoint: WireEndpoint, point: Point) => void;
+  onWireEnd: (endpoint: WireEndpoint) => void;
+  onWirePreview: (point: Point) => void;
+  onWireCancel: () => void;
+  onToggleInput: (gateId: string) => void;
+}
 
-function Canvas() {
-  const useDotPattern: boolean = false;
-  const [newWireId, setNewWireId] = useState<number>(0);
-  const [cacheWires, setCacheWires] = useState<Wire[]>([]);
-  const [wires, setWires] = useState<Wire[]>([]);
-  const [wireGroups, setWireGroups] = useState<WireGroup[]>([]);
-  const [newGateId, setNewGateId] = useState<number>(0);
-  const [gates, setGates] = useState<Gate[]>([]);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [oldMousePosition, setOldMousePosition] = useState({ x: -1, y: -1 });
+const FALLBACK_WIDTH = 1280;
+const FALLBACK_HEIGHT = 760;
 
-  const [gateDraggingId, setGateDraggingId] = useState<number[] | null>(null);
-  const [wireDraggingId, setWireDraggingId] = useState<
-    { wireId: number; type?: "input" | "output"; nodeId?: number }[] | null
-  >(null);
-  const [wireDraggingStart, setWireDraggingStart] = useState<
-    Map<number, { x: number; y: number }>
-  >(new Map());
-
-  const gatePinConfig: Record<string, { inputs: number; outputs: number }> = {
-    AND: { inputs: 4, outputs: 1 },
-    OR: { inputs: 2, outputs: 1 },
-    XOR: { inputs: 3, outputs: 1 },
-    FlipFlop: { inputs: 1, outputs: 1 },
-    Add: { inputs: 3, outputs: 2 },
-  };
+export function Canvas({
+  circuit,
+  signals,
+  mode,
+  selectedTool,
+  selectedGateId,
+  selectedWireId,
+  dragState,
+  wireDraft,
+  draggedTool,
+  toolPreviewGate,
+  onCanvasClick,
+  onToolDrop,
+  onToolDragPreview,
+  onToolDragCancel,
+  onGateDragStart,
+  onDragMove,
+  onDragEnd,
+  onSelectGate,
+  onSelectWire,
+  onWireStart,
+  onWireEnd,
+  onWirePreview,
+  onWireCancel,
+  onToggleInput,
+}: CanvasProps) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const gatePointerRef = useRef<{ gateId: string; point: Point; moved: boolean; toggleOnRelease: boolean } | null>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: FALLBACK_WIDTH, height: FALLBACK_HEIGHT });
 
   useEffect(() => {
-    const newGroups = calculateWireGroups(cacheWires, gates);
-    setWireGroups(newGroups);
+    const svg = svgRef.current;
+    if (!svg) return undefined;
 
-    const newWires = cacheWires.map((wire: Wire) => {
-      const group = newGroups.find((wireGroup: WireGroup) =>
-        wireGroup.wires.find((wireInGroup: Wire) => wireInGroup.id === wire.id)
-      );
-      if (!group) return wire;
-      if (group.state === wire.state) return wire;
+    const updateSize = () => {
+      const rect = svg.getBoundingClientRect();
+      setCanvasSize({
+        width: Math.max(1, Math.round(rect.width)),
+        height: Math.max(1, Math.round(rect.height)),
+      });
+    };
 
-      return {
-        ...wire,
-        state: wire.state ?? group.state,
-      };
-    });
-    setWires(newWires);
-  }, [cacheWires, gates]);
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
 
-  function updateWireStart(wireId: number, x: number, y: number) {
-    setWireDraggingStart((prev) => {
-      if (prev.has(wireId)) return prev;
+  const pinMap = useMemo(() => createPinLookup(circuit), [circuit]);
 
-      const next = new Map(prev);
-      next.set(wireId, { x, y });
+  function getPoint(event: React.PointerEvent<SVGElement> | React.MouseEvent<SVGElement> | React.DragEvent<SVGElement>): Point {
+    const svg = svgRef.current;
+    const matrix = svg?.getScreenCTM();
+    if (!svg || !matrix) return { x: 0, y: 0 };
 
-      return next;
-    });
+    const svgPoint = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    return {
+      x: Math.max(0, Math.min(canvasSize.width, svgPoint.x)),
+      y: Math.max(0, Math.min(canvasSize.height, svgPoint.y)),
+    };
   }
 
-  function resetWireDragging() {
-    setWireDraggingId(null);
-    setWireDraggingStart(new Map());
+  function readDraggedTool(event: React.DragEvent<SVGSVGElement>): EditorTool | null {
+    const raw = event.dataTransfer.getData('application/x-bitflow-tool');
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw) as EditorTool;
+      if (parsed.kind === 'builtin' || parsed.kind === 'custom') return parsed;
+      return null;
+    } catch {
+      return null;
+    }
   }
 
-  const getGridCoords = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.round((e.clientX - rect.left) / gridSize);
-    const y = Math.round((e.clientY - rect.top) / gridSize);
-    return { x, y };
-  };
-
-
-  const handlers = createCanvasHandlers({
-    gridSize,
-
-    values: {
-      wires,
-      cacheWires,
-      wireGroups,
-      gates,
-      newWireId,
-      offset,
-      oldMousePosition,
-      gateDraggingId,
-      wireDraggingId,
-      wireDraggingStart,
-    },
-
-    setters: {
-      setNewWireId,
-      setCacheWires,
-      setWires,
-      setWireGroups,
-      setGates,
-      setOffset,
-      setOldMousePosition,
-      setGateDraggingId,
-      setWireDraggingId,
-      setWireDraggingStart,
-    },
-
-    helpers: {
-      getGridCoords,
-      gatePinConfig,
-      updateWireStart,
-      resetWireDragging,
-    },
-
-  
-    createGate: newGate
-  });
-
+  function startWire(event: React.PointerEvent<SVGElement>, endpoint: WireEndpoint, point: Point) {
+    if (mode !== 'edit') return;
+    event.stopPropagation();
+    onSelectGate(null);
+    onWireStart(endpoint, point);
+  }
 
   return (
     <svg
-      id="svg_canvas"
-      className="absolute"
-      style={{ left: canvasLeft, top: canvasTop }}
-      width={canvasWidth}
-      height={canvasHeight}
-      tabIndex={0}
-      onDrop={handlers.handleDrop}
-      onDragOver={handlers.handleDragOver}
-      onMouseMove={handlers.handleMouseMove}
-      onMouseDown={handlers.handleMouseDown}
-      onMouseUp={handlers.handleMouseUp}
-      onKeyDown={handlers.handleKeyDown}
+      ref={svgRef}
+      className="editor-canvas"
+      viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`}
+      role="img"
+      aria-label="Schaltungseditor"
+      onDragOver={(event) => {
+        if (mode === 'simulate') return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        if (draggedTool) onToolDragPreview(getPoint(event));
+      }}
+      onDragLeave={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const isOutside =
+          event.clientX <= rect.left || event.clientX >= rect.right || event.clientY <= rect.top || event.clientY >= rect.bottom;
+        if (isOutside) onToolDragCancel();
+      }}
+      onDrop={(event) => {
+        if (mode === 'simulate') return;
+        event.preventDefault();
+        const tool = readDraggedTool(event) ?? draggedTool;
+        onToolDragCancel();
+        if (!tool) return;
+        onSelectGate(null);
+        onSelectWire(null);
+        onToolDrop(tool, getPoint(event));
+      }}
+      onPointerMove={(event) => {
+        const point = getPoint(event);
+        if (gatePointerRef.current) {
+          const distanceX = Math.abs(point.x - gatePointerRef.current.point.x);
+          const distanceY = Math.abs(point.y - gatePointerRef.current.point.y);
+          gatePointerRef.current.moved = gatePointerRef.current.moved || distanceX > 4 || distanceY > 4;
+        }
+        if (mode === 'edit' && dragState) onDragMove(point);
+        if (mode === 'edit' && wireDraft) onWirePreview({ x: snapToGrid(point.x), y: snapToGrid(point.y) });
+      }}
+      onPointerUp={(event) => {
+        const pointer = gatePointerRef.current;
+        if (mode === 'simulate' && pointer?.toggleOnRelease && !pointer.moved) {
+          onToggleInput(pointer.gateId);
+        }
+        gatePointerRef.current = null;
+        onDragEnd();
+        if (mode === 'edit' && wireDraft) {
+          onWireEnd({ kind: 'point', point: getPoint(event) });
+        }
+      }}
+      onPointerLeave={() => {
+        gatePointerRef.current = null;
+        onDragEnd();
+        if (wireDraft) onWireCancel();
+      }}
+      onClick={(event) => {
+        const target = event.target as SVGElement;
+        if (target.dataset.role !== 'canvas-grid' && target !== event.currentTarget) return;
+        const point = getPoint(event);
+        onSelectGate(null);
+        onSelectWire(null);
+        onCanvasClick(point);
+      }}
     >
       <defs>
-        <pattern
-          id="canvas_pattern"
-          x="0"
-          y="0"
-          width={gridSize}
-          height={gridSize}
-          patternUnits="userSpaceOnUse"
-        >
-          {useDotPattern ? (
-            <>
-              <circle id="gridcircletl" r="1" cx="0" cy="0" fill="grey" stroke="grey" strokeWidth="0.5" />
-              <circle id="gridcirclebl" r="1" cx="0" cy={gridSize} fill="grey" stroke="grey" strokeWidth="0.5" />
-              <circle id="gridcircletr" r="1" cx={gridSize} cy="0" fill="grey" stroke="grey" strokeWidth="0.5" />
-              <circle id="gridcirclebr" r="1" cx={gridSize} cy={gridSize} fill="grey" stroke="grey" strokeWidth="0.5" />
-            </>
-          ) : (
-            <rect width="100%" height="100%" fill="none" stroke="grey" strokeWidth="0.5" />
-          )}
+        <pattern id="editor-grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
+          <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} className="grid-line" fill="none" />
         </pattern>
       </defs>
 
-      <rect width="100%" height="100%" x="0" y="0" stroke="black" strokeWidth="2" fill="url(#canvas_pattern)" />
+      <rect data-role="canvas-grid" width={canvasSize.width} height={canvasSize.height} fill="url(#editor-grid)" />
 
-      <g id="wire_group">
-        {wires.map((wire: Wire) => (
-          <WireComp
-            wire={wire}
-            key={wire.id}
-            remove={() => handlers.deleteWire(wire.id)}
-            onMouseDownNode={(e) => handlers.handleMouseDownNode(e)}
-          />
-        ))}
-      </g>
+      {circuit.wires.map((wire) => {
+        const points = getWirePoints(wire, pinMap);
+        if (!points) return null;
 
-      <g id="gate_group">
-        {gates.map((gate: Gate, index: number) => (
-          <GateComp
-            gate={gate}
-            key={index}
-            onMouseDownGate={(e: any) => handlers.handleMouseDownGate(e, index)}
-            onMouseDownInput={(e: any) => handlers.handleMouseDownInput(e)}
-          />
-        ))}
-      </g>
+        const fromEndpoint = normalizeWireEndpoint(wire, 'from');
+        const toEndpoint = normalizeWireEndpoint(wire, 'to');
+        const branchPoint = wireBranchPoint(points.from, points.to);
 
-      <g id="input_group"></g>
-      <g id="output_group"></g>
+        return (
+          <g key={wire.id}>
+            <WireComp
+              from={points.from}
+              to={points.to}
+              active={Boolean(signals[wire.sourcePinId ?? ''])}
+              selected={selectedWireId === wire.id}
+              onSelect={(event) => {
+                if (mode !== 'edit') return;
+                event.stopPropagation();
+                onSelectGate(null);
+                onSelectWire(wire.id);
+              }}
+            />
+            {mode === 'edit' && (
+              <>
+                <circle
+                  className="wire-handle"
+                  cx={branchPoint.x}
+                  cy={branchPoint.y}
+                  r={7}
+                  onPointerDown={(event) => startWire(event, { kind: 'wire', wireId: wire.id, point: branchPoint }, branchPoint)}
+                />
+                {fromEndpoint?.kind === 'point' && (
+                  <circle
+                    className="wire-endpoint"
+                    cx={points.from.x}
+                    cy={points.from.y}
+                    r={7}
+                    onPointerDown={(event) => startWire(event, fromEndpoint, points.from)}
+                  />
+                )}
+                {toEndpoint?.kind === 'point' && (
+                  <circle
+                    className="wire-endpoint"
+                    cx={points.to.x}
+                    cy={points.to.y}
+                    r={7}
+                    onPointerDown={(event) => startWire(event, toEndpoint, points.to)}
+                  />
+                )}
+              </>
+            )}
+          </g>
+        );
+      })}
+
+      {wireDraft && <WireComp from={wireDraft.from} to={wireDraft.to} preview />}
+
+      {(circuit.labels ?? []).map((label) => (
+        <text key={label.id} className="canvas-net-label" x={label.x} y={label.y}>
+          {label.text}
+        </text>
+      ))}
+
+      {(circuit.annotations ?? []).map((annotation) => (
+        <text key={annotation.id} className="canvas-annotation" x={annotation.x} y={annotation.y}>
+          {annotation.text}
+        </text>
+      ))}
+
+      {circuit.gates.map((gate) => (
+        <GateComp
+          key={gate.id}
+          gate={gate}
+          signals={signals}
+          selected={gate.id === selectedGateId}
+          selectedTool={mode === 'edit' ? selectedTool : null}
+          onGatePointerDown={(event, selectedGate) => {
+            event.stopPropagation();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            const point = getPoint(event);
+            gatePointerRef.current = {
+              gateId: selectedGate.id,
+              point,
+              moved: false,
+              toggleOnRelease: mode === 'simulate' && event.button === 0 && isInteractiveSourceGate(selectedGate),
+            };
+            onSelectGate(selectedGate.id);
+            onSelectWire(null);
+            if (mode === 'edit') onGateDragStart(selectedGate, point);
+          }}
+          onGateClick={(event) => {
+            event.stopPropagation();
+          }}
+          onPinPointerDown={(event, pin) => {
+            const entry = pinMap.get(pin.id);
+            if (entry) startWire(event, { kind: 'pin', pinId: pin.id }, entry.point);
+          }}
+          onPinPointerUp={(event, pin) => {
+            if (mode !== 'edit' || !wireDraft) return;
+            event.stopPropagation();
+            onWireEnd({ kind: 'pin', pinId: pin.id });
+          }}
+        />
+      ))}
+
+      {toolPreviewGate && (
+        <GateComp
+          gate={toolPreviewGate}
+          signals={{}}
+          selected={false}
+          selectedTool={null}
+          preview
+          onGatePointerDown={(event) => event.stopPropagation()}
+          onGateClick={(event) => event.stopPropagation()}
+          onPinPointerDown={(event) => event.stopPropagation()}
+          onPinPointerUp={(event) => event.stopPropagation()}
+        />
+      )}
     </svg>
   );
 }
-
-export default Canvas;
