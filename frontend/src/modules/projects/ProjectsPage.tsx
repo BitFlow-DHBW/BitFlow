@@ -46,7 +46,7 @@ export function ProjectsPage() {
         <div>
           <p className="eyebrow">Projektverwaltung</p>
           <h1>Schaltungen und Workspaces</h1>
-          <p>Projekte werden aktuell lokal gespeichert. Die Service-Schicht ist für REST/ASP.NET vorbereitet.</p>
+          <p>Projekte werden aktuell lokal gespeichert..</p>
         </div>
       </section>
 

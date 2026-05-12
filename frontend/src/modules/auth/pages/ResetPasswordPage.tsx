@@ -25,7 +25,7 @@ export function ResetPasswordPage() {
   return (
     <AuthPageShell
       title="Passwort zurücksetzen"
-      subtitle="Der Flow ist vorbereitet und kann später an einen echten Mail-Service angeschlossen werden."
+      subtitle="Der Workflow ist vorbereitet und kann später an einen echten Mail-Service angeschlossen werden."
       footer={<Link to="/login">Zurück zum Login</Link>}
     >
       <form className="stack-form" onSubmit={handleSubmit}>

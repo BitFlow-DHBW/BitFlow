@@ -65,7 +65,7 @@ export function LandingPage() {
           </article>
           <article>
             <h3>Projektverwaltung</h3>
-            <p>Schaltungen werden als Projekte lokal gespeichert und können später über eine API synchronisiert werden.</p>
+            <p>Schaltungen werden aktuell als Projekte lokal gespeichert.</p>
           </article>
           <article>
             <h3>Erweiterbare Architektur</h3>

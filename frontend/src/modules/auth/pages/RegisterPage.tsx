@@ -26,7 +26,7 @@ export function RegisterPage() {
   return (
     <AuthPageShell
       title="BitFlow Konto erstellen"
-      subtitle="Erstelle deinen lokalen Workspace. Die Services sind bereits für eine spätere API vorbereitet."
+      subtitle="Erstelle deinen lokalen Workspace."
       footer={
         <span>
           Bereits registriert? <Link to="/login">Einloggen</Link>

@@ -48,7 +48,7 @@ export function SettingsPage() {
       <section className="page-header">
         <p className="eyebrow">Einstellungen</p>
         <h1>Workspace Preferences</h1>
-        <p>Lokale Einstellungen, die später pro Nutzer über ein Backend synchronisiert werden können.</p>
+        <p>Lokale Einstellungen, die später pro Nutzer über ein Backend synchronisiert werden.</p>
       </section>
 
       <section className="settings-panel">
