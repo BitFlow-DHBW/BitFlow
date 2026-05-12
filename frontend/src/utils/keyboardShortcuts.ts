@@ -23,7 +23,7 @@ export function normalizeKeyboardEvent(event: KeyboardLikeEvent): string {
 export function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tagName = target.tagName.toLowerCase();
-  return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
+  return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || Boolean(target.isContentEditable);
 }
 
 export function shortcutMatches(event: KeyboardLikeEvent, shortcut: string): boolean {
