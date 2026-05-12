@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "lint:complexity": "eslint -c eslint.complexity.config.js \"src/**/*.{ts,tsx}\" --max-warnings=0",
+    "metrics:rfc": "node ./scripts/metrics/rfc.cjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
