@@ -37,7 +37,7 @@
    3.1.8 [Volume Testing](#318-volume-testing)  
    3.1.9 [Security and Access Control Testing](#319-security-and-access-control-testing)  
    3.1.10 [Failover and Recovery Testing](#3110-failover-and-recovery-testing)  
-   3.1.11 [Configuration Testing](#3111-configuration-testing) 
+   3.1.11 [Configuration Testing](#3111-configuration-testing)  
    3.2 [Tools](#32-tools)  
 
 4. [Resources](#4-resources)  
