@@ -1,1 +1,0 @@
-/* Nachdem die LogicEngine die Ausgängen einzelner Bausteine evauliert hat, müssen die Eingänge der Bausteine neu berechnet werden, basierend auf den neu berechneten Ausgängen von anderen Bausteinen, die eventuell die Eingänge anderer Bausteine darstellen*/

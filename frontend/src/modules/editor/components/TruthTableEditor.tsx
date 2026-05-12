@@ -51,11 +51,11 @@ export function TruthTableEditor({ inputLabels, outputLabels, rows, onChange }: 
         <table>
           <thead>
             <tr>
-              {inputLabels.map((label) => (
-                <th key={label}>{label}</th>
+              {inputLabels.map((label, index) => (
+                <th key={`input-${index}-${label}`}>{label}</th>
               ))}
-              {outputLabels.map((label) => (
-                <th key={label}>{label}</th>
+              {outputLabels.map((label, index) => (
+                <th key={`output-${index}-${label}`}>{label}</th>
               ))}
             </tr>
           </thead>

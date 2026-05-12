@@ -1,1 +1,0 @@
-/* Start und Stop der Simulation, hier werden LogicEngine.ts und SignalEvaluator.ts etc. aufgerufen */
