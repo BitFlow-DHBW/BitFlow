@@ -3,6 +3,8 @@ name: Build and Deploy
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -69,7 +71,12 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build Docker image for CI
+        working-directory: .
+        run: docker build -t bitflow:test .
+
       - name: Login to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -77,6 +84,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push multi-arch image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -86,9 +94,45 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  test-deploy:
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build test environment image
+        run: docker build -t bitflow:test .
+
+      - name: Start app in test environment
+        run: docker run --detach --rm --name bitflow-test -p 8080:80 bitflow:test
+
+      - name: Check app health
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://localhost:8080/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs bitflow-test
+          exit 1
+
+      - name: Stop test environment
+        if: always()
+        run: docker stop bitflow-test
+
   deploy:
     runs-on: self-hosted
-    needs: build
+    needs:
+      - test
+      - build
+      - test-deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Pull new image
