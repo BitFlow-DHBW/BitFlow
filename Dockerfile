@@ -1,5 +1,5 @@
 # --- Build Stage ---
-FROM node:20-bullseye AS build
+FROM node:26-bullseye AS build
 WORKDIR /app
 
 COPY ./frontend/package*.json ./
