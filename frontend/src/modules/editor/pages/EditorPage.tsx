@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
+import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
 import { Inspector } from '../components/Inspector';
 import { Library } from '../components/Library';
 import { SignalViewer } from '../components/SignalViewer';
@@ -141,6 +142,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   const [simulationMemory, setSimulationMemory] = useState<SignalState>({});
   const [customComponents, setCustomComponents] = useState<CustomComponent[]>(project.customComponents);
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
 
   useEffect(() => {
@@ -426,7 +428,9 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     });
   }
 
-  function handleCreateCustomComponent(component: CustomComponent) {
+  function handleAddCustomComponent(component: CustomComponent) {
+    if (customComponents.some((entry) => entry.id === component.id)) return;
+
     const nextComponents = [...customComponents, component];
     setCustomComponents(nextComponents);
     commitCircuit({
@@ -459,6 +463,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         onSave={() => void handleSave()}
         onDeleteSelected={handleDeleteSelected}
         onOpenCustomDialog={() => setCustomDialogOpen(true)}
+        onOpenImportDialog={() => setImportDialogOpen(true)}
         onAddAnnotation={handleAddAnnotation}
       />
 
@@ -520,7 +525,14 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         circuit={history.state}
         open={customDialogOpen}
         onClose={() => setCustomDialogOpen(false)}
-        onCreate={handleCreateCustomComponent}
+        onCreate={handleAddCustomComponent}
+      />
+      <CustomComponentImportDialog
+        currentProjectId={project.id}
+        existingComponentIds={new Set(customComponents.map((component) => component.id))}
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={handleAddCustomComponent}
       />
     </main>
   );

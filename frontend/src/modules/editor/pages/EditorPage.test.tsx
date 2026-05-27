@@ -10,6 +10,7 @@ import { EditorPage } from './EditorPage';
 
 const projectMocks = vi.hoisted(() => ({
   getProject: vi.fn(),
+  listProjects: vi.fn(),
   updateProject: vi.fn(),
 }));
 
@@ -35,6 +36,7 @@ function renderEditor(projectId = 'project_editor') {
 describe('EditorPage', () => {
   beforeEach(() => {
     projectMocks.getProject.mockReset();
+    projectMocks.listProjects.mockReset();
     projectMocks.updateProject.mockReset();
   });
 
@@ -104,9 +106,34 @@ describe('EditorPage', () => {
     expect(screen.getByText('Kommentar A')).toBeInTheDocument();
     expect(promptSpy).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole('button', { name: 'Baustein' }));
+    await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
     expect(screen.getByRole('button', { name: /Custom Gate/ })).toBeInTheDocument();
+
+    projectMocks.listProjects.mockResolvedValueOnce([
+      savedProject,
+      testProject({
+        id: 'project_other',
+        name: 'Other Blocks',
+        customComponents: [
+          {
+            id: 'custom_imported',
+            name: 'Imported Gate',
+            inputLabels: ['A'],
+            outputLabels: ['Y'],
+            truthTable: [
+              { inputs: [false], outputs: [false] },
+              { inputs: [true], outputs: [true] },
+            ],
+            createdAt: '2026-05-01T10:00:00.000Z',
+          },
+        ],
+      }),
+    ]);
+    await user.click(screen.getByRole('button', { name: 'Baustein importieren' }));
+    expect(await screen.findByRole('heading', { name: 'Other Blocks' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hinzufuegen' }));
+    expect(screen.getByRole('button', { name: /Imported Gate/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(screen.getByText('Gespeichert')).toBeInTheDocument());

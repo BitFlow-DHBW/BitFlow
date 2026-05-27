@@ -1217,6 +1217,51 @@ button:disabled {
   color: var(--muted);
 }
 
+.component-import-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.component-import-group {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.component-import-group h3 {
+  margin: 0;
+}
+
+.component-import-items {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.component-import-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.7rem;
+}
+
+.component-import-row > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.component-import-row strong,
+.component-import-row small {
+  overflow-wrap: anywhere;
+}
+
+.component-import-row small {
+  color: var(--muted);
+}
+
 .truth-table-editor {
   display: grid;
   gap: 0.8rem;

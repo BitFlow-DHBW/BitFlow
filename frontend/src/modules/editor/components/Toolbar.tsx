@@ -14,6 +14,7 @@ interface ToolbarProps {
   onSave: () => void;
   onDeleteSelected: () => void;
   onOpenCustomDialog: () => void;
+  onOpenImportDialog: () => void;
   onAddAnnotation: () => void;
 }
 
@@ -36,6 +37,7 @@ export function Toolbar({
   onSave,
   onDeleteSelected,
   onOpenCustomDialog,
+  onOpenImportDialog,
   onAddAnnotation,
 }: ToolbarProps) {
   return (
@@ -78,7 +80,10 @@ export function Toolbar({
           Kommentar
         </button>
         <button className="secondary-button" type="button" onClick={onOpenCustomDialog}>
-          Baustein
+          Baustein erstellen
+        </button>
+        <button className="secondary-button" type="button" onClick={onOpenImportDialog}>
+          Baustein importieren
         </button>
         <button className="primary-button" type="button" onClick={onSave}>
           Speichern
