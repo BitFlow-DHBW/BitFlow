@@ -1,10 +1,7 @@
 import { createGate, createStarterCircuit, normalizeBuiltInGateType } from '../simulation/gateLibrary';
-import { readStorage, writeStorage } from '../storage/localStorage';
+import { ApiError, apiService } from './apiService';
 import type { Circuit, CustomComponent, Gate, Pin, SignalState } from '../types/circuit';
 import type { Project } from '../types/domain';
-import { createId, nowIso } from '../utils/id';
-
-const PROJECTS_KEY = 'bitflow.projects';
 
 const DEPRECATED_DEFAULT_LABELS: Partial<Record<Gate['type'], string>> = {
   SWITCH: 'Switch',
@@ -61,95 +58,72 @@ function normalizeInputSignals(project: Project): SignalState {
 }
 
 function normalizeProject(project: Project): Project {
+  const customComponents = project.customComponents ?? project.circuit.customComponents ?? [];
+
   return {
     ...project,
+    customComponents,
     inputSignals: normalizeInputSignals(project),
     circuit: {
       ...project.circuit,
+      customComponents,
       gates: project.circuit.gates.map(normalizeGate),
     },
   };
 }
 
-function readProjects(): Project[] {
-  return readStorage<Project[]>(PROJECTS_KEY, []).map(normalizeProject);
-}
-
-function writeProjects(projects: Project[]): void {
-  writeStorage(PROJECTS_KEY, projects);
-}
-
 export const projectService = {
-  async listProjects(ownerId: string): Promise<Project[]> {
-    return readProjects()
-      .filter((project) => project.ownerId === ownerId)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  async listProjects(): Promise<Project[]> {
+    const { data: projects } = await apiService.get<Project[]>('/projects');
+    return projects.map(normalizeProject);
   },
 
-  async getProject(ownerId: string, projectId: string): Promise<Project | null> {
-    return readProjects().find((project) => project.ownerId === ownerId && project.id === projectId) ?? null;
+  async getProject(projectId: string): Promise<Project | null> {
+    try {
+      const { data: project } = await apiService.get<Project>(`/projects/${encodeURIComponent(projectId)}`);
+      return normalizeProject(project);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return null;
+      }
+
+      throw error;
+    }
   },
 
-  async createProject(ownerId: string, name: string, description = ''): Promise<Project> {
-    const createdAt = nowIso();
+  async createProject(name: string, description = ''): Promise<Project> {
     const circuit = createStarterCircuit(name);
-    const project: Project = {
-      id: createId('project'),
-      ownerId,
+
+    const { data: project } = await apiService.post<Project>('/projects', {
       name,
       description,
       circuit,
       inputSignals: {},
       customComponents: [],
-      createdAt,
-      updatedAt: createdAt,
-    };
+    });
 
-    writeProjects([project, ...readProjects()]);
-    return project;
+    return normalizeProject(project);
   },
 
   async updateProject(
-    ownerId: string,
     projectId: string,
     patch: Partial<Pick<Project, 'name' | 'description' | 'inputSignals' | 'customComponents'>> & {
       circuit?: Circuit;
     },
   ): Promise<Project> {
-    const projects = readProjects();
-    const index = projects.findIndex((project) => project.ownerId === ownerId && project.id === projectId);
-    if (index === -1) {
-      throw new Error('Projekt wurde nicht gefunden.');
-    }
-
-    const nextProject: Project = {
-      ...projects[index],
-      ...patch,
-      updatedAt: nowIso(),
-    };
-
-    const nextProjects = [...projects];
-    nextProjects[index] = nextProject;
-    writeProjects(nextProjects);
-    return nextProject;
+    const { data: project } = await apiService.put<Project>(`/projects/${encodeURIComponent(projectId)}`, patch);
+    return normalizeProject(project);
   },
 
-  async deleteProject(ownerId: string, projectId: string): Promise<void> {
-    writeProjects(readProjects().filter((project) => !(project.ownerId === ownerId && project.id === projectId)));
+  async deleteProject(projectId: string): Promise<void> {
+    await apiService.delete<void>(`/projects/${encodeURIComponent(projectId)}`);
   },
 
-  async addCustomComponent(ownerId: string, projectId: string, component: CustomComponent): Promise<Project> {
-    const project = await this.getProject(ownerId, projectId);
-    if (!project) {
-      throw new Error('Projekt wurde nicht gefunden.');
-    }
-
-    return this.updateProject(ownerId, projectId, {
-      customComponents: [...project.customComponents, component],
-      circuit: {
-        ...project.circuit,
-        customComponents: [...project.circuit.customComponents, component],
-      },
-    });
+  async addCustomComponent(projectId: string, component: CustomComponent): Promise<Project> {
+    const { data: project } = await apiService.post<Project>(
+      `/projects/${encodeURIComponent(projectId)}/components`,
+      component,
+    );
+    return normalizeProject(project);
   },
 };

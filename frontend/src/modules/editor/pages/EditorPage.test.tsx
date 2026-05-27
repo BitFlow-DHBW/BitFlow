@@ -1,12 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createStarterCircuit } from '../../../simulation/gateLibrary';
 import { testProject, testUser } from '../../../test/builders';
 import { AuthProvider } from '../../auth/AuthContext';
 import { PreferencesProvider } from '../../settings/PreferencesContext';
 import { EditorPage } from './EditorPage';
+
+const projectMocks = vi.hoisted(() => ({
+  getProject: vi.fn(),
+  updateProject: vi.fn(),
+}));
+
+vi.mock('../../../services/projectService', () => ({
+  projectService: projectMocks,
+}));
 
 function renderEditor(projectId = 'project_editor') {
   return render(
@@ -24,24 +33,26 @@ function renderEditor(projectId = 'project_editor') {
 }
 
 describe('EditorPage', () => {
+  beforeEach(() => {
+    projectMocks.getProject.mockReset();
+    projectMocks.updateProject.mockReset();
+  });
+
   it('loads a project workspace with toolbar, library, canvas and signal panels', async () => {
     const user = userEvent.setup();
     const currentUser = testUser();
     const circuit = createStarterCircuit('Starter Circuit');
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Starter Circuit',
+        circuit,
+      }),
+    );
     window.localStorage.setItem(
       'bitflow.session',
       JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
-    );
-    window.localStorage.setItem(
-      'bitflow.projects',
-      JSON.stringify([
-        testProject({
-          id: 'project_editor',
-          ownerId: currentUser.id,
-          name: 'Starter Circuit',
-          circuit,
-        }),
-      ]),
     );
 
     renderEditor();
@@ -61,20 +72,20 @@ describe('EditorPage', () => {
     const user = userEvent.setup();
     const currentUser = testUser();
     const circuit = createStarterCircuit('Workflow Circuit');
+    let savedProject = testProject({
+      id: 'project_editor',
+      ownerId: currentUser.id,
+      name: 'Workflow Circuit',
+      circuit,
+    });
+    projectMocks.getProject.mockResolvedValue(savedProject);
+    projectMocks.updateProject.mockImplementation(async (_projectId, patch) => {
+      savedProject = { ...savedProject, ...patch, updatedAt: '2026-05-01T10:00:00.000Z' };
+      return savedProject;
+    });
     window.localStorage.setItem(
       'bitflow.session',
       JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
-    );
-    window.localStorage.setItem(
-      'bitflow.projects',
-      JSON.stringify([
-        testProject({
-          id: 'project_editor',
-          ownerId: currentUser.id,
-          name: 'Workflow Circuit',
-          circuit,
-        }),
-      ]),
     );
 
     renderEditor();
@@ -100,16 +111,23 @@ describe('EditorPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(screen.getByText('Gespeichert')).toBeInTheDocument());
-    const storedProjects = JSON.parse(window.localStorage.getItem('bitflow.projects') ?? '[]');
-    expect(storedProjects[0].circuit.annotations).toEqual(expect.arrayContaining([expect.objectContaining({ text: 'Kommentar A' })]));
+    expect(projectMocks.updateProject).toHaveBeenCalledWith(
+      'project_editor',
+      expect.objectContaining({
+        circuit: expect.objectContaining({
+          annotations: expect.arrayContaining([expect.objectContaining({ text: 'Kommentar A' })]),
+        }),
+      }),
+    );
 
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
-    await user.click(screen.getByRole('button', { name: /Löschen/ }));
+    await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
   });
 
   it('shows a recovery state for missing projects', async () => {
     const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(null);
     window.localStorage.setItem(
       'bitflow.session',
       JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),

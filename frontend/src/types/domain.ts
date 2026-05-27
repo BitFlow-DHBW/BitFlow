@@ -43,6 +43,3 @@ export interface ApiResult<T> {
   status: number;
 }
 
-export interface StoredUser extends User {
-  passwordHash: string;
-}

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from './apiService';
+import { ApiError, ApiService } from './apiService';
+
+function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status: init.status ?? 200,
+    headers: { 'Content-Type': 'application/json', ...init.headers },
+  });
+}
 
 describe('ApiService', () => {
   afterEach(() => {
@@ -7,10 +14,12 @@ describe('ApiService', () => {
   });
 
   it('wraps GET, POST, PUT and DELETE responses with data and status', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      status: 201,
-      json: vi.fn().mockResolvedValue({ ok: true }),
-    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ ok: true }, { status: 201 }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
 
     const api = new ApiService('/api');
@@ -23,14 +32,40 @@ describe('ApiService', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/projects', { method: 'GET' });
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/projects', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'ALU' }),
     });
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/projects/1', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: 'CPU' }),
     });
     expect(fetchMock).toHaveBeenNthCalledWith(4, '/api/projects/1', { method: 'DELETE' });
+  });
+
+  it('adds bearer auth when a token exists', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const api = new ApiService('/api', () => 'session_token');
+    await api.get('/projects');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/projects', {
+      method: 'GET',
+      headers: { authorization: 'Bearer session_token' },
+    });
+  });
+
+  it('throws API errors with problem detail titles', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ title: 'Projekt wurde nicht gefunden.' }, { status: 404 })),
+    );
+
+    const api = new ApiService('/api');
+    const request = api.get('/projects/missing');
+
+    await expect(request).rejects.toThrow(ApiError);
+    await expect(request).rejects.toThrow('Projekt wurde nicht gefunden.');
   });
 });

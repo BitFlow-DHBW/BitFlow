@@ -1,32 +1,36 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\mohid\\Dokumente\\.Eigene Dokumente\\GitHub Projekte\\Repositorys\\BitFlow\\backend\\BitFlow.API\\BitFlow.API.csproj": {}
+    "C:\\Users\\Moritz\\Documents\\Unterlagen\\3. Semester\\Software Engineering\\BitFlow\\Repository\\backend\\BitFlow.API\\BitFlow.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\mohid\\Dokumente\\.Eigene Dokumente\\GitHub Projekte\\Repositorys\\BitFlow\\backend\\BitFlow.API\\BitFlow.API.csproj": {
+    "C:\\Users\\Moritz\\Documents\\Unterlagen\\3. Semester\\Software Engineering\\BitFlow\\Repository\\backend\\BitFlow.API\\BitFlow.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mohid\\Dokumente\\.Eigene Dokumente\\GitHub Projekte\\Repositorys\\BitFlow\\backend\\BitFlow.API\\BitFlow.API.csproj",
+        "projectUniqueName": "C:\\Users\\Moritz\\Documents\\Unterlagen\\3. Semester\\Software Engineering\\BitFlow\\Repository\\backend\\BitFlow.API\\BitFlow.API.csproj",
         "projectName": "BitFlow.API",
-        "projectPath": "C:\\Users\\mohid\\Dokumente\\.Eigene Dokumente\\GitHub Projekte\\Repositorys\\BitFlow\\backend\\BitFlow.API\\BitFlow.API.csproj",
-        "packagesPath": "C:\\Users\\mohid\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mohid\\Dokumente\\.Eigene Dokumente\\GitHub Projekte\\Repositorys\\BitFlow\\backend\\BitFlow.API\\obj\\",
+        "projectPath": "C:\\Users\\Moritz\\Documents\\Unterlagen\\3. Semester\\Software Engineering\\BitFlow\\Repository\\backend\\BitFlow.API\\BitFlow.API.csproj",
+        "packagesPath": "C:\\Users\\Moritz\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Moritz\\Documents\\Unterlagen\\3. Semester\\Software Engineering\\BitFlow\\Repository\\backend\\BitFlow.API\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\mohid\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Moritz\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net7.0"
+          "net8.0"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net7.0": {
-            "targetAlias": "net7.0",
+          "net8.0": {
+            "targetAlias": "net8.0",
             "projectReferences": {}
           }
         },
@@ -34,15 +38,21 @@
           "warnAsError": [
             "NU1605"
           ]
-        }
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
-        "net7.0": {
-          "targetAlias": "net7.0",
+        "net8.0": {
+          "targetAlias": "net8.0",
           "dependencies": {
-            "Microsoft.AspNetCore.OpenApi": {
+            "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
-              "version": "[7.0.11, )"
+              "version": "[8.0.11, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -68,7 +78,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.401\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.101/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
