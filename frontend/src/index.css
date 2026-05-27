@@ -953,11 +953,6 @@ button:disabled {
   fill: color-mix(in srgb, var(--success) 22%, var(--surface));
 }
 
-.gate-node.is-selected .gate-body {
-  stroke: var(--primary);
-  stroke-width: 3;
-}
-
 .gate-label {
   fill: var(--text);
   font-size: 13px;
@@ -1038,6 +1033,18 @@ button:disabled {
 
 .pin.is-live {
   fill: var(--success);
+}
+
+.gate-node.is-selected .schematic-symbol .symbol-body {
+  stroke: var(--warning);
+  stroke-width: 3.5;
+}
+
+.gate-node.is-selected .schematic-symbol .pin-stub,
+.gate-node.is-selected .schematic-symbol .pin-dot,
+.gate-node.is-selected .pin {
+  stroke: var(--warning);
+  stroke-width: 2.5;
 }
 
 .right-panel-stack {
