@@ -269,7 +269,7 @@ export function Canvas({
           key={gate.id}
           gate={gate}
           signals={signals}
-          selected={gate.id === selectedGateId}
+          selected={mode === 'edit' && gate.id === selectedGateId}
           selectedTool={mode === 'edit' ? selectedTool : null}
           onGatePointerDown={(event, selectedGate) => {
             event.stopPropagation();

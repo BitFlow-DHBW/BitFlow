@@ -116,9 +116,11 @@ describe('Canvas', () => {
 
   it('disables editing interactions in simulate mode and toggles source gates on click release', () => {
     const input = gate('INPUT', 'input_sim');
-    const props = canvasProps({ circuit: circuitWith([input]), mode: 'simulate' });
+    const props = canvasProps({ circuit: circuitWith([input]), mode: 'simulate', selectedGateId: input.id });
     const { container } = render(<Canvas {...props} />);
     const gateNode = container.querySelector('.gate-node') as SVGGElement;
+
+    expect(gateNode).not.toHaveClass('is-selected');
 
     Object.defineProperty(gateNode, 'setPointerCapture', { value: vi.fn(), configurable: true });
     fireEvent.pointerDown(gateNode, { button: 0, pointerId: 1, clientX: 0, clientY: 0 });
