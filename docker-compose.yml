@@ -1,0 +1,25 @@
+services:
+  frontend:
+    image: ghcr.io/bitflow-dhbw/bitflow:latest
+    container_name: bitflow-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+  backend:
+    image: ghcr.io/bitflow-dhbw/bitflow-backend:latest
+    container_name: bitflow-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__BitFlowDb: Data Source=/app/Data/bitflow.db
+    volumes:
+      - bitflow-data:/app/Data
+    expose:
+      - "8080"
+
+volumes:
+  bitflow-data:
