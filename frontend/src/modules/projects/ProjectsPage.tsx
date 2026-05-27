@@ -11,14 +11,19 @@ function formatDate(value: string): string {
 export function ProjectsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const userId = user?.id;
   const [projects, setProjects] = useState<Project[]>([]);
   const [name, setName] = useState('Meine erste Schaltung');
   const [description, setDescription] = useState('');
 
   const loadProjects = useCallback(async () => {
-    if (!user) return;
+    if (!userId) {
+      setProjects([]);
+      return;
+    }
+
     setProjects(await projectService.listProjects());
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     void loadProjects();
@@ -26,7 +31,7 @@ export function ProjectsPage() {
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
-    if (!user) return;
+    if (!userId) return;
 
     const project = await projectService.createProject(name, description);
     setName('Meine erste Schaltung');
@@ -35,7 +40,7 @@ export function ProjectsPage() {
   }
 
   async function handleDelete(projectId: string) {
-    if (!user) return;
+    if (!userId) return;
     await projectService.deleteProject(projectId);
     await loadProjects();
   }
