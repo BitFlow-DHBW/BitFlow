@@ -42,6 +42,16 @@ public sealed class ProjectController(ProjectService projects, UserService users
         return await projects.UpdateProjectAsync(user.Id, id, request, cancellationToken);
     }
 
+    [HttpPost("{id}/components")]
+    public async Task<ProjectDto> AddCustomComponent(
+        string id,
+        CustomComponentDto request,
+        CancellationToken cancellationToken)
+    {
+        var user = await RequireUserAsync(cancellationToken);
+        return await projects.AddCustomComponentAsync(user.Id, id, request, cancellationToken);
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
     {

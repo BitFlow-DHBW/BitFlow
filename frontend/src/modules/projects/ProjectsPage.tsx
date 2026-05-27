@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { projectService } from '../../services/projectService';
@@ -15,20 +15,20 @@ export function ProjectsPage() {
   const [name, setName] = useState('Meine erste Schaltung');
   const [description, setDescription] = useState('');
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async () => {
     if (!user) return;
-    setProjects(await projectService.listProjects(user.id));
-  }
+    setProjects(await projectService.listProjects());
+  }, [user]);
 
   useEffect(() => {
     void loadProjects();
-  }, [user]);
+  }, [loadProjects]);
 
   async function handleCreate(event: FormEvent) {
     event.preventDefault();
     if (!user) return;
 
-    const project = await projectService.createProject(user.id, name, description);
+    const project = await projectService.createProject(name, description);
     setName('Meine erste Schaltung');
     setDescription('');
     navigate(`/editor/${project.id}`);
@@ -36,7 +36,7 @@ export function ProjectsPage() {
 
   async function handleDelete(projectId: string) {
     if (!user) return;
-    await projectService.deleteProject(user.id, projectId);
+    await projectService.deleteProject(projectId);
     await loadProjects();
   }
 
@@ -46,7 +46,7 @@ export function ProjectsPage() {
         <div>
           <p className="eyebrow">Projektverwaltung</p>
           <h1>Schaltungen und Workspaces</h1>
-          <p>Projekte werden aktuell lokal gespeichert..</p>
+          <p>Projekte werden im Backend gespeichert.</p>
         </div>
       </section>
 

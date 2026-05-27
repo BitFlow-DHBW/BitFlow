@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { apiService } from '../../services/apiService';
+import { testUser } from '../../test/builders';
 import { AuthProvider, useAuth } from './AuthContext';
 
 function AuthHarness() {
@@ -32,6 +34,19 @@ function AuthHarness() {
 describe('AuthContext', () => {
   it('exposes registration, login, reset, profile update and logout flows', async () => {
     const user = userEvent.setup();
+    const ada = testUser({ name: 'Ada', email: 'ada@bitflow.test' });
+    const session = { token: 'session_test', user: ada, createdAt: ada.createdAt };
+
+    vi.spyOn(apiService, 'post')
+      .mockResolvedValueOnce({ data: session, status: 201 })
+      .mockResolvedValueOnce({ data: undefined, status: 204 })
+      .mockResolvedValueOnce({ data: undefined, status: 204 })
+      .mockResolvedValueOnce({ data: session, status: 200 });
+    vi.spyOn(apiService, 'put').mockResolvedValueOnce({
+      data: { ...ada, name: 'Grace' },
+      status: 200,
+    });
+
     render(
       <AuthProvider>
         <AuthHarness />

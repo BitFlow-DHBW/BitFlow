@@ -16,7 +16,7 @@ export function ResetPasswordPage() {
 
     try {
       await resetPassword(email);
-      setMessage('Mock-Flow erfolgreich: Ein echtes Backend würde jetzt eine Reset-Mail versenden.');
+      setMessage('Anfrage erfolgreich: Das Backend hat die E-Mail-Adresse geprueft.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reset fehlgeschlagen.');
     }

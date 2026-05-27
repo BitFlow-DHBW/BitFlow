@@ -1,63 +1,72 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { ApiError, apiService } from './apiService';
 import { projectService } from './projectService';
 import { circuitWith, customComponent, gate, testProject } from '../test/builders';
 
 describe('projectService', () => {
-  beforeEach(() => {
-    vi.spyOn(crypto, 'randomUUID')
-      .mockReturnValueOnce('00000000-0000-4000-8000-000000000101')
-      .mockReturnValueOnce('00000000-0000-4000-8000-000000000102')
-      .mockReturnValueOnce('00000000-0000-4000-8000-000000000103');
-  });
+  it('creates, lists and loads projects through the backend', async () => {
+    const createdProject = testProject({ id: 'project_created', ownerId: 'user_a', name: 'ALU', description: 'Test circuit' });
+    vi.spyOn(apiService, 'post').mockResolvedValueOnce({ data: createdProject, status: 201 });
+    vi.spyOn(apiService, 'get')
+      .mockResolvedValueOnce({ data: [createdProject], status: 200 })
+      .mockResolvedValueOnce({ data: createdProject, status: 200 });
 
-  it('creates, lists and loads projects for the current owner only', async () => {
-    window.localStorage.setItem(
-      'bitflow.projects',
-      JSON.stringify([
-        testProject({ id: 'other_project', ownerId: 'other_user', updatedAt: '2026-05-03T09:00:00.000Z' }),
-        testProject({ id: 'older_project', ownerId: 'user_a', updatedAt: '2026-05-01T09:00:00.000Z' }),
-      ]),
+    const created = await projectService.createProject('ALU', 'Test circuit');
+    const projects = await projectService.listProjects();
+    const loaded = await projectService.getProject('project_created');
+
+    expect(apiService.post).toHaveBeenCalledWith(
+      '/projects',
+      expect.objectContaining({
+        name: 'ALU',
+        description: 'Test circuit',
+        inputSignals: {},
+        customComponents: [],
+      }),
     );
-
-    const created = await projectService.createProject('user_a', 'ALU', 'Test circuit');
-    const projects = await projectService.listProjects('user_a');
-
-    expect(created).toMatchObject({
-      id: 'project_00000000-0000-4000-8000-000000000102',
-      ownerId: 'user_a',
-      name: 'ALU',
-      description: 'Test circuit',
-    });
-    expect(created.circuit.name).toBe('ALU');
-    expect(projects.map((project) => project.id)).toEqual(['project_00000000-0000-4000-8000-000000000102', 'older_project']);
-    await expect(projectService.getProject('other_user', created.id)).resolves.toBeNull();
+    expect(created).toMatchObject({ id: 'project_created', ownerId: 'user_a', name: 'ALU' });
+    expect(projects.map((project) => project.id)).toEqual(['project_created']);
+    expect(loaded?.id).toBe('project_created');
   });
 
-  it('updates, deletes and rejects missing projects', async () => {
-    window.localStorage.setItem('bitflow.projects', JSON.stringify([testProject({ id: 'project_a', ownerId: 'user_a' })]));
+  it('updates, deletes and maps missing projects to null on load', async () => {
+    const updatedProject = testProject({
+      id: 'project_a',
+      ownerId: 'user_a',
+      name: 'Updated',
+      inputSignals: { input_a: true },
+    });
+    vi.spyOn(apiService, 'put').mockResolvedValueOnce({ data: updatedProject, status: 200 });
+    vi.spyOn(apiService, 'delete').mockResolvedValueOnce({ data: undefined, status: 204 });
+    vi.spyOn(apiService, 'get').mockRejectedValueOnce(new ApiError('Projekt wurde nicht gefunden.', 404, {}));
 
-    const updated = await projectService.updateProject('user_a', 'project_a', {
+    const updated = await projectService.updateProject('project_a', {
       name: 'Updated',
       inputSignals: { input_a: true },
     });
 
     expect(updated.name).toBe('Updated');
     expect(updated.inputSignals.input_a).toBe(true);
-    await expect(projectService.updateProject('user_a', 'missing', { name: 'Nope' })).rejects.toThrow('nicht gefunden');
-
-    await projectService.deleteProject('user_a', 'project_a');
-    await expect(projectService.getProject('user_a', 'project_a')).resolves.toBeNull();
+    await expect(projectService.getProject('missing')).resolves.toBeNull();
+    await expect(projectService.deleteProject('project_a')).resolves.toBeUndefined();
+    expect(apiService.delete).toHaveBeenCalledWith('/projects/project_a');
   });
 
-  it('adds custom components to both the project and circuit metadata', async () => {
-    window.localStorage.setItem('bitflow.projects', JSON.stringify([testProject({ id: 'project_a', ownerId: 'user_a' })]));
-
+  it('adds custom components through the project component endpoint', async () => {
     const component = customComponent({ id: 'component_a' });
-    const updated = await projectService.addCustomComponent('user_a', 'project_a', component);
+    const updatedProject = testProject({
+      id: 'project_a',
+      ownerId: 'user_a',
+      customComponents: [component],
+      circuit: circuitWith([], [], { customComponents: [component] }),
+    });
+    vi.spyOn(apiService, 'post').mockResolvedValueOnce({ data: updatedProject, status: 200 });
 
+    const updated = await projectService.addCustomComponent('project_a', component);
+
+    expect(apiService.post).toHaveBeenCalledWith('/projects/project_a/components', component);
     expect(updated.customComponents).toEqual([component]);
     expect(updated.circuit.customComponents).toEqual([component]);
-    await expect(projectService.addCustomComponent('user_a', 'missing', component)).rejects.toThrow('nicht gefunden');
   });
 
   it('normalizes deprecated gates and VCC/GND input signals from saved projects', async () => {
@@ -65,23 +74,18 @@ describe('projectService', () => {
     const ledGate = { ...gate('OUTPUT', 'led_y'), type: 'LED' as const };
     const vccGate = { ...gate('INPUT', 'vcc_a'), type: 'VCC' as const };
     const gndGate = { ...gate('INPUT', 'gnd_a'), type: 'GND' as const };
+    const legacyProject = testProject({
+      id: 'legacy_project',
+      ownerId: 'user_a',
+      circuit: circuitWith([switchGate, ledGate, vccGate, gndGate]),
+      inputSignals: {},
+    });
+    vi.spyOn(apiService, 'get').mockResolvedValueOnce({ data: legacyProject, status: 200 });
 
-    window.localStorage.setItem(
-      'bitflow.projects',
-      JSON.stringify([
-        testProject({
-          id: 'legacy_project',
-          ownerId: 'user_a',
-          circuit: circuitWith([switchGate, ledGate, vccGate, gndGate]),
-          inputSignals: {},
-        }),
-      ]),
-    );
+    const loadedProject = await projectService.getProject('legacy_project');
 
-    const legacyProject = await projectService.getProject('user_a', 'legacy_project');
-
-    expect(legacyProject?.circuit.gates.map((entry) => entry.type)).toEqual(['INPUT', 'OUTPUT', 'INPUT', 'INPUT']);
-    expect(legacyProject?.circuit.gates[0].label).toBe('Custom Switch');
-    expect(legacyProject?.inputSignals).toMatchObject({ vcc_a: true, gnd_a: false });
+    expect(loadedProject?.circuit.gates.map((entry) => entry.type)).toEqual(['INPUT', 'OUTPUT', 'INPUT', 'INPUT']);
+    expect(loadedProject?.circuit.gates[0].label).toBe('Custom Switch');
+    expect(loadedProject?.inputSignals).toMatchObject({ vcc_a: true, gnd_a: false });
   });
 });

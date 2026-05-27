@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
@@ -86,7 +86,7 @@ export function EditorPage() {
     async function loadProject() {
       if (!user || !projectId) return;
       setLoading(true);
-      const nextProject = await projectService.getProject(user.id, projectId);
+      const nextProject = await projectService.getProject(projectId);
       if (active) {
         setProject(nextProject);
         setLoading(false);
@@ -163,15 +163,15 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
 
-  function commitCircuit(circuit: Circuit, previous?: Circuit) {
+  const commitCircuit = useCallback((circuit: Circuit, previous?: Circuit) => {
     history.set(nextCircuitVersion(circuit), previous);
     setSaveState('Ungespeichert');
-  }
+  }, [history]);
 
-  function replaceCircuit(circuit: Circuit) {
+  const replaceCircuit = useCallback((circuit: Circuit) => {
     history.replace(circuit);
     setSaveState('Ungespeichert');
-  }
+  }, [history]);
 
   function handleCanvasClick(point: Point) {
     if (mode !== 'edit' || !selectedTool || wireDraft) return;
@@ -238,10 +238,10 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     );
   }
 
-  function clearToolDragPreview() {
+  const clearToolDragPreview = useCallback(() => {
     setDraggedTool(null);
     setToolPreviewGate(null);
-  }
+  }, []);
 
   function handleGateDragStart(gate: Gate, point: Point) {
     setDragStartCircuit(history.state);
@@ -336,7 +336,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     });
   }
 
-  function handleDeleteSelected() {
+  const handleDeleteSelected = useCallback(() => {
     if (selectedWire) {
       commitCircuit({
         ...history.state,
@@ -360,7 +360,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
       ),
     });
     setSelectedGateId(null);
-  }
+  }, [commitCircuit, history.state, selectedGate, selectedWire]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -390,7 +390,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [preferences.shortcuts, selectedGate, selectedWire, history.state]);
+  }, [clearToolDragPreview, handleDeleteSelected, preferences.shortcuts]);
 
   async function handleSave() {
     if (!user) return;
@@ -399,7 +399,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
       customComponents,
       nets: buildCircuitNets({ ...history.state, customComponents }),
     };
-    const savedProject = await projectService.updateProject(user.id, project.id, {
+    const savedProject = await projectService.updateProject(project.id, {
       circuit,
       inputSignals,
       customComponents,

@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Globalization;
 using BitFlow.API.DTOs;
 using BitFlow.API.Infrastructure;
 using BitFlow.API.Models;
@@ -8,8 +8,6 @@ namespace BitFlow.API.Services;
 
 public sealed class ComponentService(ComponentRepository components)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public async Task<IReadOnlyList<CustomComponentDto>> ListComponentsAsync(
         string ownerId,
         CancellationToken cancellationToken)
@@ -32,9 +30,7 @@ public sealed class ComponentService(ComponentRepository components)
         CustomComponentDto request,
         CancellationToken cancellationToken)
     {
-        Validate(request);
-
-        var component = ToEntity(ownerId, request);
+        var component = ToEntity(ownerId, CustomComponentPayload.Normalize(request));
         components.Add(component);
         await components.SaveChangesAsync(cancellationToken);
         return ToDto(component);
@@ -58,52 +54,26 @@ public sealed class ComponentService(ComponentRepository components)
 
     private static Component ToEntity(string ownerId, CustomComponentDto dto)
     {
-        var createdAt = DateTimeOffset.TryParse(dto.CreatedAt, out var parsedCreatedAt)
-            ? parsedCreatedAt
-            : DateTimeOffset.UtcNow;
-
-        var normalized = dto with
-        {
-            Id = string.IsNullOrWhiteSpace(dto.Id) ? IdFactory.Create("component") : dto.Id,
-            CreatedAt = DateTimeFormat.ToIsoString(createdAt)
-        };
+        var createdAt = DateTimeOffset.Parse(dto.CreatedAt!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
         return new Component
         {
-            Id = normalized.Id!,
+            Id = dto.Id!,
             OwnerId = ownerId,
-            Name = normalized.Name.Trim(),
+            Name = dto.Name,
             CreatedAt = createdAt,
-            ComponentJson = JsonSerializer.Serialize(normalized, JsonOptions)
+            ComponentJson = CustomComponentPayload.Serialize(dto)
         };
     }
 
     private static CustomComponentDto ToDto(Component component)
     {
-        var dto = JsonSerializer.Deserialize<CustomComponentDto>(component.ComponentJson, JsonOptions);
+        var dto = CustomComponentPayload.Deserialize(component.ComponentJson);
         if (dto is null)
         {
             throw new ApiException(StatusCodes.Status500InternalServerError, "Baustein konnte nicht gelesen werden.");
         }
 
         return dto;
-    }
-
-    private static void Validate(CustomComponentDto request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Bausteinname darf nicht leer sein.");
-        }
-
-        if (request.InputLabels.Count == 0)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Baustein benoetigt mindestens einen Eingang.");
-        }
-
-        if (request.OutputLabels.Count == 0)
-        {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Baustein benoetigt mindestens einen Ausgang.");
-        }
     }
 }

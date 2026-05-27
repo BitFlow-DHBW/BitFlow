@@ -1,13 +1,26 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { apiService } from '../../../services/apiService';
 import { authService } from '../../../services/authService';
+import { testUser } from '../../../test/builders';
+import type { AuthSession } from '../../../types/domain';
 import { AuthProvider } from '../AuthContext';
 import { LoginPage } from './LoginPage';
 import { ProfilePage } from './ProfilePage';
 import { RegisterPage } from './RegisterPage';
 import { ResetPasswordPage } from './ResetPasswordPage';
+
+function testSession(overrides: Partial<AuthSession> = {}): AuthSession {
+  const user = testUser({ name: 'Ada', email: 'ada@bitflow.test' });
+  return {
+    token: 'session_test',
+    user,
+    createdAt: user.createdAt,
+    ...overrides,
+  };
+}
 
 function renderAuthPage(page: React.ReactNode) {
   return render(
@@ -20,6 +33,7 @@ function renderAuthPage(page: React.ReactNode) {
 describe('auth pages', () => {
   it('registers a user from the registration form', async () => {
     const user = userEvent.setup();
+    vi.spyOn(apiService, 'post').mockResolvedValueOnce({ data: testSession(), status: 201 });
     renderAuthPage(<RegisterPage />);
 
     await user.type(screen.getByLabelText('Name'), 'Ada');
@@ -32,8 +46,9 @@ describe('auth pages', () => {
 
   it('shows login errors and succeeds with valid credentials', async () => {
     const user = userEvent.setup();
-    await authService.register('Ada', 'ada@bitflow.test', 'secret1');
-    authService.logout();
+    vi.spyOn(apiService, 'post')
+      .mockRejectedValueOnce(new Error('E-Mail oder Passwort ist nicht korrekt.'))
+      .mockResolvedValueOnce({ data: testSession(), status: 200 });
 
     renderAuthPage(<LoginPage />);
 
@@ -50,12 +65,14 @@ describe('auth pages', () => {
 
   it('handles reset-password success and unknown-account errors', async () => {
     const user = userEvent.setup();
-    await authService.register('Ada', 'ada@bitflow.test', 'secret1');
+    vi.spyOn(apiService, 'post')
+      .mockResolvedValueOnce({ data: undefined, status: 204 })
+      .mockRejectedValueOnce(new Error('Fuer diese E-Mail wurde kein Konto gefunden.'));
     renderAuthPage(<ResetPasswordPage />);
 
     await user.type(screen.getByLabelText('E-Mail'), 'ada@bitflow.test');
     await user.click(screen.getByRole('button', { name: 'Reset-Link anfordern' }));
-    expect(await screen.findByText(/Mock-Flow erfolgreich/)).toBeInTheDocument();
+    expect(await screen.findByText(/Anfrage erfolgreich/)).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('E-Mail'));
     await user.type(screen.getByLabelText('E-Mail'), 'missing@bitflow.test');
@@ -65,7 +82,13 @@ describe('auth pages', () => {
 
   it('updates the current profile display name', async () => {
     const user = userEvent.setup();
-    await authService.register('Ada', 'ada@bitflow.test', 'secret1');
+    const session = testSession();
+    window.localStorage.setItem('bitflow.session', JSON.stringify(session));
+    vi.spyOn(apiService, 'put').mockResolvedValueOnce({
+      data: { ...session.user, name: 'Ada Byron' },
+      status: 200,
+    });
+
     renderAuthPage(<ProfilePage />);
 
     await user.clear(screen.getByLabelText('Anzeigename'));

@@ -1,9 +1,23 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { testProject, testUser } from '../test/builders';
 
+const projectMocks = vi.hoisted(() => ({
+  listProjects: vi.fn(),
+  createProject: vi.fn(),
+  deleteProject: vi.fn(),
+}));
+
+vi.mock('../services/projectService', () => ({
+  projectService: projectMocks,
+}));
+
 describe('App', () => {
+  beforeEach(() => {
+    projectMocks.listProjects.mockReset();
+  });
+
   it('starts on the landing page for guests', () => {
     window.history.pushState({}, '', '/');
 
@@ -15,8 +29,8 @@ describe('App', () => {
 
   it('routes authenticated users from home to the projects page', async () => {
     const user = testUser();
+    projectMocks.listProjects.mockResolvedValue([testProject({ ownerId: user.id, name: 'ALU' })]);
     window.localStorage.setItem('bitflow.session', JSON.stringify({ token: 'session_test', user, createdAt: user.createdAt }));
-    window.localStorage.setItem('bitflow.projects', JSON.stringify([testProject({ ownerId: user.id, name: 'ALU' })]));
     window.history.pushState({}, '', '/');
 
     render(<App />);
