@@ -1201,6 +1201,22 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.component-summary {
+  display: grid;
+  gap: 0.45rem;
+  border-block: 1px solid var(--line);
+  padding: 0.9rem 0;
+}
+
+.component-summary h3,
+.component-summary p {
+  margin: 0;
+}
+
+.component-summary p:not(.form-error) {
+  color: var(--muted);
+}
+
 .truth-table-editor {
   display: grid;
   gap: 0.8rem;

@@ -105,7 +105,6 @@ describe('EditorPage', () => {
     expect(promptSpy).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: 'Baustein' }));
-    await user.click(screen.getByRole('button', { name: /Zeile/ }));
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
     expect(screen.getByRole('button', { name: /Custom Gate/ })).toBeInTheDocument();
 

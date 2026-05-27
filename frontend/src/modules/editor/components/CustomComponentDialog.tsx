@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
-import { TruthTableEditor } from './TruthTableEditor';
-import type { Circuit, CustomComponent, TruthTableRow } from '../../../types/circuit';
-import { createId, nowIso } from '../../../utils/id';
+import {
+  componentInputLabels,
+  componentOutputLabels,
+  createCustomComponentFromCircuit,
+} from '../../../simulation/customComponentFactory';
+import type { Circuit, CustomComponent } from '../../../types/circuit';
 
 interface CustomComponentDialogProps {
   circuit: Circuit;
@@ -13,30 +16,17 @@ interface CustomComponentDialogProps {
 export function CustomComponentDialog({ circuit, open, onClose, onCreate }: CustomComponentDialogProps) {
   const [name, setName] = useState('Custom Gate');
   const [description, setDescription] = useState('');
-  const [truthTable, setTruthTable] = useState<TruthTableRow[]>([]);
 
-  const inputLabels = useMemo(
-    () => circuit.gates.filter((gate) => gate.type === 'INPUT').map((gate, index) => gate.label ?? `I${index + 1}`),
-    [circuit.gates],
-  );
-  const outputLabels = useMemo(
-    () => circuit.gates.filter((gate) => gate.type === 'OUTPUT').map((gate, index) => gate.label ?? `O${index + 1}`),
-    [circuit.gates],
-  );
+  const inputLabels = useMemo(() => componentInputLabels(circuit), [circuit]);
+  const outputLabels = useMemo(() => componentOutputLabels(circuit), [circuit]);
+  const truthTableRowCount = 2 ** inputLabels.length;
+  const canCreate = outputLabels.length > 0;
 
   if (!open) return null;
 
   function handleCreate() {
-    onCreate({
-      id: createId('custom'),
-      name,
-      description,
-      inputLabels,
-      outputLabels,
-      truthTable,
-      sourceCircuitId: circuit.id,
-      createdAt: nowIso(),
-    });
+    if (!canCreate) return;
+    onCreate(createCustomComponentFromCircuit(circuit, { name, description }));
     onClose();
   }
 
@@ -64,18 +54,20 @@ export function CustomComponentDialog({ circuit, open, onClose, onCreate }: Cust
           </label>
         </div>
 
-        <TruthTableEditor
-          inputLabels={inputLabels}
-          outputLabels={outputLabels}
-          rows={truthTable}
-          onChange={setTruthTable}
-        />
+        <div className="component-summary">
+          <h3>Custom Gate aus aktueller Schaltung erstellen?</h3>
+          <p>
+            {inputLabels.length} Eingänge · {outputLabels.length} Ausgänge · {truthTableRowCount} automatisch erzeugte
+            Tabellenzeilen
+          </p>
+          {!canCreate && <p className="form-error">Mindestens ein Output Pin wird benötigt.</p>}
+        </div>
 
         <div className="modal-actions">
           <button className="ghost-button" type="button" onClick={onClose}>
             Abbrechen
           </button>
-          <button className="primary-button" type="button" onClick={handleCreate}>
+          <button className="primary-button" type="button" onClick={handleCreate} disabled={!canCreate}>
             Baustein speichern
           </button>
         </div>

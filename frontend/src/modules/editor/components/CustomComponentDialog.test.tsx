@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CustomComponentDialog } from './CustomComponentDialog';
-import { circuitWith, gate } from '../../../test/builders';
+import { circuitWith, gate, wire } from '../../../test/builders';
 
 describe('CustomComponentDialog', () => {
   it('renders nothing while closed', () => {
@@ -13,21 +13,26 @@ describe('CustomComponentDialog', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('creates custom components from circuit inputs, outputs and truth table rows', async () => {
+  it('creates custom components with an automatic truth table from the current circuit', async () => {
     const user = userEvent.setup();
     const onCreate = vi.fn();
     const onClose = vi.fn();
     const input = { ...gate('INPUT', 'input_custom'), label: 'A' };
     const output = { ...gate('OUTPUT', 'output_custom'), label: 'Y' };
 
-    render(<CustomComponentDialog circuit={circuitWith([input, output])} open onClose={onClose} onCreate={onCreate} />);
+    render(
+      <CustomComponentDialog
+        circuit={circuitWith([input, output], [wire('wire_custom', input, 0, output)])}
+        open
+        onClose={onClose}
+        onCreate={onCreate}
+      />,
+    );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await user.clear(screen.getByLabelText('Name'));
     await user.type(screen.getByLabelText('Name'), 'Buffer');
     await user.type(screen.getByLabelText('Beschreibung'), 'One bit buffer');
-    await user.click(screen.getByRole('button', { name: /Zeile/ }));
-    await user.click(screen.getAllByRole('button', { name: '0' })[0]);
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
 
     expect(onCreate).toHaveBeenCalledWith(
@@ -36,7 +41,10 @@ describe('CustomComponentDialog', () => {
         description: 'One bit buffer',
         inputLabels: ['A'],
         outputLabels: ['Y'],
-        truthTable: [{ inputs: [true], outputs: [false] }],
+        truthTable: [
+          { inputs: [false], outputs: [false] },
+          { inputs: [true], outputs: [true] },
+        ],
         sourceCircuitId: 'circuit_test',
       }),
     );
