@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using BitFlow.API.DTOs;
 using BitFlow.API.Infrastructure;
 using BitFlow.API.Models;
@@ -9,7 +10,10 @@ namespace BitFlow.API.Services;
 
 public sealed class ProjectService(ProjectRepository projects)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public async Task<IReadOnlyList<ProjectDto>> ListProjectsAsync(string ownerId, CancellationToken cancellationToken)
     {
@@ -36,7 +40,7 @@ public sealed class ProjectService(ProjectRepository projects)
             OwnerId = ownerId,
             Name = request.Name.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
-            CircuitJson = JsonPayload.Serialize(request.Circuit, CreateEmptyCircuit(request.Name.Trim())),
+            CircuitJson = SerializeCircuit(request.Circuit, CreateEmptyCircuit(request.Name.Trim())),
             InputSignalsJson = JsonPayload.Serialize(request.InputSignals, JsonPayload.EmptyObject),
             CustomComponentsJson = JsonPayload.Serialize(request.CustomComponents, JsonPayload.EmptyArray),
             CreatedAt = now,
@@ -73,7 +77,7 @@ public sealed class ProjectService(ProjectRepository projects)
 
         if (request.Circuit is not null)
         {
-            project.CircuitJson = JsonPayload.Serialize(request.Circuit, project.CircuitJson);
+            project.CircuitJson = SerializeCircuit(request.Circuit, project.CircuitJson);
         }
 
         if (request.InputSignals is not null)
@@ -131,7 +135,7 @@ public sealed class ProjectService(ProjectRepository projects)
             project.OwnerId,
             project.Name,
             project.Description,
-            JsonPayload.Parse(project.CircuitJson),
+            JsonPayload.Parse(NormalizeCircuitJson(project.CircuitJson)),
             JsonPayload.Parse(project.InputSignalsJson),
             JsonPayload.Parse(project.CustomComponentsJson),
             DateTimeFormat.ToIsoString(project.CreatedAt),
@@ -151,6 +155,16 @@ public sealed class ProjectService(ProjectRepository projects)
         }, JsonOptions);
     }
 
+    private static string SerializeCircuit(JsonElement? circuit, string fallback)
+    {
+        return NormalizeCircuitJson(JsonPayload.Serialize(circuit, fallback));
+    }
+
+    private static string NormalizeCircuitJson(string circuitJson)
+    {
+        return JsonSerializer.Serialize(ReadCircuitPayload(circuitJson), JsonOptions);
+    }
+
     private static string UpsertComponent(string customComponentsJson, CustomComponentDto component)
     {
         var components = ParseArray(customComponentsJson);
@@ -160,7 +174,7 @@ public sealed class ProjectService(ProjectRepository projects)
 
     private static string UpsertCircuitComponent(string circuitJson, CustomComponentDto component)
     {
-        var circuit = ParseObject(circuitJson);
+        var circuit = ParseObject(NormalizeCircuitJson(circuitJson));
         var components = circuit["customComponents"] as JsonArray;
 
         if (components is null)
@@ -215,5 +229,50 @@ public sealed class ProjectService(ProjectRepository projects)
     private static string? ReadString(JsonObject jsonObject, string propertyName)
     {
         return jsonObject.TryGetPropertyValue(propertyName, out var value) ? value?.ToString() : null;
+    }
+
+    private static CircuitPayload ReadCircuitPayload(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<CircuitPayload>(json, JsonOptions)
+                ?? throw new JsonException("Circuit payload is empty.");
+        }
+        catch (JsonException exception)
+        {
+            throw new ApiException(
+                StatusCodes.Status400BadRequest,
+                $"Schaltungsdaten sind ungueltig: {exception.Message}");
+        }
+    }
+
+    private sealed class CircuitPayload
+    {
+        public string Id { get; init; } = IdFactory.Create("circuit");
+
+        public string Name { get; init; } = string.Empty;
+
+        public int Version { get; init; } = 1;
+
+        public JsonElement[] Gates { get; init; } = [];
+
+        public JsonElement[] Wires { get; init; } = [];
+
+        public JsonElement[]? Annotations { get; init; }
+
+        public CircuitNetPayload[]? Nets { get; init; }
+
+        public JsonElement[] CustomComponents { get; init; } = [];
+    }
+
+    private sealed class CircuitNetPayload
+    {
+        public string Id { get; init; } = string.Empty;
+
+        public string Name { get; init; } = string.Empty;
+
+        public string[] PinIds { get; init; } = [];
+
+        public string[] WireIds { get; init; } = [];
     }
 }

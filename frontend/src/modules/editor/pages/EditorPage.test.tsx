@@ -111,8 +111,14 @@ describe('EditorPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(screen.getByText('Gespeichert')).toBeInTheDocument());
-    const storedProjects = JSON.parse(window.localStorage.getItem('bitflow.projects') ?? '[]');
-    expect(storedProjects[0].circuit.annotations).toEqual(expect.arrayContaining([expect.objectContaining({ text: 'Kommentar A' })]));
+    expect(projectMocks.updateProject).toHaveBeenCalledWith(
+      'project_editor',
+      expect.objectContaining({
+        circuit: expect.objectContaining({
+          annotations: expect.arrayContaining([expect.objectContaining({ text: 'Kommentar A' })]),
+        }),
+      }),
+    );
 
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
