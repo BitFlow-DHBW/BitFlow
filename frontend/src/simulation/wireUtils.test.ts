@@ -45,22 +45,19 @@ describe('wire utilities and net model', () => {
     expect(getWirePoints({ id: 'missing_to', from: { kind: 'pin', pinId: input.outputs[0].id }, points: [] }, lookup)).toBeNull();
   });
 
-  it('builds nets across connected wires and applies labels', () => {
+  it('builds nets across connected wires with generated names', () => {
     const input = gate('INPUT', 'input_net');
     const andGate = gate('AND', 'and_net');
     const output = gate('OUTPUT', 'output_net');
     const firstWire = wire('input_to_and', input, 0, andGate, 0);
     const secondWire = wire('and_to_output', andGate, 0, output, 0);
-    const circuit = circuitWith([input, andGate, output], [firstWire, secondWire], {
-      labels: [{ id: 'label_a', text: 'A_BUS', x: 0, y: 0, wireId: firstWire.id }],
-    });
+    const circuit = circuitWith([input, andGate, output], [firstWire, secondWire]);
 
     const nets = buildCircuitNets(circuit);
 
     expect(nets).toHaveLength(2);
     expect(nets.find((net) => net.wireIds.includes(firstWire.id))).toMatchObject({
-      name: 'A_BUS',
-      labelIds: ['label_a'],
+      name: 'N1',
       pinIds: [input.outputs[0].id, andGate.inputs[0].id],
     });
     expect(nets.find((net) => net.wireIds.includes(secondWire.id))?.name).toBe('N2');

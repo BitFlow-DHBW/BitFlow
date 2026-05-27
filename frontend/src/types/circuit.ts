@@ -95,7 +95,6 @@ export interface Circuit {
   version: number;
   gates: Gate[];
   wires: Wire[];
-  labels?: NetLabel[];
   annotations?: Annotation[];
   nets?: Net[];
   customComponents: CustomComponent[];
@@ -106,15 +105,6 @@ export interface Net {
   name: string;
   pinIds: string[];
   wireIds: string[];
-  labelIds: string[];
-}
-
-export interface NetLabel {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  wireId?: string;
 }
 
 export interface Annotation {

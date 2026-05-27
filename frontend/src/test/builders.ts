@@ -9,7 +9,6 @@ export function emptyCircuit(overrides: Partial<Circuit> = {}): Circuit {
     version: 1,
     gates: [],
     wires: [],
-    labels: [],
     annotations: [],
     customComponents: [],
     ...overrides,

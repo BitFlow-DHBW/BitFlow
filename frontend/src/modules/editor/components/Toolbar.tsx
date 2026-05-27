@@ -14,7 +14,6 @@ interface ToolbarProps {
   onSave: () => void;
   onDeleteSelected: () => void;
   onOpenCustomDialog: () => void;
-  onAddNetLabel: () => void;
   onAddAnnotation: () => void;
 }
 
@@ -37,7 +36,6 @@ export function Toolbar({
   onSave,
   onDeleteSelected,
   onOpenCustomDialog,
-  onAddNetLabel,
   onAddAnnotation,
 }: ToolbarProps) {
   return (
@@ -75,9 +73,6 @@ export function Toolbar({
         </button>
         <button className="ghost-button" type="button" onClick={onDeleteSelected} disabled={!canDelete}>
           Löschen
-        </button>
-        <button className="secondary-button" type="button" onClick={onAddNetLabel}>
-          Net Label
         </button>
         <button className="secondary-button" type="button" onClick={onAddAnnotation}>
           Kommentar

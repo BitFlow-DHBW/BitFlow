@@ -1026,13 +1026,6 @@ button:disabled {
   fill: color-mix(in srgb, var(--success) 18%, var(--surface));
 }
 
-.canvas-net-label {
-  fill: var(--primary-strong);
-  font-size: 12px;
-  font-weight: 850;
-  pointer-events: none;
-}
-
 .canvas-annotation {
   fill: var(--muted);
   font-size: 12px;

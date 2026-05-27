@@ -355,10 +355,6 @@ export function createStarterCircuit(name = 'Neue Schaltung'): Circuit {
         points: [],
       },
     ],
-    labels: [
-      { id: 'label_a', text: 'A', x: 96, y: 104, wireId: 'wire_input_a_to_and_main_0' },
-      { id: 'label_b', text: 'B', x: 96, y: 224, wireId: 'wire_input_b_to_and_main_1' },
-    ],
     annotations: [{ id: 'annotation_starter', text: 'BitFlow starter schematic', x: 96, y: 64 }],
     customComponents: [],
   };

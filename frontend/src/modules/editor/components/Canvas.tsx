@@ -257,12 +257,6 @@ export function Canvas({
 
       {wireDraft && <WireComp from={wireDraft.from} to={wireDraft.to} preview />}
 
-      {(circuit.labels ?? []).map((label) => (
-        <text key={label.id} className="canvas-net-label" x={label.x} y={label.y}>
-          {label.text}
-        </text>
-      ))}
-
       {(circuit.annotations ?? []).map((annotation) => (
         <text key={annotation.id} className="canvas-annotation" x={annotation.x} y={annotation.y}>
           {annotation.text}

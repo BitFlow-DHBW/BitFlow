@@ -48,7 +48,6 @@ export function buildCircuitNets(circuit: Circuit): Net[] {
         name: '',
         pinIds: [],
         wireIds: [],
-        labelIds: [],
       } satisfies Net);
 
     net.wireIds.push(wire.id);
@@ -56,20 +55,10 @@ export function buildCircuitNets(circuit: Circuit): Net[] {
     netsByRoot.set(root, net);
   }
 
-  for (const label of circuit.labels ?? []) {
-    if (!label.wireId) continue;
-    const root = groups.find(`wire:${label.wireId}`);
-    const net = netsByRoot.get(root);
-    if (!net) continue;
-    net.labelIds.push(label.id);
-    if (!net.name) net.name = label.text;
-  }
-
   return [...netsByRoot.values()].map((net, index) => ({
     ...net,
     name: net.name || `N${index + 1}`,
     pinIds: [...new Set(net.pinIds)],
     wireIds: [...new Set(net.wireIds)],
-    labelIds: [...new Set(net.labelIds)],
   }));
 }
