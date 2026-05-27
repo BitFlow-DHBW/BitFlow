@@ -37,7 +37,7 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
 }
 
 describe('Canvas', () => {
-  it('renders the editor grid, gates, wires, labels and annotations', () => {
+  it('renders the editor grid, gates, wires and annotations', () => {
     const props = canvasProps({ signals: { 'input_a:output:0': true }, selectedWireId: 'wire_input_a_to_and_main_0' });
     const { container } = render(<Canvas {...props} />);
 

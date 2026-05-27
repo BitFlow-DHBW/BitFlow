@@ -408,26 +408,6 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     onProjectSaved(savedProject);
   }
 
-  function handleAddNetLabel() {
-    const text = window.prompt('Net Label', 'NET');
-    if (!text) return;
-    const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId);
-    const point = selectedWire?.points[1] ?? selectedWire?.points[0] ?? { x: 144, y: 96 };
-    commitCircuit({
-      ...history.state,
-      labels: [
-        ...(history.state.labels ?? []),
-        {
-          id: createId('label'),
-          text,
-          x: snapToGrid(point.x),
-          y: snapToGrid(point.y - 12),
-          wireId: selectedWire?.id,
-        },
-      ],
-    });
-  }
-
   function handleAddAnnotation() {
     const text = window.prompt('Kommentar', 'Kommentar');
     if (!text) return;
@@ -479,7 +459,6 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         onSave={() => void handleSave()}
         onDeleteSelected={handleDeleteSelected}
         onOpenCustomDialog={() => setCustomDialogOpen(true)}
-        onAddNetLabel={handleAddNetLabel}
         onAddAnnotation={handleAddAnnotation}
       />
 

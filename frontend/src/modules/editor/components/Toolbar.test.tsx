@@ -18,7 +18,6 @@ function renderToolbar(overrides = {}) {
     onSave: vi.fn(),
     onDeleteSelected: vi.fn(),
     onOpenCustomDialog: vi.fn(),
-    onAddNetLabel: vi.fn(),
     onAddAnnotation: vi.fn(),
     ...overrides,
   };
@@ -40,7 +39,6 @@ describe('Toolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Redo' }));
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await user.click(screen.getByRole('button', { name: 'Baustein' }));
-    await user.click(screen.getByRole('button', { name: 'Net Label' }));
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
     await user.click(screen.getByRole('button', { name: /Projekt/ }));
 
@@ -48,7 +46,6 @@ describe('Toolbar', () => {
     expect(props.onRedo).toHaveBeenCalled();
     expect(props.onSave).toHaveBeenCalled();
     expect(props.onOpenCustomDialog).toHaveBeenCalled();
-    expect(props.onAddNetLabel).toHaveBeenCalled();
     expect(props.onAddAnnotation).toHaveBeenCalled();
     expect(props.onBack).toHaveBeenCalled();
   });

@@ -32,7 +32,7 @@ export function Inspector({ circuit, selectedGate, onUpdateGate }: InspectorProp
         <div className="empty-panel">
           <p>Kein Baustein ausgewählt.</p>
           <span>
-            {circuit.gates.length} Komponenten · {circuit.wires.length} Leitungen · {(circuit.labels ?? []).length} Labels
+            {circuit.gates.length} Komponenten · {circuit.wires.length} Leitungen
           </span>
         </div>
       ) : (

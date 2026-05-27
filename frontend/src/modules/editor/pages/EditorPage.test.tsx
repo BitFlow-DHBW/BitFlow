@@ -68,7 +68,7 @@ describe('EditorPage', () => {
     expect(screen.getByRole('button', { name: /Input Pintrue/ })).toBeInTheDocument();
   });
 
-  it('supports an edit workflow with placement, labels, custom components, save and delete', async () => {
+  it('supports an edit workflow with placement, annotations, custom components, save and delete', async () => {
     const user = userEvent.setup();
     const currentUser = testUser();
     const circuit = createStarterCircuit('Workflow Circuit');
@@ -98,14 +98,11 @@ describe('EditorPage', () => {
     fireEvent.click(grid, { clientX: 240, clientY: 120 });
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
 
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValueOnce('BUS_A').mockReturnValueOnce('Kommentar A');
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValueOnce('Kommentar A');
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
-    await user.click(screen.getByRole('button', { name: 'Net Label' }));
-    expect(screen.getByText('BUS_A')).toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
     expect(screen.getByText('Kommentar A')).toBeInTheDocument();
-    expect(promptSpy).toHaveBeenCalledTimes(2);
+    expect(promptSpy).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: 'Baustein' }));
     await user.click(screen.getByRole('button', { name: /Zeile/ }));
@@ -114,14 +111,8 @@ describe('EditorPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(screen.getByText('Gespeichert')).toBeInTheDocument());
-    expect(projectMocks.updateProject).toHaveBeenCalledWith(
-      'project_editor',
-      expect.objectContaining({
-        circuit: expect.objectContaining({
-          labels: expect.arrayContaining([expect.objectContaining({ text: 'BUS_A' })]),
-        }),
-      }),
-    );
+    const storedProjects = JSON.parse(window.localStorage.getItem('bitflow.projects') ?? '[]');
+    expect(storedProjects[0].circuit.annotations).toEqual(expect.arrayContaining([expect.objectContaining({ text: 'Kommentar A' })]));
 
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
