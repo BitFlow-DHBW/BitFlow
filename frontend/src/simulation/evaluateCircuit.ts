@@ -1,24 +1,5 @@
-import { endpointNodeId, normalizeWireEndpoint } from './wireUtils';
+import { buildWireEndpointGroups, type EndpointGroups } from './wireUtils';
 import type { Circuit, Gate, SignalState } from '../types/circuit';
-
-class DisjointSet {
-  private readonly parent = new Map<string, string>();
-
-  find(id: string): string {
-    if (!this.parent.has(id)) this.parent.set(id, id);
-    const parent = this.parent.get(id);
-    if (!parent || parent === id) return id;
-    const root = this.find(parent);
-    this.parent.set(id, root);
-    return root;
-  }
-
-  union(a: string, b: string): void {
-    const rootA = this.find(a);
-    const rootB = this.find(b);
-    if (rootA !== rootB) this.parent.set(rootB, rootA);
-  }
-}
 
 function evaluateCombinationalGate(type: Gate['type'], inputValues: boolean[]): boolean[] {
   switch (type) {
@@ -85,22 +66,7 @@ function evaluateFlipFlop(gate: Gate, inputValues: boolean[], state: SignalState
   return [nextQ];
 }
 
-function buildWireGroups(circuit: Circuit): DisjointSet {
-  const groups = new DisjointSet();
-
-  for (const wire of circuit.wires) {
-    const wireNode = `wire:${wire.id}`;
-    const from = normalizeWireEndpoint(wire, 'from');
-    const to = normalizeWireEndpoint(wire, 'to');
-
-    if (from) groups.union(wireNode, endpointNodeId(from));
-    if (to) groups.union(wireNode, endpointNodeId(to));
-  }
-
-  return groups;
-}
-
-function buildNetValues(circuit: Circuit, groups: DisjointSet, signals: SignalState): Map<string, boolean> {
+function buildNetValues(circuit: Circuit, groups: EndpointGroups, signals: SignalState): Map<string, boolean> {
   const values = new Map<string, boolean>();
 
   for (const gate of circuit.gates) {
@@ -115,7 +81,7 @@ function buildNetValues(circuit: Circuit, groups: DisjointSet, signals: SignalSt
 
 export function evaluateCircuit(circuit: Circuit, inputStates: SignalState): SignalState {
   const nextSignals: SignalState = { ...inputStates };
-  const groups = buildWireGroups(circuit);
+  const groups = buildWireEndpointGroups(circuit);
   const maxIterations = Math.max(4, circuit.gates.length * 5);
 
   for (let i = 0; i < maxIterations; i += 1) {

@@ -63,6 +63,26 @@ describe('Canvas', () => {
     expect(props.onCanvasClick).toHaveBeenCalledWith({ x: 240, y: 120 });
   });
 
+  it('renders wires as live when connected to a true output pin in either direction', () => {
+    const input = gate('INPUT', 'input_live');
+    const andGate = gate('AND', 'and_live');
+    const reversedWire = {
+      id: 'wire_reversed',
+      from: { kind: 'pin' as const, pinId: andGate.inputs[0].id },
+      to: { kind: 'pin' as const, pinId: input.outputs[0].id },
+      sourcePinId: andGate.inputs[0].id,
+      targetPinId: input.outputs[0].id,
+      points: [],
+    };
+    const props = canvasProps({
+      circuit: circuitWith([input, andGate], [reversedWire]),
+      signals: { [input.outputs[0].id]: true },
+    });
+    const { container } = render(<Canvas {...props} />);
+
+    expect(container.querySelector('path.wire.is-live')).toBeInTheDocument();
+  });
+
   it('handles drag preview, drop payloads and wire drafts', () => {
     const input = gate('INPUT', 'input_canvas');
     const output = gate('OUTPUT', 'output_canvas');

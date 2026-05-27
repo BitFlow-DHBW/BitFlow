@@ -3,7 +3,7 @@ import { GateComp } from './GateComp';
 import { WireComp, wireBranchPoint } from './WireComp';
 import { isInteractiveSourceGate } from '../../../schematic/symbolGeometry';
 import { GRID_SIZE, snapToGrid } from '../../../simulation/gateLibrary';
-import { createPinLookup, getWirePoints, normalizeWireEndpoint } from '../../../simulation/wireUtils';
+import { buildLiveWireIds, createPinLookup, getWirePoints, normalizeWireEndpoint } from '../../../simulation/wireUtils';
 import type {
   Circuit,
   DragState,
@@ -95,6 +95,7 @@ export function Canvas({
   }, []);
 
   const pinMap = useMemo(() => createPinLookup(circuit), [circuit]);
+  const liveWireIds = useMemo(() => buildLiveWireIds(circuit, signals), [circuit, signals]);
 
   function getPoint(event: React.PointerEvent<SVGElement> | React.MouseEvent<SVGElement> | React.DragEvent<SVGElement>): Point {
     const svg = svgRef.current;
@@ -213,7 +214,7 @@ export function Canvas({
             <WireComp
               from={points.from}
               to={points.to}
-              active={Boolean(signals[wire.sourcePinId ?? ''])}
+              active={liveWireIds.has(wire.id)}
               selected={selectedWireId === wire.id}
               onSelect={(event) => {
                 if (mode !== 'edit') return;

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { buildCircuitNets } from './netModel';
-import { createPinLookup, endpointNodeId, getWirePoints, normalizeWireEndpoint, resolveWireEndpoint } from './wireUtils';
+import {
+  buildLiveWireIds,
+  createPinLookup,
+  endpointNodeId,
+  getWirePoints,
+  normalizeWireEndpoint,
+  resolveWireEndpoint,
+} from './wireUtils';
 import { circuitWith, gate, wire } from '../test/builders';
 import type { Wire } from '../types/circuit';
 
@@ -67,5 +74,21 @@ describe('wire utilities and net model', () => {
     expect(endpointNodeId({ kind: 'pin', pinId: 'pin_a' })).toBe('pin:pin_a');
     expect(endpointNodeId({ kind: 'wire', wireId: 'wire_a', point: { x: 1, y: 2 } })).toBe('wire:wire_a');
     expect(endpointNodeId({ kind: 'point', point: { x: 1.3, y: 2.7 } })).toBe('point:1:3');
+  });
+
+  it('marks wires live from connected output signals regardless of draw direction', () => {
+    const input = gate('INPUT', 'input_live');
+    const andGate = gate('AND', 'and_live');
+    const reversedWire: Wire = {
+      id: 'wire_reversed',
+      from: { kind: 'pin', pinId: andGate.inputs[0].id },
+      to: { kind: 'pin', pinId: input.outputs[0].id },
+      sourcePinId: andGate.inputs[0].id,
+      targetPinId: input.outputs[0].id,
+      points: [],
+    };
+    const circuit = circuitWith([input, andGate], [reversedWire]);
+
+    expect(buildLiveWireIds(circuit, { [input.outputs[0].id]: true })).toEqual(new Set(['wire_reversed']));
   });
 });
