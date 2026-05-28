@@ -23,6 +23,13 @@ function startToolDrag(event: React.DragEvent<HTMLButtonElement>, tool: EditorTo
   onToolDragStart(tool);
 }
 
+function builtInToolIcon(type: BuiltInGateType): string {
+  if (type === 'INPUT') return 'I';
+  if (type === 'OUTPUT') return 'O';
+  if (type === 'GENERIC') return '?';
+  return type;
+}
+
 export function Library({ customComponents, selectedTool, onSelectTool, onToolDragStart, onToolDragEnd }: LibraryProps) {
   return (
     <aside className="editor-panel library-panel">
@@ -51,7 +58,7 @@ export function Library({ customComponents, selectedTool, onSelectTool, onToolDr
             onDragEnd={onToolDragEnd}
             onClick={() => onSelectTool({ kind: 'builtin', type: template.type })}
           >
-            <span>{template.type === 'INPUT' ? 'I' : template.type === 'OUTPUT' ? 'O' : template.type}</span>
+            <span>{builtInToolIcon(template.type)}</span>
             <strong>{template.label}</strong>
             <small>{template.description}</small>
           </button>

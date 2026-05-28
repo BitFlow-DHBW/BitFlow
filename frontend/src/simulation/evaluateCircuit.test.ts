@@ -61,8 +61,16 @@ describe('evaluateCircuit', () => {
     expect(bothHigh[xorGate.outputs[0].id]).toBe(false);
   });
 
-  it('evaluates generic, VCC and GND gate behavior for imported circuits', () => {
-    const generic = gate('GENERIC', 'generic');
+  it('evaluates generic truth tables plus VCC and GND behavior for imported circuits', () => {
+    const generic = {
+      ...gate('GENERIC', 'generic'),
+      truthTable: [
+        { inputs: [false, false], outputs: [false] },
+        { inputs: [false, true], outputs: [false] },
+        { inputs: [true, false], outputs: [true] },
+        { inputs: [true, true], outputs: [false] },
+      ],
+    };
     const vcc = { ...gate('INPUT', 'vcc'), type: 'VCC' as const };
     const gnd = { ...gate('INPUT', 'gnd'), type: 'GND' as const };
     const out1 = gate('OUTPUT', 'out1');
@@ -85,6 +93,41 @@ describe('evaluateCircuit', () => {
     expect(signals[out1.id]).toBe(true);
     expect(signals[out2.id]).toBe(true);
     expect(signals[out3.id]).toBe(false);
+  });
+
+  it('drives all generic outputs from the matching truth table row', () => {
+    const inputA = gate('INPUT', 'input_a');
+    const inputB = gate('INPUT', 'input_b');
+    const generic = {
+      ...gate('GENERIC', 'generic_multi'),
+      outputs: [
+        ...gate('GENERIC', 'generic_multi').outputs,
+        {
+          id: 'generic_multi:output:1',
+          gateId: 'generic_multi',
+          direction: 'output' as const,
+          electricalType: 'output' as const,
+          index: 1,
+          label: 'OUT2',
+          name: 'OUT2',
+        },
+      ],
+      truthTable: [
+        { inputs: [false, false], outputs: [false, false] },
+        { inputs: [false, true], outputs: [false, true] },
+        { inputs: [true, false], outputs: [true, false] },
+        { inputs: [true, true], outputs: [true, true] },
+      ],
+    };
+    const circuit = circuitWith(
+      [inputA, inputB, generic],
+      [connect('a_generic', inputA, generic, 0, 0), connect('b_generic', inputB, generic, 0, 1)],
+    );
+
+    const signals = evaluateCircuit(circuit, { [inputA.id]: false, [inputB.id]: true });
+
+    expect(signals[generic.outputs[0].id]).toBe(false);
+    expect(signals[generic.outputs[1].id]).toBe(true);
   });
 
   it('uses custom component truth tables and falls back to false when no row matches', () => {

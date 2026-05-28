@@ -65,4 +65,27 @@ describe('Inspector', () => {
 
     expect(screen.getByText('CPU Slice')).toBeInTheDocument();
   });
+
+  it('opens and saves the generic truth table from the inspector', () => {
+    const onUpdateGate = vi.fn();
+    const genericGate = gate('GENERIC', 'generic_truth_inspector');
+
+    render(<Inspector circuit={circuitWith([genericGate])} selectedGate={genericGate} onUpdateGate={onUpdateGate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Wahrheitstabelle erstellen' }));
+
+    expect(screen.getByRole('dialog', { name: 'Wahrheitstabelle erstellen' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'A' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'B' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'OUT' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: '0' })[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Wahrheitstabelle speichern' }));
+
+    expect(onUpdateGate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        truthTable: expect.arrayContaining([{ inputs: [false, false], outputs: [true] }]),
+      }),
+    );
+  });
 });

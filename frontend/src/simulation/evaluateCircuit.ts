@@ -1,5 +1,5 @@
 import { buildWireEndpointGroups, type EndpointGroups } from './wireUtils';
-import type { Circuit, Gate, SignalState } from '../types/circuit';
+import type { Circuit, Gate, SignalState, TruthTableRow } from '../types/circuit';
 
 function evaluateCombinationalGate(type: Gate['type'], inputValues: boolean[]): boolean[] {
   switch (type) {
@@ -22,22 +22,24 @@ function evaluateCombinationalGate(type: Gate['type'], inputValues: boolean[]): 
       return [inputValues.filter(Boolean).length % 2 === 1];
     case 'NOT':
       return [!inputValues[0]];
-    case 'GENERIC':
-      return [inputValues.some(Boolean)];
     default:
       return [false];
   }
+}
+
+function evaluateTruthTable(rows: TruthTableRow[] | undefined, outputCount: number, inputValues: boolean[]): boolean[] {
+  const matchingRow = rows?.find(
+    (row) => row.inputs.length === inputValues.length && row.inputs.every((value, index) => value === inputValues[index]),
+  );
+
+  return Array.from({ length: outputCount }, (_, index) => matchingRow?.outputs[index] ?? false);
 }
 
 function evaluateCustomGate(circuit: Circuit, gate: Gate, inputValues: boolean[]): boolean[] {
   const component = circuit.customComponents.find((entry) => entry.id === gate.customComponentId);
   if (!component) return gate.outputs.map(() => false);
 
-  const matchingRow = component.truthTable.find(
-    (row) => row.inputs.length === inputValues.length && row.inputs.every((value, index) => value === inputValues[index]),
-  );
-
-  return gate.outputs.map((_, index) => matchingRow?.outputs[index] ?? false);
+  return evaluateTruthTable(component.truthTable, gate.outputs.length, inputValues);
 }
 
 function evaluateFlipFlop(gate: Gate, inputValues: boolean[], state: SignalState): boolean[] {
@@ -104,6 +106,8 @@ export function evaluateCircuit(circuit: Circuit, inputStates: SignalState): Sig
       const outputValues =
         gate.type === 'CUSTOM'
           ? evaluateCustomGate(circuit, gate, inputValues)
+          : gate.type === 'GENERIC'
+            ? evaluateTruthTable(gate.truthTable, gate.outputs.length, inputValues)
           : gate.type === 'DFF' || gate.type === 'TFF' || gate.type === 'JKFF'
             ? evaluateFlipFlop(gate, inputValues, nextSignals)
             : evaluateCombinationalGate(gate.type, inputValues);

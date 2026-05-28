@@ -1,4 +1,13 @@
-import type { BuiltInGateType, Circuit, CustomComponent, ElectricalPinType, Gate, Pin, PinDirection } from '../types/circuit';
+import type {
+  BuiltInGateType,
+  Circuit,
+  CustomComponent,
+  ElectricalPinType,
+  Gate,
+  Pin,
+  PinDirection,
+  TruthTableRow,
+} from '../types/circuit';
 import { createId } from '../utils/id';
 
 export const GRID_SIZE = 24;
@@ -137,8 +146,8 @@ export const GATE_TEMPLATES: GateTemplate[] = [
   },
   {
     type: 'GENERIC',
-    label: 'Generic IC',
-    description: 'Generischer beschriftbarer Baustein',
+    label: 'Generic',
+    description: 'Generischer Logikbaustein',
     width: 5,
     height: 4,
     inputs: 2,
@@ -170,6 +179,50 @@ function defaultPinLabel(direction: PinDirection, index: number): string {
   return direction === 'input' ? String.fromCharCode(65 + index) : index === 0 ? 'OUT' : `OUT${index + 1}`;
 }
 
+function inputCombination(rowIndex: number, inputCount: number): boolean[] {
+  return Array.from({ length: inputCount }, (_, inputIndex) => {
+    const blockSize = 2 ** (inputCount - inputIndex - 1);
+    return Math.floor(rowIndex / blockSize) % 2 === 1;
+  });
+}
+
+function sameInputs(left: boolean[], right: boolean[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function rowsMatchAfterResize(existingInputs: boolean[], nextInputs: boolean[]): boolean {
+  const sharedLength = Math.min(existingInputs.length, nextInputs.length);
+  const sharedInputsMatch = existingInputs.slice(0, sharedLength).every((value, index) => value === nextInputs[index]);
+  if (!sharedInputsMatch) return false;
+
+  const removedExistingInputsAreFalse = existingInputs.slice(sharedLength).every((value) => !value);
+  const addedNextInputsAreFalse = nextInputs.slice(sharedLength).every((value) => !value);
+  return removedExistingInputsAreFalse && addedNextInputsAreFalse;
+}
+
+function resizeOutputs(outputs: boolean[] | undefined, outputCount: number): boolean[] {
+  return Array.from({ length: outputCount }, (_, index) => Boolean(outputs?.[index]));
+}
+
+export function createTruthTableRows(
+  inputCount: number,
+  outputCount: number,
+  existingRows: TruthTableRow[] = [],
+): TruthTableRow[] {
+  const rowCount = 2 ** inputCount;
+
+  return Array.from({ length: rowCount }, (_, rowIndex) => {
+    const inputs = inputCombination(rowIndex, inputCount);
+    const exactMatch = existingRows.find((row) => sameInputs(row.inputs, inputs));
+    const resizedMatch = exactMatch ?? existingRows.find((row) => rowsMatchAfterResize(row.inputs, inputs));
+
+    return {
+      inputs,
+      outputs: resizeOutputs(resizedMatch?.outputs, outputCount),
+    };
+  });
+}
+
 export function createPins(
   gateId: string,
   count: number,
@@ -192,6 +245,8 @@ export function createGate(type: BuiltInGateType, x: number, y: number, id = cre
   const normalizedType = normalizeBuiltInGateType(type);
   const template = templateFor(normalizedType);
   const height = template.configurableInputs ? Math.max(template.height, template.inputs + 1) : template.height;
+  const truthTable =
+    normalizedType === 'GENERIC' ? createTruthTableRows(template.inputs, template.outputs) : undefined;
 
   return alignGateHeight({
     id,
@@ -205,6 +260,7 @@ export function createGate(type: BuiltInGateType, x: number, y: number, id = cre
     height,
     inputs: createPins(id, template.inputs, 'input', template.inputLabels, template.inputElectricalType),
     outputs: createPins(id, template.outputs, 'output', template.outputLabels, template.outputElectricalType),
+    ...(truthTable ? { truthTable } : {}),
   });
 }
 
@@ -253,6 +309,10 @@ export function configureGatePins(gate: Gate, inputCount: number, outputCount = 
     height: Math.max(template.height, pinCount + 1),
     inputs: createPins(gate.id, nextInputCount, 'input', template.inputLabels, template.inputElectricalType),
     outputs: createPins(gate.id, nextOutputCount, 'output', template.outputLabels, template.outputElectricalType),
+    truthTable:
+      gate.type === 'GENERIC'
+        ? createTruthTableRows(nextInputCount, nextOutputCount, gate.truthTable)
+        : gate.truthTable,
   });
 }
 
