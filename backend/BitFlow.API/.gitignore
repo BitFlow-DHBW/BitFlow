@@ -3,3 +3,5 @@ obj/
 Data/*.db
 Data/*.db-shm
 Data/*.db-wal
+obj/project.nuget.cache
+obj/project.assets.json
