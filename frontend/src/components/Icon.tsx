@@ -7,6 +7,7 @@ export type IconName =
   | 'chevron-right'
   | 'copy'
   | 'moon'
+  | 'paste'
   | 'redo'
   | 'reset-view'
   | 'save'
@@ -41,6 +42,15 @@ const icons: Record<IconName, ReactNode> = {
     </>
   ),
   moon: <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8Z" />,
+  paste: (
+    <>
+      <path d="M8 4h8" />
+      <path d="M9 2h6v4H9z" />
+      <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
+      <path d="M8 12h8" />
+      <path d="M8 16h6" />
+    </>
+  ),
   redo: (
     <>
       <path d="m15 14 5-5-5-5" />

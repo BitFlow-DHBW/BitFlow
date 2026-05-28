@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
+import { NavigationGuardProvider, useNavigationGuard } from './NavigationGuardContext';
 
 const shellMocks = vi.hoisted(() => ({
   logout: vi.fn(),
@@ -24,6 +26,11 @@ vi.mock('../modules/settings/PreferencesContext', () => ({
 }));
 
 describe('AppShell', () => {
+  beforeEach(() => {
+    shellMocks.logout.mockClear();
+    shellMocks.toggleTheme.mockClear();
+  });
+
   it('renders navigation, outlet content and account actions', async () => {
     const user = userEvent.setup();
     render(
@@ -46,5 +53,43 @@ describe('AppShell', () => {
 
     expect(shellMocks.toggleTheme).toHaveBeenCalled();
     expect(shellMocks.logout).toHaveBeenCalled();
+  });
+
+  it('asks the active navigation guard before navbar navigation and logout', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(false).mockReturnValueOnce(true);
+
+    function GuardedProjects() {
+      const { setNavigationGuard } = useNavigationGuard();
+      useEffect(() => {
+        setNavigationGuard(() => window.confirm('Ungespeicherte Änderungen verwerfen?'));
+        return () => setNavigationGuard(null);
+      }, [setNavigationGuard]);
+
+      return <main>Projects outlet</main>;
+    }
+
+    render(
+      <NavigationGuardProvider>
+        <MemoryRouter initialEntries={['/projects']}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="/projects" element={<GuardedProjects />} />
+              <Route path="/settings" element={<main>Settings outlet</main>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </NavigationGuardProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Abmelden' }));
+    expect(shellMocks.logout).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('link', { name: 'Einstellungen' }));
+    expect(screen.getByText('Projects outlet')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('link', { name: 'Einstellungen' }));
+    expect(screen.getByText('Settings outlet')).toBeInTheDocument();
+    expect(confirmSpy).toHaveBeenCalledTimes(3);
   });
 });

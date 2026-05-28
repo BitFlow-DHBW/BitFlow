@@ -226,6 +226,47 @@ describe('EditorPage', () => {
     expect(screen.getByText(/Kein Baustein oder Kommentar/)).toBeInTheDocument();
   });
 
+  it('copies and pastes selected gates and annotations by button and shortcut', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Clipboard Circuit',
+        circuit: createStarterCircuit('Clipboard Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Clipboard Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+    const initialGateCount = svg.querySelectorAll('.gate-node').length;
+
+    await user.click(screen.getAllByRole('button', { name: /AND/ })[0]);
+    fireEvent.click(grid, { clientX: 240, clientY: 120 });
+    await user.click(screen.getByRole('button', { name: 'Kopieren' }));
+    await user.click(screen.getByRole('button', { name: 'Einfügen' }));
+
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(initialGateCount + 2);
+
+    const initialAnnotationCount = svg.querySelectorAll('.canvas-annotation').length;
+    const annotation = svg.querySelector('.canvas-annotation') as SVGGElement;
+    Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+
+    expect(svg.querySelectorAll('.canvas-annotation')).toHaveLength(initialAnnotationCount + 1);
+  });
+
   it('warns about unsaved changes before leaving and clears the warning after save', async () => {
     const user = userEvent.setup();
     const currentUser = testUser();

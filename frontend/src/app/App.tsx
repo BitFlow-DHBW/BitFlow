@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './AppShell';
+import { NavigationGuardProvider } from './NavigationGuardContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AuthProvider, useAuth } from '../modules/auth/AuthContext';
 import { LoginPage } from '../modules/auth/pages/LoginPage';
@@ -26,44 +27,46 @@ export default function App() {
   return (
     <PreferencesProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomeRoute />} />
-            <Route
-              path="/login"
-              element={
-                <GuestRoute>
-                  <LoginPage />
-                </GuestRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <GuestRoute>
-                  <RegisterPage />
-                </GuestRoute>
-              }
-            />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <NavigationGuardProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<HomeRoute />} />
+              <Route
+                path="/login"
+                element={
+                  <GuestRoute>
+                    <LoginPage />
+                  </GuestRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <GuestRoute>
+                    <RegisterPage />
+                  </GuestRoute>
+                }
+              />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppShell />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/editor/:projectId" element={<EditorPage />} />
-              <Route path="/session/:sessionId" element={<EditorPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-            </Route>
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/editor/:projectId" element={<EditorPage />} />
+                <Route path="/session/:sessionId" element={<EditorPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </NavigationGuardProvider>
       </AuthProvider>
     </PreferencesProvider>
   );

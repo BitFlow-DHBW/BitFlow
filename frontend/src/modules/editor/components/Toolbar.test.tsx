@@ -9,6 +9,8 @@ function renderToolbar(overrides = {}) {
     mode: 'edit' as const,
     canUndo: false,
     canRedo: true,
+    canCopy: true,
+    canPaste: true,
     canDelete: true,
     canSave: true,
     canCreateSession: true,
@@ -18,6 +20,8 @@ function renderToolbar(overrides = {}) {
     onBack: vi.fn(),
     onUndo: vi.fn(),
     onRedo: vi.fn(),
+    onCopySelection: vi.fn(),
+    onPasteClipboard: vi.fn(),
     onSave: vi.fn(),
     onCreateSession: vi.fn(),
     onDeleteSelected: vi.fn(),
@@ -39,10 +43,14 @@ describe('Toolbar', () => {
     expect(screen.getByRole('heading', { name: 'ALU' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Rückgängig' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Wiederholen' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Kopieren' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Einfügen' })).toBeEnabled();
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Simulieren' }));
     await user.click(screen.getByRole('button', { name: 'Wiederholen' }));
+    await user.click(screen.getByRole('button', { name: 'Kopieren' }));
+    await user.click(screen.getByRole('button', { name: 'Einfügen' }));
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein importieren' }));
@@ -52,6 +60,8 @@ describe('Toolbar', () => {
 
     expect(props.onModeChange).toHaveBeenCalledWith('simulate');
     expect(props.onRedo).toHaveBeenCalled();
+    expect(props.onCopySelection).toHaveBeenCalled();
+    expect(props.onPasteClipboard).toHaveBeenCalled();
     expect(props.onSave).toHaveBeenCalled();
     expect(props.onOpenCustomDialog).toHaveBeenCalled();
     expect(props.onOpenImportDialog).toHaveBeenCalled();

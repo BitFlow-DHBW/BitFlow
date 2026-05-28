@@ -13,7 +13,15 @@ import { Toolbar } from '../components/Toolbar';
 import { buildInviteLink, readSessionIdFromSearch } from '../collaborationLinks';
 import { mergeRemoteCircuitWithLocalInteraction } from '../collaborationMerge';
 import { canSaveProject, createCollaborationCircuitState } from '../collaborationState';
+import {
+  createAnnotationClipboardItem,
+  createGateClipboardItem,
+  createPastedClipboardItem,
+  createWireClipboardItem,
+  type EditorClipboardItem,
+} from '../editorClipboard';
 import { positionAnnotationFromDrag, positionGateAtPoint, positionGateFromDrag } from '../editorGeometry';
+import { useNavigationGuard } from '../../../app/NavigationGuardContext';
 import { useAuth } from '../../auth/AuthContext';
 import { usePreferences } from '../../settings/PreferencesContext';
 import { useHistory } from '../../../hooks/useHistory';
@@ -22,6 +30,7 @@ import { projectService } from '../../../services/projectService';
 import { createCustomGate, createGate, createStarterCircuit, snapToGrid } from '../../../simulation/gateLibrary';
 import { evaluateCircuit } from '../../../simulation/evaluateCircuit';
 import { buildCircuitNets } from '../../../simulation/netModel';
+import { createPinLookup, getWirePoints } from '../../../simulation/wireUtils';
 import type {
   Annotation,
   Circuit,
@@ -203,6 +212,7 @@ function EditorWorkspace({
   const location = useLocation();
   const { user } = useAuth();
   const { preferences } = usePreferences();
+  const { setNavigationGuard } = useNavigationGuard();
   const history = useHistory<Circuit>(project.circuit, project.id);
   const currentUrlRef = useRef(`${location.pathname}${location.search}${location.hash}`);
   const [mode, setMode] = useState<EditorMode>('edit');
@@ -210,6 +220,7 @@ function EditorWorkspace({
   const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [clipboardItem, setClipboardItem] = useState<EditorClipboardItem | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragStartCircuit, setDragStartCircuit] = useState<Circuit | null>(null);
   const [wireDraft, setWireDraft] = useState<WireDraft | null>(null);
@@ -360,6 +371,9 @@ function EditorWorkspace({
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
   const selectedAnnotation = (history.state.annotations ?? []).find((annotation) => annotation.id === selectedAnnotationId) ?? null;
+  const pinMap = useMemo(() => createPinLookup(history.state), [history.state]);
+  const hasSelectedCanvasItem = Boolean(selectedGate || selectedWire || selectedAnnotation);
+  const canPasteClipboard = mode === 'edit' && Boolean(clipboardItem);
   const editorLayoutClassName = editorLayoutClasses(libraryCollapsed, detailsCollapsed);
 
   const markUnsaved = useCallback(() => {
@@ -371,6 +385,11 @@ function EditorWorkspace({
     () => !hasUnsavedChanges || window.confirm(UNSAVED_CHANGES_MESSAGE),
     [hasUnsavedChanges],
   );
+
+  useEffect(() => {
+    setNavigationGuard(confirmNavigation);
+    return () => setNavigationGuard(null);
+  }, [confirmNavigation, setNavigationGuard]);
 
   const commitCircuit = useCallback(
     (
@@ -596,6 +615,70 @@ function EditorWorkspace({
     });
   }
 
+  const handleCopySelection = useCallback(() => {
+    if (selectedGate) {
+      setClipboardItem(createGateClipboardItem(selectedGate));
+      return;
+    }
+
+    if (selectedAnnotation) {
+      setClipboardItem(createAnnotationClipboardItem(selectedAnnotation));
+      return;
+    }
+
+    if (!selectedWire) return;
+    const wirePoints = getWirePoints(selectedWire, pinMap);
+    if (!wirePoints) return;
+
+    setClipboardItem(
+      createWireClipboardItem({
+        id: selectedWire.id,
+        from: { kind: 'point', point: wirePoints.from },
+        to: { kind: 'point', point: wirePoints.to },
+        points: [wirePoints.from, wirePoints.to],
+      }),
+    );
+  }, [pinMap, selectedAnnotation, selectedGate, selectedWire]);
+
+  const handlePasteClipboard = useCallback(() => {
+    if (mode !== 'edit' || !clipboardItem) return;
+    const pastedItem = createPastedClipboardItem(clipboardItem);
+    if (!pastedItem) return;
+
+    setClipboardItem(pastedItem);
+    setSelectedTool(null);
+
+    if (pastedItem.kind === 'gate') {
+      commitCircuit({
+        ...history.state,
+        gates: [...history.state.gates, pastedItem.gate],
+      });
+      setSelectedGateId(pastedItem.gate.id);
+      setSelectedWireId(null);
+      setSelectedAnnotationId(null);
+      return;
+    }
+
+    if (pastedItem.kind === 'annotation') {
+      commitCircuit({
+        ...history.state,
+        annotations: [...(history.state.annotations ?? []), pastedItem.annotation],
+      });
+      setSelectedGateId(null);
+      setSelectedWireId(null);
+      setSelectedAnnotationId(pastedItem.annotation.id);
+      return;
+    }
+
+    commitCircuit({
+      ...history.state,
+      wires: [...history.state.wires, pastedItem.wire],
+    });
+    setSelectedGateId(null);
+    setSelectedWireId(pastedItem.wire.id);
+    setSelectedAnnotationId(null);
+  }, [clipboardItem, commitCircuit, history.state, mode]);
+
   const handleDeleteSelected = useCallback(() => {
     if (selectedAnnotation) {
       commitCircuit({
@@ -651,6 +734,20 @@ function EditorWorkspace({
         return;
       }
 
+      const key = event.key.toLowerCase();
+      const primaryModifierPressed = event.ctrlKey || event.metaKey;
+      if (primaryModifierPressed && key === 'c') {
+        event.preventDefault();
+        handleCopySelection();
+        return;
+      }
+
+      if (primaryModifierPressed && key === 'v') {
+        event.preventDefault();
+        handlePasteClipboard();
+        return;
+      }
+
       if (event.key === 'Delete' || shortcutMatches(event, preferences.shortcuts.deleteSelection)) {
         event.preventDefault();
         handleDeleteSelected();
@@ -659,7 +756,7 @@ function EditorWorkspace({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [clearToolDragPreview, handleDeleteSelected, preferences.shortcuts]);
+  }, [clearToolDragPreview, handleCopySelection, handleDeleteSelected, handlePasteClipboard, preferences.shortcuts]);
 
   async function handleSave() {
     if (!user || !canSave) return;
@@ -726,7 +823,9 @@ function EditorWorkspace({
         mode={mode}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
-        canDelete={Boolean(selectedGate || selectedWire || selectedAnnotation)}
+        canCopy={hasSelectedCanvasItem}
+        canPaste={canPasteClipboard}
+        canDelete={hasSelectedCanvasItem}
         canSave={canSave}
         canCreateSession={!collaboration.session && !isSessionOnlyProject}
         saveState={saveState}
@@ -752,6 +851,8 @@ function EditorWorkspace({
           markUnsaved();
           window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
         }}
+        onCopySelection={handleCopySelection}
+        onPasteClipboard={handlePasteClipboard}
         onSave={() => void handleSave()}
         onCreateSession={() => void collaboration.createSession()}
         onDeleteSelected={handleDeleteSelected}

@@ -6,6 +6,8 @@ interface ToolbarProps {
   mode: EditorMode;
   canUndo: boolean;
   canRedo: boolean;
+  canCopy: boolean;
+  canPaste: boolean;
   canDelete: boolean;
   canSave: boolean;
   canCreateSession: boolean;
@@ -15,6 +17,8 @@ interface ToolbarProps {
   onBack: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onCopySelection: () => void;
+  onPasteClipboard: () => void;
   onSave: () => void;
   onCreateSession: () => void;
   onDeleteSelected: () => void;
@@ -33,6 +37,8 @@ export function Toolbar({
   mode,
   canUndo,
   canRedo,
+  canCopy,
+  canPaste,
   canDelete,
   canSave,
   canCreateSession,
@@ -42,6 +48,8 @@ export function Toolbar({
   onBack,
   onUndo,
   onRedo,
+  onCopySelection,
+  onPasteClipboard,
   onSave,
   onCreateSession,
   onDeleteSelected,
@@ -81,6 +89,26 @@ export function Toolbar({
         </button>
         <button className="icon-button" type="button" onClick={onRedo} disabled={!canRedo} aria-label="Wiederholen" title="Wiederholen">
           <Icon name="redo" />
+        </button>
+        <button
+          className="icon-button"
+          type="button"
+          onClick={onCopySelection}
+          disabled={!canCopy}
+          aria-label="Kopieren"
+          title="Kopieren (Strg+C)"
+        >
+          <Icon name="copy" />
+        </button>
+        <button
+          className="icon-button"
+          type="button"
+          onClick={onPasteClipboard}
+          disabled={!canPaste}
+          aria-label="Einfügen"
+          title="Einfügen (Strg+V)"
+        >
+          <Icon name="paste" />
         </button>
         <button className="ghost-button" type="button" onClick={onDeleteSelected} disabled={!canDelete}>
           <Icon name="trash" />
