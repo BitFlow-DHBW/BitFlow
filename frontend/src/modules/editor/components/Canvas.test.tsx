@@ -128,6 +128,17 @@ describe('Canvas', () => {
     expect(props.onAnnotationResizeStart).toHaveBeenCalledWith(annotation, 'se', { x: 208, y: 152 });
   });
 
+  it('renders annotations above gates', () => {
+    const input = gate('INPUT', 'input_annotation_layer');
+    const annotation = { id: 'annotation_layer', text: 'Oben', x: input.x, y: input.y, width: 160, height: 80 };
+    const { container } = render(<Canvas {...canvasProps({ circuit: circuitWith([input], [], { annotations: [annotation] }) })} />);
+
+    const gateNode = container.querySelector('.gate-node') as SVGGElement;
+    const annotationNode = container.querySelector('.canvas-annotation-node') as SVGGElement;
+
+    expect(gateNode.compareDocumentPosition(annotationNode) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('handles drag preview, drop payloads and wire drafts', () => {
     const input = gate('INPUT', 'input_canvas');
     const output = gate('OUTPUT', 'output_canvas');

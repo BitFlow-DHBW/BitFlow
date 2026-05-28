@@ -61,3 +61,29 @@ export function panViewBox(viewBox: ViewBox, screenDelta: Point, size: CanvasSiz
     y: viewBox.y - screenDelta.y * scaleY,
   };
 }
+
+export function resizeViewBox(viewBox: ViewBox, currentSize: CanvasSize, nextSize: CanvasSize): ViewBox {
+  const nextDefaultViewBox = createDefaultViewBox(nextSize);
+  const isDefaultView =
+    viewBox.x === 0 &&
+    viewBox.y === 0 &&
+    viewBox.width === currentSize.width &&
+    viewBox.height === currentSize.height;
+
+  if (isDefaultView) return nextDefaultViewBox;
+
+  const zoom = getViewBoxZoom(viewBox, currentSize);
+  const width = Math.max(1, nextSize.width) / zoom;
+  const height = Math.max(1, nextSize.height) / zoom;
+  const center = {
+    x: viewBox.x + viewBox.width / 2,
+    y: viewBox.y + viewBox.height / 2,
+  };
+
+  return {
+    x: center.x - width / 2,
+    y: center.y - height / 2,
+    width,
+    height,
+  };
+}

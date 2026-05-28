@@ -4,6 +4,7 @@ import { Canvas } from '../components/Canvas';
 import { CollaborationPanel, type InviteCopyStatus } from '../components/CollaborationPanel';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
+import { EditorSidePanel } from '../components/EditorSidePanel';
 import { Inspector } from '../components/Inspector';
 import { Library } from '../components/Library';
 import { SignalViewer } from '../components/SignalViewer';
@@ -11,15 +12,26 @@ import { SimulationPanel } from '../components/SimulationPanel';
 import { Toolbar } from '../components/Toolbar';
 import { DEFAULT_ANNOTATION_HEIGHT, DEFAULT_ANNOTATION_WIDTH, MIN_ANNOTATION_HEIGHT, MIN_ANNOTATION_WIDTH, annotationSize } from '../annotations';
 import { buildInviteLink, readSessionIdFromSearch } from '../collaborationLinks';
+import { mergeRemoteCircuitWithLocalInteraction } from '../collaborationMerge';
 import { canSaveProject, createCollaborationCircuitState } from '../collaborationState';
+import {
+  createAnnotationClipboardItem,
+  createGateClipboardItem,
+  createPastedClipboardItem,
+  createWireClipboardItem,
+  type EditorClipboardItem,
+} from '../editorClipboard';
+import { positionGateAtPoint, positionGateFromDrag } from '../editorGeometry';
+import { useNavigationGuard } from '../../../app/NavigationGuardContext';
 import { useAuth } from '../../auth/AuthContext';
 import { usePreferences } from '../../settings/PreferencesContext';
 import { useHistory } from '../../../hooks/useHistory';
 import { useCollaborationSession } from '../../../hooks/useCollaborationSession';
 import { projectService } from '../../../services/projectService';
-import { createCustomGate, createGate, createStarterCircuit, gateRectPx, snapToGrid } from '../../../simulation/gateLibrary';
+import { createCustomGate, createGate, createStarterCircuit, snapToGrid } from '../../../simulation/gateLibrary';
 import { evaluateCircuit } from '../../../simulation/evaluateCircuit';
 import { buildCircuitNets } from '../../../simulation/netModel';
+import { createPinLookup, getWirePoints } from '../../../simulation/wireUtils';
 import type {
   Annotation,
   AnnotationDragState,
@@ -85,6 +97,20 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
 
 const TOOL_PREVIEW_GATE_ID = 'tool_preview';
 const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Änderungen. Seite wirklich verlassen?';
+
+function startWithCollapsedPanels(): boolean {
+  return Boolean(
+    typeof window !== 'undefined' &&
+      window.matchMedia?.('(max-width: 760px)').matches,
+  );
+}
+
+function editorLayoutClasses(libraryCollapsed: boolean, detailsCollapsed: boolean): string {
+  const classes = ['editor-grid-layout'];
+  if (libraryCollapsed) classes.push('is-left-collapsed');
+  if (detailsCollapsed) classes.push('is-right-collapsed');
+  return classes.join(' ');
+}
 
 function createTransientSessionProject(sessionId: string, ownerId: string | undefined): Project {
   const now = new Date().toISOString();
@@ -190,6 +216,7 @@ function EditorWorkspace({
   const location = useLocation();
   const { user } = useAuth();
   const { preferences } = usePreferences();
+  const { setNavigationGuard } = useNavigationGuard();
   const history = useHistory<Circuit>(project.circuit, project.id);
   const currentUrlRef = useRef(`${location.pathname}${location.search}${location.hash}`);
   const [mode, setMode] = useState<EditorMode>('edit');
@@ -197,6 +224,7 @@ function EditorWorkspace({
   const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [clipboardItem, setClipboardItem] = useState<EditorClipboardItem | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [annotationDragState, setAnnotationDragState] = useState<AnnotationDragState | null>(null);
   const [annotationResizeState, setAnnotationResizeState] = useState<AnnotationResizeState | null>(null);
@@ -213,6 +241,8 @@ function EditorWorkspace({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
   const [inviteCopyStatus, setInviteCopyStatus] = useState<InviteCopyStatus>('idle');
+  const [libraryCollapsed, setLibraryCollapsed] = useState(startWithCollapsedPanels);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(startWithCollapsedPanels);
   const currentEditorStateRef = useRef<CollaborationCircuitState>(
     createCollaborationCircuitState(history.state, inputSignals, customComponents),
   );
@@ -267,24 +297,22 @@ function EditorWorkspace({
   const applyRemoteEditorState = useCallback(
     (remoteState: CollaborationCircuitState) => {
       const nextComponents = remoteState.customComponents ?? remoteState.circuit.customComponents ?? [];
+      const nextCircuit = mergeRemoteCircuitWithLocalInteraction(
+        {
+          ...remoteState.circuit,
+          customComponents: nextComponents,
+        },
+        history.state,
+        { dragState, annotationDragState, annotationResizeState },
+      );
 
-      history.replace({
-        ...remoteState.circuit,
-        customComponents: nextComponents,
-      });
+      history.replace(nextCircuit);
       setInputSignals(remoteState.inputSignals ?? {});
       setCustomComponents(nextComponents);
-      setSelectedGateId(null);
-      setSelectedWireId(null);
-      setSelectedAnnotationId(null);
-      setWireDraft(null);
-      setDragState(null);
-      setAnnotationDragState(null);
-      setAnnotationResizeState(null);
       setHasUnsavedChanges(true);
       setSaveState('Ungespeichert');
     },
-    [history],
+    [annotationDragState, annotationResizeState, dragState, history],
   );
 
   const collaboration = useCollaborationSession({
@@ -304,6 +332,21 @@ function EditorWorkspace({
   }, [inviteLink]);
 
   const canSave = canSaveProject(collaboration.role, isSessionOnlyProject);
+
+  useEffect(() => {
+    if (collaboration.status !== 'ended') return;
+    setHasUnsavedChanges(false);
+    navigate('/projects', { replace: true });
+  }, [collaboration.status, navigate]);
+
+  async function handleLeaveSession() {
+    const closesSession = collaboration.role === 'host';
+    await collaboration.leaveSession();
+    if (!closesSession) return;
+
+    setHasUnsavedChanges(false);
+    navigate('/projects', { replace: true });
+  }
 
   const publishCollaborationState = useCallback(
     (
@@ -335,6 +378,10 @@ function EditorWorkspace({
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
   const selectedAnnotation = (history.state.annotations ?? []).find((annotation) => annotation.id === selectedAnnotationId) ?? null;
+  const pinMap = useMemo(() => createPinLookup(history.state), [history.state]);
+  const hasSelectedCanvasItem = Boolean(selectedGate || selectedWire || selectedAnnotation);
+  const canPasteClipboard = mode === 'edit' && Boolean(clipboardItem);
+  const editorLayoutClassName = editorLayoutClasses(libraryCollapsed, detailsCollapsed);
 
   const markUnsaved = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -345,6 +392,11 @@ function EditorWorkspace({
     () => !hasUnsavedChanges || window.confirm(UNSAVED_CHANGES_MESSAGE),
     [hasUnsavedChanges],
   );
+
+  useEffect(() => {
+    setNavigationGuard(confirmNavigation);
+    return () => setNavigationGuard(null);
+  }, [confirmNavigation, setNavigationGuard]);
 
   const commitCircuit = useCallback(
     (
@@ -388,15 +440,6 @@ function EditorWorkspace({
     return component ? createCustomGate(component, 0, 0, id) : null;
   }
 
-  function positionGateAt(gateDraft: Gate, point: Point): Gate {
-    const rect = gateRectPx(gateDraft);
-    return {
-      ...gateDraft,
-      x: Math.max(0, snapToGrid(point.x - rect.width / 2)),
-      y: Math.max(0, snapToGrid(point.y - rect.height / 2)),
-    };
-  }
-
   function placeTool(tool: EditorTool, point: Point) {
     const gateDraft = createGateDraft(tool);
 
@@ -405,7 +448,7 @@ function EditorWorkspace({
       return;
     }
 
-    const gate = positionGateAt(gateDraft, point);
+    const gate = positionGateAtPoint(gateDraft, point);
 
     commitCircuit({
       ...history.state,
@@ -429,7 +472,7 @@ function EditorWorkspace({
     if (!draggedTool) return;
     const gateDraft = createGateDraft(draggedTool, TOOL_PREVIEW_GATE_ID);
     if (!gateDraft) return;
-    const nextGate = positionGateAt(gateDraft, point);
+    const nextGate = positionGateAtPoint(gateDraft, point);
 
     setToolPreviewGate((current) =>
       current?.type === nextGate.type &&
@@ -447,6 +490,7 @@ function EditorWorkspace({
   }, []);
 
   function handleGateDragStart(gate: Gate, point: Point) {
+    setSelectedAnnotationId(null);
     setDragStartCircuit(history.state);
     setDragState({
       gateId: gate.id,
@@ -458,12 +502,10 @@ function EditorWorkspace({
   function handleDragMove(point: Point) {
     if (!dragState) return;
 
-    const nextX = Math.max(0, snapToGrid(point.x - dragState.offsetX));
-    const nextY = Math.max(0, snapToGrid(point.y - dragState.offsetY));
     replaceCircuit({
       ...history.state,
       gates: history.state.gates.map((gate) =>
-        gate.id === dragState.gateId ? { ...gate, x: nextX, y: nextY } : gate,
+        gate.id === dragState.gateId ? positionGateFromDrag(gate, dragState, point) : gate,
       ),
     });
   }
@@ -477,6 +519,75 @@ function EditorWorkspace({
     }
     setDragState(null);
     setDragStartCircuit(null);
+  }
+
+  function handleWireStart(endpoint: WireEndpoint, point: Point) {
+    setSelectedTool(null);
+    setSelectedGateId(null);
+    setSelectedAnnotationId(null);
+    setWireDraft({ start: endpoint, from: point, to: point });
+  }
+
+  function handleWireEnd(endpoint: WireEndpoint) {
+    if (!wireDraft) return;
+    const nextEndpoint = normalizePointEndpoint(endpoint);
+
+    if (sameEndpoint(wireDraft.start, nextEndpoint)) {
+      setWireDraft(null);
+      return;
+    }
+
+    const startPinId = wireDraft.start.kind === 'pin' ? wireDraft.start.pinId : undefined;
+    const endPinId = nextEndpoint.kind === 'pin' ? nextEndpoint.pinId : undefined;
+    const wireId = startPinId && endPinId ? buildWireId(startPinId, endPinId) : createId('wire');
+    const endPoint = nextEndpoint.kind === 'point' || nextEndpoint.kind === 'wire' ? nextEndpoint.point : wireDraft.to;
+    const nextWire = {
+      id: wireId,
+      from: wireDraft.start,
+      to: nextEndpoint,
+      sourcePinId: startPinId,
+      targetPinId: endPinId,
+      points: [wireDraft.from, endPoint],
+    };
+
+    commitCircuit({
+      ...history.state,
+      wires: [...history.state.wires.filter((wire) => wire.id !== wireId), nextWire],
+    });
+    setWireDraft(null);
+    setSelectedGateId(null);
+    setSelectedAnnotationId(null);
+    setSelectedWireId(wireId);
+  }
+
+  function handleToggleInput(gateId: string) {
+    if (mode !== 'simulate') return;
+    setInputSignals((current) => {
+      const nextSignals = { ...current, [gateId]: !current[gateId] };
+      publishCollaborationState(history.state, nextSignals, customComponents, true);
+      return nextSignals;
+    });
+    markUnsaved();
+  }
+
+  function handleUpdateGate(nextGate: Gate) {
+    const previousGate = history.state.gates.find((gate) => gate.id === nextGate.id);
+    const nextPinIds = new Set([...nextGate.inputs, ...nextGate.outputs].map((pin) => pin.id));
+    const removedPinIds = previousGate
+      ? new Set([...previousGate.inputs, ...previousGate.outputs].filter((pin) => !nextPinIds.has(pin.id)).map((pin) => pin.id))
+      : new Set<string>();
+
+    commitCircuit({
+      ...history.state,
+      gates: history.state.gates.map((gate) => (gate.id === nextGate.id ? nextGate : gate)),
+      wires: history.state.wires.filter(
+        (wire) =>
+          !endpointUsesPin(wire.from, removedPinIds) &&
+          !endpointUsesPin(wire.to, removedPinIds) &&
+          !removedPinIds.has(wire.sourcePinId ?? '') &&
+          !removedPinIds.has(wire.targetPinId ?? ''),
+      ),
+    });
   }
 
   function handleUpdateAnnotation(nextAnnotation: Annotation) {
@@ -493,6 +604,9 @@ function EditorWorkspace({
   }
 
   function handleAnnotationDragStart(annotation: Annotation, point: Point) {
+    setSelectedGateId(null);
+    setSelectedWireId(null);
+    setSelectedAnnotationId(annotation.id);
     setDragStartCircuit(history.state);
     setAnnotationDragState({
       annotationId: annotation.id,
@@ -504,8 +618,8 @@ function EditorWorkspace({
   function handleAnnotationDragMove(point: Point) {
     if (!annotationDragState) return;
 
-    const nextX = Math.max(0, snapToGrid(point.x - annotationDragState.offsetX));
-    const nextY = Math.max(0, snapToGrid(point.y - annotationDragState.offsetY));
+    const nextX = snapToGrid(point.x - annotationDragState.offsetX);
+    const nextY = snapToGrid(point.y - annotationDragState.offsetY);
     replaceCircuit({
       ...history.state,
       annotations: (history.state.annotations ?? []).map((annotation) =>
@@ -544,11 +658,11 @@ function EditorWorkspace({
     if (growsSouth) nextHeight = Math.max(MIN_ANNOTATION_HEIGHT, snapToGrid(resizeState.startHeight + deltaY));
     if (growsWest) {
       nextWidth = Math.max(MIN_ANNOTATION_WIDTH, snapToGrid(resizeState.startWidth - deltaX));
-      nextX = Math.max(0, snapToGrid(resizeState.startX + resizeState.startWidth - nextWidth));
+      nextX = snapToGrid(resizeState.startX + resizeState.startWidth - nextWidth);
     }
     if (growsNorth) {
       nextHeight = Math.max(MIN_ANNOTATION_HEIGHT, snapToGrid(resizeState.startHeight - deltaY));
-      nextY = Math.max(0, snapToGrid(resizeState.startY + resizeState.startHeight - nextHeight));
+      nextY = snapToGrid(resizeState.startY + resizeState.startHeight - nextHeight);
     }
 
     return {
@@ -585,89 +699,86 @@ function EditorWorkspace({
     setDragStartCircuit(null);
   }
 
-  function handleWireStart(endpoint: WireEndpoint, point: Point) {
-    setSelectedTool(null);
-    setSelectedGateId(null);
-    setSelectedAnnotationId(null);
-    setWireDraft({ start: endpoint, from: point, to: point });
-  }
-
-  function handleWireEnd(endpoint: WireEndpoint) {
-    if (!wireDraft) return;
-    const nextEndpoint = normalizePointEndpoint(endpoint);
-
-    if (sameEndpoint(wireDraft.start, nextEndpoint)) {
-      setWireDraft(null);
+  const handleCopySelection = useCallback(() => {
+    if (selectedGate) {
+      setClipboardItem(createGateClipboardItem(selectedGate));
       return;
     }
 
-    const startPinId = wireDraft.start.kind === 'pin' ? wireDraft.start.pinId : undefined;
-    const endPinId = nextEndpoint.kind === 'pin' ? nextEndpoint.pinId : undefined;
-    const wireId = startPinId && endPinId ? buildWireId(startPinId, endPinId) : createId('wire');
-    const endPoint = nextEndpoint.kind === 'point' || nextEndpoint.kind === 'wire' ? nextEndpoint.point : wireDraft.to;
-    const nextWire = {
-      id: wireId,
-      from: wireDraft.start,
-      to: nextEndpoint,
-      sourcePinId: startPinId,
-      targetPinId: endPinId,
-      points: [wireDraft.from, endPoint],
-    };
+    if (selectedAnnotation) {
+      setClipboardItem(createAnnotationClipboardItem(selectedAnnotation));
+      return;
+    }
 
-    commitCircuit({
-      ...history.state,
-      wires: [...history.state.wires.filter((wire) => wire.id !== wireId), nextWire],
-    });
-    setWireDraft(null);
-    setSelectedWireId(wireId);
-  }
+    if (!selectedWire) return;
+    const wirePoints = getWirePoints(selectedWire, pinMap);
+    if (!wirePoints) return;
 
-  function handleToggleInput(gateId: string) {
-    if (mode !== 'simulate') return;
-    setInputSignals((current) => {
-      const nextSignals = { ...current, [gateId]: !current[gateId] };
-      publishCollaborationState(history.state, nextSignals, customComponents, true);
-      return nextSignals;
-    });
-    markUnsaved();
-  }
+    setClipboardItem(
+      createWireClipboardItem({
+        id: selectedWire.id,
+        from: { kind: 'point', point: wirePoints.from },
+        to: { kind: 'point', point: wirePoints.to },
+        points: [wirePoints.from, wirePoints.to],
+      }),
+    );
+  }, [pinMap, selectedAnnotation, selectedGate, selectedWire]);
 
-  function handleUpdateGate(nextGate: Gate) {
-    const previousGate = history.state.gates.find((gate) => gate.id === nextGate.id);
-    const nextPinIds = new Set([...nextGate.inputs, ...nextGate.outputs].map((pin) => pin.id));
-    const removedPinIds = previousGate
-      ? new Set([...previousGate.inputs, ...previousGate.outputs].filter((pin) => !nextPinIds.has(pin.id)).map((pin) => pin.id))
-      : new Set<string>();
+  const handlePasteClipboard = useCallback(() => {
+    if (mode !== 'edit' || !clipboardItem) return;
+    const pastedItem = createPastedClipboardItem(clipboardItem);
+    if (!pastedItem) return;
 
-    commitCircuit({
-      ...history.state,
-      gates: history.state.gates.map((gate) => (gate.id === nextGate.id ? nextGate : gate)),
-      wires: history.state.wires.filter(
-        (wire) =>
-          !endpointUsesPin(wire.from, removedPinIds) &&
-          !endpointUsesPin(wire.to, removedPinIds) &&
-          !removedPinIds.has(wire.sourcePinId ?? '') &&
-          !removedPinIds.has(wire.targetPinId ?? ''),
-      ),
-    });
-  }
+    setClipboardItem(pastedItem);
+    setSelectedTool(null);
 
-  const handleDeleteSelected = useCallback(() => {
-    if (selectedWire) {
+    if (pastedItem.kind === 'gate') {
       commitCircuit({
         ...history.state,
-        wires: history.state.wires.filter((wire) => wire.id !== selectedWire.id),
+        gates: [...history.state.gates, pastedItem.gate],
       });
+      setSelectedGateId(pastedItem.gate.id);
       setSelectedWireId(null);
+      setSelectedAnnotationId(null);
       return;
     }
 
+    if (pastedItem.kind === 'annotation') {
+      commitCircuit({
+        ...history.state,
+        annotations: [...(history.state.annotations ?? []), pastedItem.annotation],
+      });
+      setSelectedGateId(null);
+      setSelectedWireId(null);
+      setSelectedAnnotationId(pastedItem.annotation.id);
+      return;
+    }
+
+    commitCircuit({
+      ...history.state,
+      wires: [...history.state.wires, pastedItem.wire],
+    });
+    setSelectedGateId(null);
+    setSelectedWireId(pastedItem.wire.id);
+    setSelectedAnnotationId(null);
+  }, [clipboardItem, commitCircuit, history.state, mode]);
+
+  const handleDeleteSelected = useCallback(() => {
     if (selectedAnnotation) {
       commitCircuit({
         ...history.state,
         annotations: (history.state.annotations ?? []).filter((annotation) => annotation.id !== selectedAnnotation.id),
       });
       setSelectedAnnotationId(null);
+      return;
+    }
+
+    if (selectedWire) {
+      commitCircuit({
+        ...history.state,
+        wires: history.state.wires.filter((wire) => wire.id !== selectedWire.id),
+      });
+      setSelectedWireId(null);
       return;
     }
 
@@ -710,6 +821,20 @@ function EditorWorkspace({
         return;
       }
 
+      const key = event.key.toLowerCase();
+      const primaryModifierPressed = event.ctrlKey || event.metaKey;
+      if (primaryModifierPressed && key === 'c') {
+        event.preventDefault();
+        handleCopySelection();
+        return;
+      }
+
+      if (primaryModifierPressed && key === 'v') {
+        event.preventDefault();
+        handlePasteClipboard();
+        return;
+      }
+
       if (event.key === 'Delete' || shortcutMatches(event, preferences.shortcuts.deleteSelection)) {
         event.preventDefault();
         handleDeleteSelected();
@@ -718,7 +843,7 @@ function EditorWorkspace({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [clearToolDragPreview, handleDeleteSelected, preferences.shortcuts]);
+  }, [clearToolDragPreview, handleCopySelection, handleDeleteSelected, handlePasteClipboard, preferences.shortcuts]);
 
   async function handleSave() {
     if (!user || !canSave) return;
@@ -739,13 +864,13 @@ function EditorWorkspace({
 
   function handleAddAnnotation() {
     const point = selectedGate
-      ? { x: selectedGate.x, y: Math.max(0, selectedGate.y - DEFAULT_ANNOTATION_HEIGHT - 16) }
+      ? { x: selectedGate.x, y: selectedGate.y - DEFAULT_ANNOTATION_HEIGHT - 16 }
       : (lastCanvasPoint ?? { x: 144, y: 96 });
     const annotation = {
       id: createId('annotation'),
       text: '',
-      x: Math.max(0, snapToGrid(point.x - DEFAULT_ANNOTATION_WIDTH / 2)),
-      y: Math.max(0, snapToGrid(point.y)),
+      x: snapToGrid(point.x - DEFAULT_ANNOTATION_WIDTH / 2),
+      y: snapToGrid(point.y),
       width: DEFAULT_ANNOTATION_WIDTH,
       height: DEFAULT_ANNOTATION_HEIGHT,
     };
@@ -792,7 +917,9 @@ function EditorWorkspace({
         mode={mode}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
-        canDelete={Boolean(selectedGate || selectedWire || selectedAnnotation)}
+        canCopy={hasSelectedCanvasItem}
+        canPaste={canPasteClipboard}
+        canDelete={hasSelectedCanvasItem}
         canSave={canSave}
         canCreateSession={!collaboration.session && !isSessionOnlyProject}
         saveState={saveState}
@@ -821,6 +948,8 @@ function EditorWorkspace({
           markUnsaved();
           window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
         }}
+        onCopySelection={handleCopySelection}
+        onPasteClipboard={handlePasteClipboard}
         onSave={() => void handleSave()}
         onCreateSession={() => void collaboration.createSession()}
         onDeleteSelected={handleDeleteSelected}
@@ -836,20 +965,27 @@ function EditorWorkspace({
         copyStatus={inviteCopyStatus}
         message={collaboration.message}
         onCopyInviteLink={() => void handleCopyInviteLink()}
-        onLeaveSession={() => void collaboration.leaveSession()}
+        onLeaveSession={() => void handleLeaveSession()}
       />
 
-      <div className="editor-grid-layout">
-        <Library
-          customComponents={customComponents}
-          selectedTool={selectedTool}
-          onToolDragStart={handleToolDragStart}
-          onToolDragEnd={clearToolDragPreview}
-          onSelectTool={(tool) => {
-            setSelectedTool(tool);
-            setMode('edit');
-          }}
-        />
+      <div className={editorLayoutClassName}>
+        <EditorSidePanel
+          side="left"
+          label="Bibliothek"
+          collapsed={libraryCollapsed}
+          onToggle={() => setLibraryCollapsed((current) => !current)}
+        >
+          <Library
+            customComponents={customComponents}
+            selectedTool={selectedTool}
+            onToolDragStart={handleToolDragStart}
+            onToolDragEnd={clearToolDragPreview}
+            onSelectTool={(tool) => {
+              setSelectedTool(tool);
+              setMode('edit');
+            }}
+          />
+        </EditorSidePanel>
 
         <section className="canvas-stage">
           <Canvas
@@ -873,17 +1009,17 @@ function EditorWorkspace({
             onToolDragPreview={handleToolDragPreview}
             onToolDragCancel={() => setToolPreviewGate(null)}
             onGateDragStart={handleGateDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-            onSelectGate={setSelectedGateId}
-            onSelectWire={setSelectedWireId}
-            onSelectAnnotation={setSelectedAnnotationId}
             onAnnotationDragStart={handleAnnotationDragStart}
             onAnnotationDragMove={handleAnnotationDragMove}
             onAnnotationResizeStart={handleAnnotationResizeStart}
             onAnnotationResizeMove={handleAnnotationResizeMove}
             onAnnotationInteractionEnd={handleAnnotationInteractionEnd}
             onUpdateAnnotation={handleUpdateAnnotation}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+            onSelectGate={setSelectedGateId}
+            onSelectWire={setSelectedWireId}
+            onSelectAnnotation={setSelectedAnnotationId}
             onWireStart={handleWireStart}
             onWireEnd={handleWireEnd}
             onWirePreview={(point) => setWireDraft((draft) => (draft ? { ...draft, to: point } : draft))}
@@ -892,17 +1028,30 @@ function EditorWorkspace({
           />
         </section>
 
-        <aside className="right-panel-stack">
-          <Inspector circuit={history.state} selectedGate={selectedGate} onUpdateGate={handleUpdateGate} />
-          <SimulationPanel
-            circuit={history.state}
-            signals={signals}
-            inputSignals={inputSignals}
-            enabled={mode === 'simulate'}
-            onToggleInput={handleToggleInput}
-          />
-          <SignalViewer circuit={history.state} signals={signals} />
-        </aside>
+        <EditorSidePanel
+          side="right"
+          label="Details"
+          collapsed={detailsCollapsed}
+          onToggle={() => setDetailsCollapsed((current) => !current)}
+        >
+          <div className="right-panel-stack">
+            <Inspector
+              circuit={history.state}
+              selectedGate={selectedGate}
+              selectedAnnotation={selectedAnnotation}
+              onUpdateGate={handleUpdateGate}
+              onUpdateAnnotation={handleUpdateAnnotation}
+            />
+            <SimulationPanel
+              circuit={history.state}
+              signals={signals}
+              inputSignals={inputSignals}
+              enabled={mode === 'simulate'}
+              onToggleInput={handleToggleInput}
+            />
+            <SignalViewer circuit={history.state} signals={signals} />
+          </div>
+        </EditorSidePanel>
       </div>
 
       <CustomComponentDialog

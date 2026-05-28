@@ -67,6 +67,8 @@ describe('EditorPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Starter Circuit' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bibliothek einklappen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Details einklappen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
     expect(screen.getByText(/Pin-Zust/)).toBeInTheDocument();
 
@@ -74,6 +76,37 @@ describe('EditorPage', () => {
     await user.click(screen.getAllByRole('button', { name: /Eingang0/ })[0]);
 
     expect(screen.getByRole('button', { name: /Eingang1/ })).toBeInTheDocument();
+  });
+
+  it('collapses the side panels without removing the canvas', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Panel Circuit',
+        circuit: createStarterCircuit('Panel Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Panel Circuit' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Bibliothek einklappen' }));
+    expect(screen.queryByRole('button', { name: /AND/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bibliothek öffnen' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Details einklappen' }));
+    expect(screen.queryByText(/Pin-Zust/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Details öffnen' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
   });
 
   it('supports an edit workflow with placement, annotations, custom components, save and delete', async () => {
@@ -110,9 +143,9 @@ describe('EditorPage', () => {
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
     const commentBox = screen
       .getAllByRole('textbox', { name: 'Kommentar' })
-      .find((entry) => (entry as HTMLTextAreaElement).value === '') as HTMLTextAreaElement;
-    await user.type(commentBox, 'Kommentar A');
-    expect(screen.getByDisplayValue('Kommentar A')).toBeInTheDocument();
+      .find((textbox) => (textbox as HTMLTextAreaElement).value === '') as HTMLTextAreaElement;
+    fireEvent.change(commentBox, { target: { value: 'Kommentar A' } });
+    expect(screen.getAllByDisplayValue('Kommentar A').length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
@@ -157,6 +190,84 @@ describe('EditorPage', () => {
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
+  }, 10000);
+
+  it('selects, edits and deletes annotations from the inspector', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Annotation Circuit',
+        circuit: createStarterCircuit('Annotation Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Annotation Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const annotation = svg.querySelector('.canvas-annotation-node') as SVGGElement;
+    Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
+
+    fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.change(document.querySelector('.inspector-textarea') as HTMLTextAreaElement, {
+      target: { value: 'Bearbeiteter Kommentar' },
+    });
+
+    expect(screen.getAllByDisplayValue('Bearbeiteter Kommentar').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
+
+    expect(screen.queryByDisplayValue('Bearbeiteter Kommentar')).not.toBeInTheDocument();
+    expect(screen.getByText(/Kein Baustein oder Kommentar/)).toBeInTheDocument();
+  });
+
+  it('copies and pastes selected gates and annotations by button and shortcut', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Clipboard Circuit',
+        circuit: createStarterCircuit('Clipboard Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Clipboard Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+    const initialGateCount = svg.querySelectorAll('.gate-node').length;
+
+    await user.click(screen.getAllByRole('button', { name: /AND/ })[0]);
+    fireEvent.click(grid, { clientX: 240, clientY: 120 });
+    await user.click(screen.getByRole('button', { name: 'Kopieren' }));
+    await user.click(screen.getByRole('button', { name: 'Einfügen' }));
+
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(initialGateCount + 2);
+
+    const initialAnnotationCount = svg.querySelectorAll('.canvas-annotation-node').length;
+    const annotation = svg.querySelector('.canvas-annotation-node') as SVGGElement;
+    Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
+
+    expect(svg.querySelectorAll('.canvas-annotation-node')).toHaveLength(initialAnnotationCount + 1);
   });
 
   it('warns about unsaved changes before leaving and clears the warning after save', async () => {

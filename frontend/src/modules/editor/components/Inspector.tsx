@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { canConfigureInputs, canConfigureOutputs, configureGatePins, createTruthTableRows } from '../../../simulation/gateLibrary';
-import type { Circuit, Gate, Pin, TruthTableRow } from '../../../types/circuit';
+import type { Annotation, Circuit, Gate, Pin, TruthTableRow } from '../../../types/circuit';
 import { GenericTruthTableDialog } from './GenericTruthTableDialog';
 
 interface InspectorProps {
   circuit: Circuit;
   selectedGate: Gate | null;
+  selectedAnnotation: Annotation | null;
   onUpdateGate: (gate: Gate) => void;
+  onUpdateAnnotation: (annotation: Annotation) => void;
 }
 
 function updatePinLabel(gate: Gate, pin: Pin, label: string): Gate {
@@ -18,7 +20,11 @@ function updatePinLabel(gate: Gate, pin: Pin, label: string): Gate {
   };
 }
 
-export function Inspector({ circuit, selectedGate, onUpdateGate }: InspectorProps) {
+function annotationTextareaRows(text: string): number {
+  return Math.min(8, Math.max(2, text.split(/\r\n|\r|\n/).length));
+}
+
+export function Inspector({ circuit, selectedGate, selectedAnnotation, onUpdateGate, onUpdateAnnotation }: InspectorProps) {
   const [truthTableDialogOpen, setTruthTableDialogOpen] = useState(false);
   const customComponent = selectedGate?.customComponentId
     ? circuit.customComponents.find((component) => component.id === selectedGate.customComponentId)
@@ -39,9 +45,30 @@ export function Inspector({ circuit, selectedGate, onUpdateGate }: InspectorProp
         <h2>Eigenschaften</h2>
       </div>
 
-      {!selectedGate ? (
+      {selectedAnnotation ? (
+        <div className="inspector-form">
+          <label>
+            Kommentar
+            <textarea
+              className="inspector-textarea"
+              rows={annotationTextareaRows(selectedAnnotation.text)}
+              value={selectedAnnotation.text}
+              onChange={(event) => onUpdateAnnotation({ ...selectedAnnotation, text: event.target.value })}
+            />
+          </label>
+
+          <div className="property-grid">
+            <span>Typ</span>
+            <strong>Kommentar</strong>
+            <span>X/Y</span>
+            <strong>
+              {selectedAnnotation.x} / {selectedAnnotation.y}
+            </strong>
+          </div>
+        </div>
+      ) : !selectedGate ? (
         <div className="empty-panel">
-          <p>Kein Baustein ausgewählt.</p>
+          <p>Kein Baustein oder Kommentar ausgewählt.</p>
           <span>
             {circuit.gates.length} Komponenten · {circuit.wires.length} Leitungen
           </span>

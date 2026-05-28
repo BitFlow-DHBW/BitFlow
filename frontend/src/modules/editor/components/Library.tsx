@@ -32,7 +32,7 @@ function builtInToolIcon(type: BuiltInGateType): string {
 
 export function Library({ customComponents, selectedTool, onSelectTool, onToolDragStart, onToolDragEnd }: LibraryProps) {
   return (
-    <aside className="editor-panel library-panel">
+    <section className="editor-panel library-panel">
       <div className="panel-heading">
         <p className="eyebrow">Bibliothek</p>
         <h2>Bausteine</h2>
@@ -92,6 +92,6 @@ export function Library({ customComponents, selectedTool, onSelectTool, onToolDr
           ))
         )}
       </div>
-    </aside>
+    </section>
   );
 }

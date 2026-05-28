@@ -8,6 +8,7 @@ import {
   createDefaultViewBox,
   getViewBoxZoom,
   panViewBox,
+  resizeViewBox,
   zoomViewBox,
   type CanvasSize,
   type ViewBox,
@@ -120,6 +121,7 @@ export function Canvas({
   onWireCancel,
   onToggleInput,
 }: CanvasProps) {
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const gatePointerRef = useRef<{ gateId: string; point: Point; moved: boolean; toggleOnRelease: boolean } | null>(null);
   const panStateRef = useRef<PanState | null>(null);
@@ -130,32 +132,28 @@ export function Canvas({
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return undefined;
+    const frame = frameRef.current;
+    if (!frame) return undefined;
 
     const updateSize = () => {
-      const rect = svg.getBoundingClientRect();
+      const rect = frame.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
       const nextSize = {
-        width: Math.max(1, Math.round(rect.width)),
-        height: Math.max(1, Math.round(rect.height)),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
       };
+
       setCanvasSize((currentSize) => {
         if (currentSize.width === nextSize.width && currentSize.height === nextSize.height) return currentSize;
-        setViewBox((currentViewBox) => {
-          const isDefaultView =
-            currentViewBox.x === 0 &&
-            currentViewBox.y === 0 &&
-            currentViewBox.width === currentSize.width &&
-            currentViewBox.height === currentSize.height;
-          return isDefaultView ? createDefaultViewBox(nextSize) : currentViewBox;
-        });
+        setViewBox((currentViewBox) => resizeViewBox(currentViewBox, currentSize, nextSize));
         return nextSize;
       });
     };
 
     updateSize();
     const observer = new ResizeObserver(updateSize);
-    observer.observe(svg);
+    observer.observe(frame);
     return () => observer.disconnect();
   }, []);
 
@@ -280,7 +278,7 @@ export function Canvas({
   }
 
   return (
-    <div className={`canvas-frame ${isPanning ? 'is-panning' : ''}`}>
+    <div ref={frameRef} className={`canvas-frame ${isPanning ? 'is-panning' : ''}`}>
       <div className="canvas-view-controls" role="group" aria-label="Arbeitsflächen-Navigation">
         <button
           className="icon-button small"
@@ -477,30 +475,6 @@ export function Canvas({
 
         {wireDraft && <WireComp from={wireDraft.from} to={wireDraft.to} preview />}
 
-        {(circuit.annotations ?? []).map((annotation) => (
-          <AnnotationComp
-            key={annotation.id}
-            annotation={annotation}
-            selected={mode === 'edit' && annotation.id === selectedAnnotationId}
-            mode={mode}
-            onPointerDown={(event, selectedAnnotation, resizeHandle) => {
-              if (mode !== 'edit') return;
-              event.stopPropagation();
-              event.currentTarget.setPointerCapture?.(event.pointerId);
-              const point = getPoint(event);
-              onSelectGate(null);
-              onSelectWire(null);
-              onSelectAnnotation(selectedAnnotation.id);
-              if (resizeHandle) {
-                onAnnotationResizeStart(selectedAnnotation, resizeHandle, point);
-              } else {
-                onAnnotationDragStart(selectedAnnotation, point);
-              }
-            }}
-            onTextChange={onUpdateAnnotation}
-          />
-        ))}
-
         {circuit.gates.map((gate) => (
           <GateComp
             key={gate.id}
@@ -535,6 +509,30 @@ export function Canvas({
               event.stopPropagation();
               onWireEnd({ kind: 'pin', pinId: pin.id });
             }}
+          />
+        ))}
+
+        {(circuit.annotations ?? []).map((annotation) => (
+          <AnnotationComp
+            key={annotation.id}
+            annotation={annotation}
+            selected={mode === 'edit' && annotation.id === selectedAnnotationId}
+            mode={mode}
+            onPointerDown={(event, selectedAnnotation, resizeHandle) => {
+              if (mode !== 'edit') return;
+              event.stopPropagation();
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+              const point = getPoint(event);
+              onSelectGate(null);
+              onSelectWire(null);
+              onSelectAnnotation(selectedAnnotation.id);
+              if (resizeHandle) {
+                onAnnotationResizeStart(selectedAnnotation, resizeHandle, point);
+              } else {
+                onAnnotationDragStart(selectedAnnotation, point);
+              }
+            }}
+            onTextChange={onUpdateAnnotation}
           />
         ))}
 

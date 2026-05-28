@@ -207,10 +207,12 @@ export function useCollaborationSession({
     } finally {
       clearThrottle(cursorThrottleRef.current);
       clearThrottle(circuitThrottleRef.current);
-      setSession(null);
-      setLocalParticipantId(null);
-      setStatus('idle');
-      setMessage('Session verlassen.');
+      if (sessionRef.current?.sessionId === activeSession.sessionId) {
+        setSession(null);
+        setLocalParticipantId(null);
+        setStatus('idle');
+        setMessage('Session verlassen.');
+      }
     }
   }, [setLocalParticipantId, setSession]);
 
