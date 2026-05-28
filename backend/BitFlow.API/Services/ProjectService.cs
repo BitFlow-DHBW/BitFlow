@@ -242,7 +242,7 @@ public sealed class ProjectService(ProjectRepository projects)
         {
             throw new ApiException(
                 StatusCodes.Status400BadRequest,
-                $"Schaltungsdaten sind ungueltig: {exception.Message}");
+                $"Schaltungsdaten sind ungültig: {exception.Message}");
         }
     }
 

@@ -267,14 +267,14 @@ describe('useCollaborationSession', () => {
     act(() => {
       harness.client.handlers?.sessionEnded?.({
         sessionId: 'session_test',
-        reason: 'Session ended by host',
+        reason: 'Session wurde vom Host beendet.',
       });
     });
 
     await waitFor(() => expect(harness.result.status).toBe('ended'));
     expect(harness.result.session).toBeNull();
     expect(harness.result.localParticipantId).toBeNull();
-    expect(harness.result.message).toBe('Session ended by host');
+    expect(harness.result.message).toBe('Session wurde vom Host beendet.');
   });
 
   it('leaves an active session locally and on the hub', async () => {

@@ -69,15 +69,15 @@ describe('CollaborationPanel', () => {
       />,
     );
 
-    expect(screen.getByRole('region', { name: /collaboration session/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /kollaborationssession/i })).toBeInTheDocument();
     expect(screen.getByText('Host')).toBeInTheDocument();
     expect(screen.getByText('2 Teilnehmer')).toBeInTheDocument();
-    expect(screen.getByLabelText('Invite-Link')).toHaveValue('http://localhost:5173/?session=session_test');
+    expect(screen.getByLabelText('Einladungslink')).toHaveValue('http://localhost:5173/?session=session_test');
     expect(screen.getByText(/Host User.*Host/)).toBeInTheDocument();
     expect(screen.getByText('Guest User')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /copy invite link/i }));
-    fireEvent.click(screen.getByRole('button', { name: /leave session/i }));
+    fireEvent.click(screen.getByRole('button', { name: /einladungslink kopieren/i }));
+    fireEvent.click(screen.getByRole('button', { name: /session verlassen/i }));
 
     expect(copyInviteLink).toHaveBeenCalledTimes(1);
     expect(leaveSession).toHaveBeenCalledTimes(1);
@@ -95,10 +95,27 @@ describe('CollaborationPanel', () => {
       />,
     );
 
-    expect(screen.getByText('Participant')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Invite-Link')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /copy invite link/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /leave session/i })).toBeInTheDocument();
+    expect(screen.getByText('Teilnehmer')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Einladungslink')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /einladungslink kopieren/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /session verlassen/i })).toBeInTheDocument();
+  });
+
+  it('shows copy feedback after copying the invite link', () => {
+    render(
+      <CollaborationPanel
+        session={makeSession()}
+        role="host"
+        inviteLink="http://localhost:5173/?session=session_test"
+        copyStatus="copied"
+        message={null}
+        onCopyInviteLink={vi.fn()}
+        onLeaveSession={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Einladungslink kopiert' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Kopiert');
   });
 
   it('renders an ended-session message without session controls', () => {
@@ -107,13 +124,13 @@ describe('CollaborationPanel', () => {
         session={null}
         role={null}
         inviteLink={null}
-        message="Session ended by host"
+        message="Session wurde vom Host beendet."
         onCopyInviteLink={vi.fn()}
         onLeaveSession={vi.fn()}
       />,
     );
 
-    expect(screen.getByText('Session ended by host')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /leave session/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Session wurde vom Host beendet.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /session verlassen/i })).not.toBeInTheDocument();
   });
 });

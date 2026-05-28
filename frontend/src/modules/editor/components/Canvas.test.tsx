@@ -46,13 +46,13 @@ describe('Canvas', () => {
     const { container } = render(<Canvas {...props} />);
 
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Canvas navigation' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Arbeitsflächen-Navigation' })).toBeInTheDocument();
     expect(container.querySelectorAll('.gate-node')).toHaveLength(4);
     expect(container.querySelectorAll('.wire')).toHaveLength(3);
     expect(container.querySelector('.wire.is-selected')).toBeInTheDocument();
     expect(screen.getAllByText('A').length).toBeGreaterThan(0);
     expect(screen.getByText('Bea')).toBeInTheDocument();
-    expect(screen.getByText('BitFlow starter schematic')).toBeInTheDocument();
+    expect(screen.getByText('BitFlow Startschaltung')).toBeInTheDocument();
   });
 
   it('selects wires and places selected tools on grid clicks', () => {
@@ -151,7 +151,7 @@ describe('Canvas', () => {
     expect(wheelResult).toBe(false);
     expect(svg.getAttribute('viewBox')).not.toBe('0 0 1280 760');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset view' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ansicht zurücksetzen' }));
     expect(svg).toHaveAttribute('viewBox', '0 0 1280 760');
 
     fireEvent.pointerDown(grid, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });

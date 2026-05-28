@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Icon } from '../components/Icon';
 import { useAuth } from '../modules/auth/AuthContext';
 import { usePreferences } from '../modules/settings/PreferencesContext';
 
@@ -10,7 +11,7 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand-button" type="button" onClick={() => navigate('/projects')} aria-label="BitFlow Home">
+        <button className="brand-button" type="button" onClick={() => navigate('/projects')} aria-label="BitFlow Startseite">
           <span className="brand-mark">BF</span>
           <span>BitFlow</span>
         </button>
@@ -22,12 +23,12 @@ export function AppShell() {
         </nav>
 
         <div className="topbar-actions">
-          <button className="icon-button" type="button" onClick={toggleTheme} aria-label="Theme wechseln">
-            {preferences.theme === 'dark' ? '☼' : '◐'}
+          <button className="icon-button" type="button" onClick={toggleTheme} aria-label="Design wechseln" title="Design wechseln">
+            <Icon name={preferences.theme === 'dark' ? 'sun' : 'moon'} />
           </button>
-          <span className="user-chip">{user?.name ?? 'User'}</span>
+          <span className="user-chip">{user?.name ?? 'Benutzer'}</span>
           <button className="ghost-button" type="button" onClick={logout}>
-            Logout
+            Abmelden
           </button>
         </div>
       </header>

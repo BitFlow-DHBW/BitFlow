@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
-import { CollaborationPanel } from '../components/CollaborationPanel';
+import { CollaborationPanel, type InviteCopyStatus } from '../components/CollaborationPanel';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
 import { Inspector } from '../components/Inspector';
@@ -35,6 +35,7 @@ import type { Project } from '../../../types/domain';
 import type { CollaborationCircuitState } from '../../../types/collaboration';
 import { createId } from '../../../utils/id';
 import { isEditableTarget, shortcutMatches } from '../../../utils/keyboardShortcuts';
+import { copyTextToClipboard } from '../../../utils/clipboard';
 
 function nextCircuitVersion(circuit: Circuit): Circuit {
   return { ...circuit, version: circuit.version + 1 };
@@ -78,17 +79,17 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
 }
 
 const TOOL_PREVIEW_GATE_ID = 'tool_preview';
-const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Aenderungen. Seite wirklich verlassen?';
+const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Änderungen. Seite wirklich verlassen?';
 
 function createTransientSessionProject(sessionId: string, ownerId: string | undefined): Project {
   const now = new Date().toISOString();
-  const circuit = createStarterCircuit('Shared Session');
+  const circuit = createStarterCircuit('Geteilte Session');
 
   return {
     id: `session_${sessionId}`,
     ownerId: ownerId ?? 'session_guest',
-    name: 'Shared Session',
-    description: 'Live collaboration session',
+    name: 'Geteilte Session',
+    description: 'Live-Kollaboration',
     circuit,
     inputSignals: {},
     customComponents: [],
@@ -202,6 +203,7 @@ function EditorWorkspace({
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
+  const [inviteCopyStatus, setInviteCopyStatus] = useState<InviteCopyStatus>('idle');
   const currentEditorStateRef = useRef<CollaborationCircuitState>(
     createCollaborationCircuitState(history.state, inputSignals, customComponents),
   );
@@ -275,7 +277,7 @@ function EditorWorkspace({
 
   const collaboration = useCollaborationSession({
     autoJoinSessionId: initialSessionId,
-    displayName: user?.name ?? 'User',
+    displayName: user?.name ?? 'Benutzer',
     getCurrentState: () => currentEditorStateRef.current,
     onRemoteState: applyRemoteEditorState,
   });
@@ -284,6 +286,10 @@ function EditorWorkspace({
     () => (collaboration.session ? buildInviteLink(collaboration.session.sessionId) : null),
     [collaboration.session],
   );
+
+  useEffect(() => {
+    setInviteCopyStatus('idle');
+  }, [inviteLink]);
 
   const canSave = canSaveProject(collaboration.role, isSessionOnlyProject);
 
@@ -630,7 +636,8 @@ function EditorWorkspace({
 
   async function handleCopyInviteLink() {
     if (!inviteLink) return;
-    await navigator.clipboard?.writeText(inviteLink);
+    const copied = await copyTextToClipboard(inviteLink);
+    setInviteCopyStatus(copied ? 'copied' : 'failed');
   }
 
   return (
@@ -644,7 +651,7 @@ function EditorWorkspace({
         canSave={canSave}
         canCreateSession={!collaboration.session && !isSessionOnlyProject}
         saveState={saveState}
-        saveDisabledReason={canSave ? null : 'Only host can save'}
+        saveDisabledReason={canSave ? null : 'Nur der Host kann speichern'}
         onModeChange={(nextMode) => {
           setMode(nextMode);
           if (nextMode === 'simulate') setSelectedTool(null);
@@ -678,6 +685,7 @@ function EditorWorkspace({
         session={collaboration.session}
         role={collaboration.role}
         inviteLink={inviteLink}
+        copyStatus={inviteCopyStatus}
         message={collaboration.message}
         onCopyInviteLink={() => void handleCopyInviteLink()}
         onLeaveSession={() => void collaboration.leaveSession()}

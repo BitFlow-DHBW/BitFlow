@@ -17,13 +17,13 @@ export function SimulationPanel({ circuit, signals, inputSignals, enabled, onTog
       <div className="panel-heading">
         <p className="eyebrow">Simulation</p>
         <h2>Live-Signale</h2>
-        {!enabled && <p className="muted">Inputs lassen sich nur im Simulate-Modus schalten.</p>}
+        {!enabled && <p className="muted">Eingänge lassen sich nur im Simulationsmodus schalten.</p>}
       </div>
 
       <div className="sim-group">
-        <h3>Inputs</h3>
+        <h3>Eingänge</h3>
         {inputs.length === 0 ? (
-          <p className="muted">Keine Inputs vorhanden.</p>
+          <p className="muted">Keine Eingänge vorhanden.</p>
         ) : (
           inputs.map((gate) => (
             <button
@@ -34,21 +34,21 @@ export function SimulationPanel({ circuit, signals, inputSignals, enabled, onTog
               onClick={() => onToggleInput(gate.id)}
             >
               <span>{gate.label ?? gate.type}</span>
-              <strong>{inputSignals[gate.id] ? 'true' : 'false'}</strong>
+              <strong>{inputSignals[gate.id] ? '1' : '0'}</strong>
             </button>
           ))
         )}
       </div>
 
       <div className="sim-group">
-        <h3>Outputs</h3>
+        <h3>Ausgänge</h3>
         {outputs.length === 0 ? (
-          <p className="muted">Keine Outputs vorhanden.</p>
+          <p className="muted">Keine Ausgänge vorhanden.</p>
         ) : (
           outputs.map((gate) => (
             <div key={gate.id} className={`signal-readout ${signals[gate.id] ? 'is-on' : ''}`}>
               <span>{gate.label ?? gate.type}</span>
-              <strong>{signals[gate.id] ? 'true' : 'false'}</strong>
+              <strong>{signals[gate.id] ? '1' : '0'}</strong>
             </div>
           ))
         )}

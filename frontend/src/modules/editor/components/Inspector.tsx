@@ -24,7 +24,7 @@ export function Inspector({ circuit, selectedGate, onUpdateGate }: InspectorProp
   return (
     <section className="editor-panel inspector-panel">
       <div className="panel-heading">
-        <p className="eyebrow">Inspector</p>
+        <p className="eyebrow">Inspektor</p>
         <h2>Eigenschaften</h2>
       </div>
 
@@ -38,7 +38,7 @@ export function Inspector({ circuit, selectedGate, onUpdateGate }: InspectorProp
       ) : (
         <div className="inspector-form">
           <label>
-            Label
+            Bezeichnung
             <input
               value={selectedGate.label ?? selectedGate.type}
               onChange={(event) => onUpdateGate({ ...selectedGate, label: event.target.value })}
@@ -110,7 +110,7 @@ export function Inspector({ circuit, selectedGate, onUpdateGate }: InspectorProp
             </strong>
             <span>Pins</span>
             <strong>
-              {selectedGate.inputs.length} in · {selectedGate.outputs.length} out
+              {selectedGate.inputs.length} Eingänge · {selectedGate.outputs.length} Ausgänge
             </strong>
           </div>
 

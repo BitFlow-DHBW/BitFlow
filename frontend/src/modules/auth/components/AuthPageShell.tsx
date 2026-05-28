@@ -16,7 +16,7 @@ export function AuthPageShell({ title, subtitle, children, footer }: AuthPageShe
       </Link>
       <section className="auth-panel">
         <div className="auth-copy">
-          <p className="eyebrow">Workspace Login</p>
+          <p className="eyebrow">BitFlow Zugang</p>
           <h1>{title}</h1>
           <p>{subtitle}</p>
         </div>

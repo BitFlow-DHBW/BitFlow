@@ -37,16 +37,16 @@ describe('Toolbar', () => {
 
     expect(document.querySelector('.editor-toolbar')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'ALU' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Redo' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Rückgängig' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Wiederholen' })).toBeEnabled();
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Simulate' }));
-    await user.click(screen.getByRole('button', { name: 'Redo' }));
+    await user.click(screen.getByRole('button', { name: 'Simulieren' }));
+    await user.click(screen.getByRole('button', { name: 'Wiederholen' }));
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein importieren' }));
-    await user.click(screen.getByRole('button', { name: 'Create Session' }));
+    await user.click(screen.getByRole('button', { name: 'Zusammenarbeiten' }));
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
     await user.click(screen.getByRole('button', { name: /Projekt/ }));
 
@@ -63,13 +63,13 @@ describe('Toolbar', () => {
   it('marks the active editor mode', () => {
     renderToolbar({ mode: 'simulate' });
 
-    expect(screen.getByRole('button', { name: 'Simulate' })).toHaveClass('is-active');
+    expect(screen.getByRole('button', { name: 'Simulieren' })).toHaveClass('is-active');
   });
 
   it('disables saving for participants', () => {
-    renderToolbar({ canSave: false, saveDisabledReason: 'Only host can save' });
+    renderToolbar({ canSave: false, saveDisabledReason: 'Nur der Host kann speichern' });
 
     expect(screen.getByRole('button', { name: 'Speichern' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Speichern' })).toHaveAttribute('title', 'Only host can save');
+    expect(screen.getByRole('button', { name: 'Speichern' })).toHaveAttribute('title', 'Nur der Host kann speichern');
   });
 });

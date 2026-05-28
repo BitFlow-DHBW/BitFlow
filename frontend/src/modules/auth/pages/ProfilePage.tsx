@@ -18,7 +18,7 @@ export function ProfilePage() {
     <main className="page-shell narrow-page">
       <section className="page-header">
         <p className="eyebrow">Profil</p>
-        <h1>Dein BitFlow Konto</h1>
+        <h1>Dein BitFlow-Konto</h1>
       </section>
 
       <form className="settings-panel stack-form" onSubmit={handleSubmit}>

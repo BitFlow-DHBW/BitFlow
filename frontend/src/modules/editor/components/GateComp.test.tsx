@@ -30,7 +30,7 @@ describe('GateComp', () => {
     expect(container.querySelector('.schematic-symbol')).toHaveClass('is-live');
     expect(container.querySelectorAll('circle.pin')).toHaveLength(1);
     expect(container.querySelector('circle.pin')).toHaveClass('is-live');
-    expect(container.textContent).toContain('Input Pin');
+    expect(container.textContent).toContain('Eingang');
 
     fireEvent.pointerDown(container.querySelector('.gate-node') as SVGGElement);
     fireEvent.click(container.querySelector('.gate-node') as SVGGElement);

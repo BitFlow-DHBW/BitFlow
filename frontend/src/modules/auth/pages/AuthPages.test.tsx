@@ -54,12 +54,12 @@ describe('auth pages', () => {
 
     await user.type(screen.getByLabelText('E-Mail'), 'ada@bitflow.test');
     await user.type(screen.getByLabelText('Passwort'), 'wrongpw');
-    await user.click(screen.getByRole('button', { name: 'Login' }));
+    await user.click(screen.getByRole('button', { name: 'Anmelden' }));
     expect(await screen.findByText('E-Mail oder Passwort ist nicht korrekt.')).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Passwort'));
     await user.type(screen.getByLabelText('Passwort'), 'secret1');
-    await user.click(screen.getByRole('button', { name: 'Login' }));
+    await user.click(screen.getByRole('button', { name: 'Anmelden' }));
     await waitFor(() => expect(authService.getSession()?.user.name).toBe('Ada'));
   });
 
@@ -67,7 +67,7 @@ describe('auth pages', () => {
     const user = userEvent.setup();
     vi.spyOn(apiService, 'post')
       .mockResolvedValueOnce({ data: undefined, status: 204 })
-      .mockRejectedValueOnce(new Error('Fuer diese E-Mail wurde kein Konto gefunden.'));
+      .mockRejectedValueOnce(new Error('Für diese E-Mail wurde kein Konto gefunden.'));
     renderAuthPage(<ResetPasswordPage />);
 
     await user.type(screen.getByLabelText('E-Mail'), 'ada@bitflow.test');

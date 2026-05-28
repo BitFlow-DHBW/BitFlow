@@ -2,8 +2,8 @@ import { evaluateCircuit } from './evaluateCircuit';
 import type { Circuit, CustomComponent, Gate, SignalState, TruthTableRow } from '../types/circuit';
 import { createId, nowIso } from '../utils/id';
 
-const DEFAULT_INPUT_LABELS = new Set(['Input Pin', 'Switch', 'Clock']);
-const DEFAULT_OUTPUT_LABELS = new Set(['Output Pin', 'LED']);
+const DEFAULT_INPUT_LABELS = new Set(['Eingang', 'Input Pin', 'Switch', 'Clock']);
+const DEFAULT_OUTPUT_LABELS = new Set(['Ausgang', 'Output Pin', 'LED']);
 
 function isComponentInput(gate: Gate): boolean {
   return gate.type === 'INPUT' || gate.type === 'SWITCH' || gate.type === 'CLOCK';

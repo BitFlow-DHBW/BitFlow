@@ -27,7 +27,7 @@ export function Library({ customComponents, selectedTool, onSelectTool, onToolDr
   return (
     <aside className="editor-panel library-panel">
       <div className="panel-heading">
-        <p className="eyebrow">Library</p>
+        <p className="eyebrow">Bibliothek</p>
         <h2>Bausteine</h2>
       </div>
       <button
@@ -59,7 +59,7 @@ export function Library({ customComponents, selectedTool, onSelectTool, onToolDr
       </div>
 
       <div className="panel-heading custom-heading">
-        <p className="eyebrow">Custom</p>
+        <p className="eyebrow">Eigene</p>
         <h2>Eigene Bausteine</h2>
       </div>
       <div className="tool-list">
@@ -79,7 +79,7 @@ export function Library({ customComponents, selectedTool, onSelectTool, onToolDr
               <span>C</span>
               <strong>{component.name}</strong>
               <small>
-                {component.inputLabels.length} in · {component.outputLabels.length} out
+                {component.inputLabels.length} Eingänge · {component.outputLabels.length} Ausgänge
               </small>
             </button>
           ))

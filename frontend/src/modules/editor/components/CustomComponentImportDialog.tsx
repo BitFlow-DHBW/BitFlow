@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Icon } from '../../../components/Icon';
 import { projectService } from '../../../services/projectService';
 import type { CustomComponent } from '../../../types/circuit';
 import type { Project } from '../../../types/domain';
@@ -67,11 +68,11 @@ export function CustomComponentImportDialog({
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="import-component-title">
         <div className="modal-header">
           <div>
-            <p className="eyebrow">Custom Component</p>
+            <p className="eyebrow">Eigener Baustein</p>
             <h2 id="import-component-title">Baustein importieren</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Dialog schliessen">
-            x
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Dialog schließen">
+            <Icon name="x" />
           </button>
         </div>
 
@@ -84,12 +85,12 @@ export function CustomComponentImportDialog({
         ) : otherProjects.length === 0 ? (
           <div className="component-summary">
             <h3>Keine anderen Projekte vorhanden.</h3>
-            <p>Lege zuerst ein weiteres Projekt mit einem Custom Gate an.</p>
+            <p>Lege zuerst ein weiteres Projekt mit einem eigenen Baustein an.</p>
           </div>
         ) : projectsWithComponents.length === 0 ? (
           <div className="component-summary">
-            <h3>Keine Custom Gates gefunden.</h3>
-            <p>In den anderen Projekten wurden noch keine Custom Gates erstellt.</p>
+            <h3>Keine eigenen Bausteine gefunden.</h3>
+            <p>In den anderen Projekten wurden noch keine eigenen Bausteine erstellt.</p>
           </div>
         ) : (
           <div className="component-import-list">
@@ -107,7 +108,7 @@ export function CustomComponentImportDialog({
                         <div>
                           <strong>{component.name}</strong>
                           <small>
-                            {component.inputLabels.length} in · {component.outputLabels.length} out
+                            {component.inputLabels.length} Eingänge · {component.outputLabels.length} Ausgänge
                           </small>
                         </div>
                         <button
@@ -116,7 +117,7 @@ export function CustomComponentImportDialog({
                           disabled={alreadyImported}
                           onClick={() => handleImport(component)}
                         >
-                          {alreadyImported ? 'Bereits importiert' : 'Hinzufuegen'}
+                          {alreadyImported ? 'Bereits importiert' : 'Hinzufügen'}
                         </button>
                       </div>
                     );
@@ -129,7 +130,7 @@ export function CustomComponentImportDialog({
 
         <div className="modal-actions">
           <button className="ghost-button" type="button" onClick={onClose}>
-            Schliessen
+            Schließen
           </button>
         </div>
       </section>

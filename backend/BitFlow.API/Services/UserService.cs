@@ -14,7 +14,7 @@ public sealed class UserService(UserRepository users)
         var normalizedEmail = NormalizeEmail(request.Email);
         if (await users.FindByEmailAsync(normalizedEmail, cancellationToken) is not null)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "Fuer diese E-Mail existiert bereits ein Konto.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Für diese E-Mail existiert bereits ein Konto.");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -95,14 +95,14 @@ public sealed class UserService(UserRepository users)
 
         if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains('@', StringComparison.Ordinal))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "E-Mail ist ungueltig.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "E-Mail ist ungültig.");
         }
 
         var normalizedEmail = NormalizeEmail(request.Email);
         var existing = await users.FindByEmailAsync(normalizedEmail, cancellationToken);
         if (existing is not null && existing.Id != user.Id)
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "Fuer diese E-Mail existiert bereits ein Konto.");
+            throw new ApiException(StatusCodes.Status409Conflict, "Für diese E-Mail existiert bereits ein Konto.");
         }
 
         user.Name = request.Name.Trim();
@@ -118,7 +118,7 @@ public sealed class UserService(UserRepository users)
         var user = await users.FindByEmailAsync(NormalizeEmail(request.Email), cancellationToken);
         if (user is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "Fuer diese E-Mail wurde kein Konto gefunden.");
+            throw new ApiException(StatusCodes.Status404NotFound, "Für diese E-Mail wurde kein Konto gefunden.");
         }
     }
 
@@ -146,7 +146,7 @@ public sealed class UserService(UserRepository users)
 
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@', StringComparison.Ordinal))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "E-Mail ist ungueltig.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "E-Mail ist ungültig.");
         }
 
         if (string.IsNullOrWhiteSpace(password) || password.Length < 6)

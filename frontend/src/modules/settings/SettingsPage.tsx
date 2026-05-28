@@ -53,8 +53,8 @@ export function SettingsPage() {
       <section className="settings-panel">
         <div className="setting-row">
           <div>
-            <h2>Dark Mode</h2>
-            <p>Wechselt die komplette Oberfläche zwischen hellem und dunklem Theme.</p>
+            <h2>Dunkler Modus</h2>
+            <p>Wechselt die komplette Oberfläche zwischen hellem und dunklem Design.</p>
           </div>
           <button className="toggle-button" type="button" aria-pressed={preferences.theme === 'dark'} onClick={toggleTheme}>
             <span />
@@ -64,7 +64,7 @@ export function SettingsPage() {
         <div className="setting-row">
           <div>
             <h2>Kompakte Panels</h2>
-            <p>Bereitet dichtere Editor-Panels für große Schaltungen vor.</p>
+            <p>Zeigt Editor-Panels platzsparender an.</p>
           </div>
           <input
             type="checkbox"
@@ -88,19 +88,19 @@ export function SettingsPage() {
 
       <section className="settings-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Shortcuts</p>
+          <p className="eyebrow">Tastatur</p>
           <h2>Tastenkürzel</h2>
         </div>
 
         <ShortcutField
-          label="Edit-Modus"
+          label="Bearbeiten-Modus"
           description="Wechselt in den Modus zum Bearbeiten, Platzieren und Verdrahten."
           value={preferences.shortcuts.editMode}
           onChange={(value) => updateShortcut('editMode', value)}
         />
         <ShortcutField
-          label="Simulate-Modus"
-          description="Wechselt in den Modus, in dem Inputs geschaltet werden können."
+          label="Simulationsmodus"
+          description="Wechselt in den Modus, in dem Eingänge geschaltet werden können."
           value={preferences.shortcuts.simulateMode}
           onChange={(value) => updateShortcut('simulateMode', value)}
         />
