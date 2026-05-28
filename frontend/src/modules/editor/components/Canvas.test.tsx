@@ -23,6 +23,7 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
     onToolDragPreview: vi.fn(),
     onToolDragCancel: vi.fn(),
     onGateDragStart: vi.fn(),
+    onAnnotationDragStart: vi.fn(),
     onDragMove: vi.fn(),
     onDragEnd: vi.fn(),
     onSelectGate: vi.fn(),
@@ -53,6 +54,8 @@ describe('Canvas', () => {
     expect(screen.getAllByText('A').length).toBeGreaterThan(0);
     expect(screen.getByText('Bea')).toBeInTheDocument();
     expect(screen.getByText('BitFlow Startschaltung')).toBeInTheDocument();
+    expect(Number(container.querySelector('.canvas-annotation-box')?.getAttribute('height'))).toBeLessThan(50);
+    expect(container.querySelector('.canvas-annotation')).toHaveClass('is-editable');
   });
 
   it('selects wires and places selected tools on grid clicks', () => {
@@ -134,6 +137,22 @@ describe('Canvas', () => {
 
     expect(props.onGateDragStart).not.toHaveBeenCalled();
     expect(props.onToggleInput).toHaveBeenCalledWith(input.id);
+  });
+
+  it('starts dragging annotations in edit mode', () => {
+    const props = canvasProps();
+    const { container } = render(<Canvas {...props} />);
+    const annotation = container.querySelector('.canvas-annotation') as SVGGElement;
+
+    Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 96, clientY: 64 });
+
+    expect(props.onSelectGate).toHaveBeenCalledWith(null);
+    expect(props.onSelectWire).toHaveBeenCalledWith(null);
+    expect(props.onAnnotationDragStart).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'annotation_starter' }),
+      { x: 96, y: 64 },
+    );
   });
 
   it('zooms with the mouse wheel, resets the view and pans on background drag', () => {

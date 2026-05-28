@@ -7,6 +7,7 @@ import {
   createDefaultViewBox,
   getViewBoxZoom,
   panViewBox,
+  resizeViewBox,
   zoomViewBox,
 } from './canvasViewBox';
 
@@ -39,5 +40,23 @@ describe('canvasViewBox', () => {
       width: 1280,
       height: 760,
     });
+  });
+
+  it('updates the default view when the canvas is resized', () => {
+    expect(resizeViewBox(createDefaultViewBox(size), size, { width: 900, height: 600 })).toEqual({
+      x: 0,
+      y: 0,
+      width: 900,
+      height: 600,
+    });
+  });
+
+  it('preserves zoom and center for resized non-default views', () => {
+    const zoomed = zoomViewBox(createDefaultViewBox(size), { x: 640, y: 380 }, 2, size);
+    const resized = resizeViewBox(zoomed, size, { width: 900, height: 600 });
+
+    expect(getViewBoxZoom(resized, { width: 900, height: 600 })).toBeCloseTo(2);
+    expect(resized.x + resized.width / 2).toBeCloseTo(640);
+    expect(resized.y + resized.height / 2).toBeCloseTo(380);
   });
 });

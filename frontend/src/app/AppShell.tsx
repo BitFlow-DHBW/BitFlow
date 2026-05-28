@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import bitflowLogo from '../assets/bitflow.svg';
 import { Icon } from '../components/Icon';
 import { useAuth } from '../modules/auth/AuthContext';
 import { usePreferences } from '../modules/settings/PreferencesContext';
@@ -12,7 +13,7 @@ export function AppShell() {
     <div className="app-shell">
       <header className="topbar">
         <button className="brand-button" type="button" onClick={() => navigate('/projects')} aria-label="BitFlow Startseite">
-          <span className="brand-mark">BF</span>
+          <img className="brand-mark" src={bitflowLogo} alt="" aria-hidden="true" />
           <span>BitFlow</span>
         </button>
 

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
+import bitflowLogo from '../../assets/bitflow.svg';
 
 export function LandingPage() {
   return (
     <main className="landing-page">
       <nav className="landing-nav">
         <Link className="landing-brand" to="/">
-          <span className="brand-mark">BF</span>
+          <img className="brand-mark" src={bitflowLogo} alt="" aria-hidden="true" />
           <span>BitFlow</span>
         </Link>
         <div className="landing-nav-actions">

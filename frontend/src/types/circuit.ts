@@ -117,11 +117,21 @@ export interface Annotation {
 
 export type SignalState = Record<string, boolean>;
 
-export interface DragState {
+export interface GateDragState {
+  kind: 'gate';
   gateId: string;
   offsetX: number;
   offsetY: number;
 }
+
+export interface AnnotationDragState {
+  kind: 'annotation';
+  annotationId: string;
+  offsetX: number;
+  offsetY: number;
+}
+
+export type DragState = GateDragState | AnnotationDragState;
 
 export interface WireDraft {
   start: WireEndpoint;

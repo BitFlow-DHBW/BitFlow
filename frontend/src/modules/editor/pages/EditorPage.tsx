@@ -4,22 +4,26 @@ import { Canvas } from '../components/Canvas';
 import { CollaborationPanel, type InviteCopyStatus } from '../components/CollaborationPanel';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
+import { EditorSidePanel } from '../components/EditorSidePanel';
 import { Inspector } from '../components/Inspector';
 import { Library } from '../components/Library';
 import { SignalViewer } from '../components/SignalViewer';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { Toolbar } from '../components/Toolbar';
 import { buildInviteLink, readSessionIdFromSearch } from '../collaborationLinks';
+import { mergeRemoteCircuitWithLocalInteraction } from '../collaborationMerge';
 import { canSaveProject, createCollaborationCircuitState } from '../collaborationState';
+import { positionAnnotationFromDrag, positionGateAtPoint, positionGateFromDrag } from '../editorGeometry';
 import { useAuth } from '../../auth/AuthContext';
 import { usePreferences } from '../../settings/PreferencesContext';
 import { useHistory } from '../../../hooks/useHistory';
 import { useCollaborationSession } from '../../../hooks/useCollaborationSession';
 import { projectService } from '../../../services/projectService';
-import { createCustomGate, createGate, createStarterCircuit, gateRectPx, snapToGrid } from '../../../simulation/gateLibrary';
+import { createCustomGate, createGate, createStarterCircuit, snapToGrid } from '../../../simulation/gateLibrary';
 import { evaluateCircuit } from '../../../simulation/evaluateCircuit';
 import { buildCircuitNets } from '../../../simulation/netModel';
 import type {
+  Annotation,
   Circuit,
   CustomComponent,
   DragState,
@@ -80,6 +84,20 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
 
 const TOOL_PREVIEW_GATE_ID = 'tool_preview';
 const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Änderungen. Seite wirklich verlassen?';
+
+function startWithCollapsedPanels(): boolean {
+  return Boolean(
+    typeof window !== 'undefined' &&
+      window.matchMedia?.('(max-width: 760px)').matches,
+  );
+}
+
+function editorLayoutClasses(libraryCollapsed: boolean, detailsCollapsed: boolean): string {
+  const classes = ['editor-grid-layout'];
+  if (libraryCollapsed) classes.push('is-left-collapsed');
+  if (detailsCollapsed) classes.push('is-right-collapsed');
+  return classes.join(' ');
+}
 
 function createTransientSessionProject(sessionId: string, ownerId: string | undefined): Project {
   const now = new Date().toISOString();
@@ -204,6 +222,8 @@ function EditorWorkspace({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
   const [inviteCopyStatus, setInviteCopyStatus] = useState<InviteCopyStatus>('idle');
+  const [libraryCollapsed, setLibraryCollapsed] = useState(startWithCollapsedPanels);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(startWithCollapsedPanels);
   const currentEditorStateRef = useRef<CollaborationCircuitState>(
     createCollaborationCircuitState(history.state, inputSignals, customComponents),
   );
@@ -258,21 +278,22 @@ function EditorWorkspace({
   const applyRemoteEditorState = useCallback(
     (remoteState: CollaborationCircuitState) => {
       const nextComponents = remoteState.customComponents ?? remoteState.circuit.customComponents ?? [];
+      const nextCircuit = mergeRemoteCircuitWithLocalInteraction(
+        {
+          ...remoteState.circuit,
+          customComponents: nextComponents,
+        },
+        history.state,
+        dragState,
+      );
 
-      history.replace({
-        ...remoteState.circuit,
-        customComponents: nextComponents,
-      });
+      history.replace(nextCircuit);
       setInputSignals(remoteState.inputSignals ?? {});
       setCustomComponents(nextComponents);
-      setSelectedGateId(null);
-      setSelectedWireId(null);
-      setWireDraft(null);
-      setDragState(null);
       setHasUnsavedChanges(true);
       setSaveState('Ungespeichert');
     },
-    [history],
+    [dragState, history],
   );
 
   const collaboration = useCollaborationSession({
@@ -292,6 +313,21 @@ function EditorWorkspace({
   }, [inviteLink]);
 
   const canSave = canSaveProject(collaboration.role, isSessionOnlyProject);
+
+  useEffect(() => {
+    if (collaboration.status !== 'ended') return;
+    setHasUnsavedChanges(false);
+    navigate('/projects', { replace: true });
+  }, [collaboration.status, navigate]);
+
+  async function handleLeaveSession() {
+    const closesSession = collaboration.role === 'host';
+    await collaboration.leaveSession();
+    if (!closesSession) return;
+
+    setHasUnsavedChanges(false);
+    navigate('/projects', { replace: true });
+  }
 
   const publishCollaborationState = useCallback(
     (
@@ -322,6 +358,7 @@ function EditorWorkspace({
 
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
+  const editorLayoutClassName = editorLayoutClasses(libraryCollapsed, detailsCollapsed);
 
   const markUnsaved = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -375,15 +412,6 @@ function EditorWorkspace({
     return component ? createCustomGate(component, 0, 0, id) : null;
   }
 
-  function positionGateAt(gateDraft: Gate, point: Point): Gate {
-    const rect = gateRectPx(gateDraft);
-    return {
-      ...gateDraft,
-      x: Math.max(0, snapToGrid(point.x - rect.width / 2)),
-      y: Math.max(0, snapToGrid(point.y - rect.height / 2)),
-    };
-  }
-
   function placeTool(tool: EditorTool, point: Point) {
     const gateDraft = createGateDraft(tool);
 
@@ -392,7 +420,7 @@ function EditorWorkspace({
       return;
     }
 
-    const gate = positionGateAt(gateDraft, point);
+    const gate = positionGateAtPoint(gateDraft, point);
 
     commitCircuit({
       ...history.state,
@@ -414,7 +442,7 @@ function EditorWorkspace({
     if (!draggedTool) return;
     const gateDraft = createGateDraft(draggedTool, TOOL_PREVIEW_GATE_ID);
     if (!gateDraft) return;
-    const nextGate = positionGateAt(gateDraft, point);
+    const nextGate = positionGateAtPoint(gateDraft, point);
 
     setToolPreviewGate((current) =>
       current?.type === nextGate.type &&
@@ -434,21 +462,40 @@ function EditorWorkspace({
   function handleGateDragStart(gate: Gate, point: Point) {
     setDragStartCircuit(history.state);
     setDragState({
+      kind: 'gate',
       gateId: gate.id,
       offsetX: point.x - gate.x,
       offsetY: point.y - gate.y,
     });
   }
 
+  function handleAnnotationDragStart(annotation: Annotation, point: Point) {
+    setDragStartCircuit(history.state);
+    setDragState({
+      kind: 'annotation',
+      annotationId: annotation.id,
+      offsetX: point.x - annotation.x,
+      offsetY: point.y - annotation.y,
+    });
+  }
+
   function handleDragMove(point: Point) {
     if (!dragState) return;
 
-    const nextX = Math.max(0, snapToGrid(point.x - dragState.offsetX));
-    const nextY = Math.max(0, snapToGrid(point.y - dragState.offsetY));
+    if (dragState.kind === 'gate') {
+      replaceCircuit({
+        ...history.state,
+        gates: history.state.gates.map((gate) =>
+          gate.id === dragState.gateId ? positionGateFromDrag(gate, dragState, point) : gate,
+        ),
+      });
+      return;
+    }
+
     replaceCircuit({
       ...history.state,
-      gates: history.state.gates.map((gate) =>
-        gate.id === dragState.gateId ? { ...gate, x: nextX, y: nextY } : gate,
+      annotations: (history.state.annotations ?? []).map((annotation) =>
+        annotation.id === dragState.annotationId ? positionAnnotationFromDrag(annotation, dragState, point) : annotation,
       ),
     });
   }
@@ -688,20 +735,27 @@ function EditorWorkspace({
         copyStatus={inviteCopyStatus}
         message={collaboration.message}
         onCopyInviteLink={() => void handleCopyInviteLink()}
-        onLeaveSession={() => void collaboration.leaveSession()}
+        onLeaveSession={() => void handleLeaveSession()}
       />
 
-      <div className="editor-grid-layout">
-        <Library
-          customComponents={customComponents}
-          selectedTool={selectedTool}
-          onToolDragStart={handleToolDragStart}
-          onToolDragEnd={clearToolDragPreview}
-          onSelectTool={(tool) => {
-            setSelectedTool(tool);
-            setMode('edit');
-          }}
-        />
+      <div className={editorLayoutClassName}>
+        <EditorSidePanel
+          side="left"
+          label="Bibliothek"
+          collapsed={libraryCollapsed}
+          onToggle={() => setLibraryCollapsed((current) => !current)}
+        >
+          <Library
+            customComponents={customComponents}
+            selectedTool={selectedTool}
+            onToolDragStart={handleToolDragStart}
+            onToolDragEnd={clearToolDragPreview}
+            onSelectTool={(tool) => {
+              setSelectedTool(tool);
+              setMode('edit');
+            }}
+          />
+        </EditorSidePanel>
 
         <section className="canvas-stage">
           <Canvas
@@ -722,6 +776,7 @@ function EditorWorkspace({
             onToolDragPreview={handleToolDragPreview}
             onToolDragCancel={() => setToolPreviewGate(null)}
             onGateDragStart={handleGateDragStart}
+            onAnnotationDragStart={handleAnnotationDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onSelectGate={setSelectedGateId}
@@ -734,17 +789,24 @@ function EditorWorkspace({
           />
         </section>
 
-        <aside className="right-panel-stack">
-          <Inspector circuit={history.state} selectedGate={selectedGate} onUpdateGate={handleUpdateGate} />
-          <SimulationPanel
-            circuit={history.state}
-            signals={signals}
-            inputSignals={inputSignals}
-            enabled={mode === 'simulate'}
-            onToggleInput={handleToggleInput}
-          />
-          <SignalViewer circuit={history.state} signals={signals} />
-        </aside>
+        <EditorSidePanel
+          side="right"
+          label="Details"
+          collapsed={detailsCollapsed}
+          onToggle={() => setDetailsCollapsed((current) => !current)}
+        >
+          <div className="right-panel-stack">
+            <Inspector circuit={history.state} selectedGate={selectedGate} onUpdateGate={handleUpdateGate} />
+            <SimulationPanel
+              circuit={history.state}
+              signals={signals}
+              inputSignals={inputSignals}
+              enabled={mode === 'simulate'}
+              onToggleInput={handleToggleInput}
+            />
+            <SignalViewer circuit={history.state} signals={signals} />
+          </div>
+        </EditorSidePanel>
       </div>
 
       <CustomComponentDialog

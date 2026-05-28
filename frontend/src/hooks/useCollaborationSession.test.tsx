@@ -294,6 +294,39 @@ describe('useCollaborationSession', () => {
     expect(harness.result.message).toBe('Session verlassen.');
   });
 
+  it('does not overwrite a host-ended state while leave is resolving', async () => {
+    let resolveLeave: (() => void) | null = null;
+    const client = makeClient();
+    vi.mocked(client.leaveSession!).mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveLeave = resolve;
+        }),
+    );
+    const harness = renderHarness({ client });
+
+    await act(async () => {
+      await harness.result.createSession();
+    });
+
+    const leavePromise = harness.result.leaveSession();
+    act(() => {
+      harness.client.handlers?.sessionEnded?.({
+        sessionId: 'session_test',
+        reason: 'Session wurde vom Host beendet.',
+      });
+    });
+    await waitFor(() => expect(harness.result.status).toBe('ended'));
+
+    await act(async () => {
+      resolveLeave?.();
+      await leavePromise;
+    });
+
+    expect(harness.result.status).toBe('ended');
+    expect(harness.result.message).toBe('Session wurde vom Host beendet.');
+  });
+
   it('throttles circuit and cursor updates while keeping immediate sends available', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-28T10:00:00.000Z'));

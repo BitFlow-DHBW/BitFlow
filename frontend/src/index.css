@@ -112,15 +112,13 @@ button:disabled {
 }
 
 .brand-mark {
-  display: inline-grid;
+  display: inline-block;
+  flex: 0 0 auto;
   width: 2.15rem;
   height: 2.15rem;
-  place-items: center;
   border-radius: 8px;
-  background: var(--primary);
-  color: #ffffff;
-  font-size: 0.8rem;
-  font-weight: 800;
+  object-fit: contain;
+  vertical-align: middle;
 }
 
 .eyebrow {
@@ -721,16 +719,19 @@ a svg {
 
 .editor-workspace {
   display: grid;
-  min-height: calc(100vh - 4.25rem);
-  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100dvh - 4.25rem);
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
   background: var(--bg-strong);
+  overflow: hidden;
 }
 
 .editor-toolbar {
-  position: sticky;
-  top: 4.25rem;
+  position: relative;
   z-index: 15;
+  grid-row: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -797,6 +798,7 @@ a svg {
 
 .collaboration-panel {
   display: grid;
+  grid-row: 2;
   grid-template-columns: auto minmax(220px, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
@@ -863,11 +865,25 @@ a svg {
 }
 
 .editor-grid-layout {
+  --left-dock-width: 280px;
+  --right-dock-width: 340px;
+
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr) 320px;
+  grid-row: 3;
+  grid-template-columns: var(--left-dock-width) minmax(0, 1fr) var(--right-dock-width);
   gap: 0.75rem;
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
   padding: 0.75rem;
+}
+
+.editor-grid-layout.is-left-collapsed {
+  --left-dock-width: 3rem;
+}
+
+.editor-grid-layout.is-right-collapsed {
+  --right-dock-width: 3rem;
 }
 
 .editor-panel {
@@ -876,15 +892,86 @@ a svg {
   overflow: hidden;
 }
 
+.editor-side-panel,
 .library-panel,
-.right-panel-stack {
+.right-panel-stack,
+.canvas-stage,
+.canvas-frame {
   min-height: 0;
+}
+
+.editor-side-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editor-side-panel-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.editor-side-panel-right {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.editor-side-panel.is-collapsed {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.editor-side-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.45rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.1;
+  padding: 0.55rem 0.65rem;
+}
+
+.editor-side-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+.editor-side-panel.is-collapsed .editor-side-toggle {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  padding: 0.65rem 0.35rem;
+}
+
+.editor-side-panel.is-collapsed .editor-side-toggle span {
+  writing-mode: vertical-rl;
+}
+
+.editor-side-panel-left.is-collapsed .editor-side-toggle span {
+  transform: rotate(180deg);
+}
+
+.editor-side-content {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 0.5rem;
 }
 
 .library-panel {
   display: grid;
   align-content: start;
   gap: 0.65rem;
+  min-height: 100%;
   padding: 0.9rem;
 }
 
@@ -948,6 +1035,9 @@ a svg {
 }
 
 .canvas-stage {
+  grid-column: 2;
+  grid-row: 1;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -959,14 +1049,14 @@ a svg {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 620px;
+  min-height: 0;
 }
 
 .editor-canvas {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: inherit;
+  min-height: 0;
   background: var(--surface);
   touch-action: none;
 }
@@ -1146,9 +1236,28 @@ a svg {
 }
 
 .canvas-annotation {
-  fill: var(--muted);
-  font-size: 12px;
   pointer-events: none;
+}
+
+.canvas-annotation.is-editable {
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.canvas-annotation.is-editable:active {
+  cursor: grabbing;
+}
+
+.canvas-annotation-box {
+  fill: color-mix(in srgb, var(--warning) 8%, var(--surface));
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.canvas-annotation-text {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .remote-cursor {
@@ -1192,9 +1301,9 @@ a svg {
 
 .right-panel-stack {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
   gap: 0.75rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .inspector-panel,
@@ -1461,26 +1570,17 @@ a svg {
 @media (max-width: 1100px) {
   .landing-band,
   .auth-panel,
-  .projects-layout,
-  .editor-grid-layout {
+  .projects-layout {
     grid-template-columns: 1fr;
   }
 
   .editor-grid-layout {
-    grid-template-rows: auto minmax(560px, 1fr) auto;
-  }
-
-  .library-panel {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    --left-dock-width: 240px;
+    --right-dock-width: 300px;
   }
 
   .panel-heading {
     grid-column: 1 / -1;
-  }
-
-  .right-panel-stack {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    grid-template-rows: none;
   }
 }
 
@@ -1549,7 +1649,25 @@ a svg {
     min-height: inherit;
   }
 
-  .canvas-frame {
-    min-height: 520px;
+  .editor-grid-layout {
+    --left-dock-width: 3rem;
+    --right-dock-width: 3rem;
+    position: relative;
+  }
+
+  .editor-side-panel:not(.is-collapsed) {
+    position: absolute;
+    z-index: 12;
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: min(20rem, calc(100% - 4.5rem));
+  }
+
+  .editor-side-panel-left:not(.is-collapsed) {
+    left: 0.75rem;
+  }
+
+  .editor-side-panel-right:not(.is-collapsed) {
+    right: 0.75rem;
   }
 }

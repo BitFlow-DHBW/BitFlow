@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { GateComp } from './GateComp';
 import { WireComp, wireBranchPoint } from './WireComp';
+import { getAnnotationLayout } from '../annotationLayout';
 import {
   CANVAS_ZOOM_STEP,
   createDefaultViewBox,
   getViewBoxZoom,
   panViewBox,
+  resizeViewBox,
   zoomViewBox,
   type CanvasSize,
   type ViewBox,
@@ -20,6 +22,7 @@ import type {
   EditorMode,
   EditorTool,
   Gate,
+  Annotation,
   Point,
   SignalState,
   WireDraft,
@@ -45,6 +48,7 @@ interface CanvasProps {
   onToolDragPreview: (point: Point) => void;
   onToolDragCancel: () => void;
   onGateDragStart: (gate: Gate, point: Point) => void;
+  onAnnotationDragStart: (annotation: Annotation, point: Point) => void;
   onDragMove: (point: Point) => void;
   onDragEnd: () => void;
   onSelectGate: (gateId: string | null) => void;
@@ -85,6 +89,7 @@ export function Canvas({
   onToolDragPreview,
   onToolDragCancel,
   onGateDragStart,
+  onAnnotationDragStart,
   onDragMove,
   onDragEnd,
   onSelectGate,
@@ -95,6 +100,7 @@ export function Canvas({
   onWireCancel,
   onToggleInput,
 }: CanvasProps) {
+  const frameRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const gatePointerRef = useRef<{ gateId: string; point: Point; moved: boolean; toggleOnRelease: boolean } | null>(null);
   const panStateRef = useRef<PanState | null>(null);
@@ -105,32 +111,27 @@ export function Canvas({
   const [isSpacePressed, setIsSpacePressed] = useState(false);
 
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return undefined;
+    const frame = frameRef.current;
+    if (!frame) return undefined;
 
     const updateSize = () => {
-      const rect = svg.getBoundingClientRect();
+      const rect = frame.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
       const nextSize = {
-        width: Math.max(1, Math.round(rect.width)),
-        height: Math.max(1, Math.round(rect.height)),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
       };
       setCanvasSize((currentSize) => {
         if (currentSize.width === nextSize.width && currentSize.height === nextSize.height) return currentSize;
-        setViewBox((currentViewBox) => {
-          const isDefaultView =
-            currentViewBox.x === 0 &&
-            currentViewBox.y === 0 &&
-            currentViewBox.width === currentSize.width &&
-            currentViewBox.height === currentSize.height;
-          return isDefaultView ? createDefaultViewBox(nextSize) : currentViewBox;
-        });
+        setViewBox((currentViewBox) => resizeViewBox(currentViewBox, currentSize, nextSize));
         return nextSize;
       });
     };
 
     updateSize();
     const observer = new ResizeObserver(updateSize);
-    observer.observe(svg);
+    observer.observe(frame);
     return () => observer.disconnect();
   }, []);
 
@@ -210,6 +211,16 @@ export function Canvas({
     onWireStart(endpoint, point);
   }
 
+  function startAnnotationDrag(event: React.PointerEvent<SVGGElement>, annotation: Annotation) {
+    if (mode !== 'edit') return;
+
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onSelectGate(null);
+    onSelectWire(null);
+    onAnnotationDragStart(annotation, getPoint(event));
+  }
+
   function isCanvasTarget(event: React.PointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>): boolean {
     const target = event.target as SVGElement;
     return target.dataset.role === 'canvas-grid' || target === event.currentTarget;
@@ -253,7 +264,7 @@ export function Canvas({
   }
 
   return (
-    <div className={`canvas-frame ${isPanning ? 'is-panning' : ''}`}>
+    <div ref={frameRef} className={`canvas-frame ${isPanning ? 'is-panning' : ''}`}>
       <div className="canvas-view-controls" role="group" aria-label="Arbeitsflächen-Navigation">
         <button
           className="icon-button small"
@@ -443,11 +454,27 @@ export function Canvas({
 
         {wireDraft && <WireComp from={wireDraft.from} to={wireDraft.to} preview />}
 
-        {(circuit.annotations ?? []).map((annotation) => (
-          <text key={annotation.id} className="canvas-annotation" x={annotation.x} y={annotation.y}>
-            {annotation.text}
-          </text>
-        ))}
+        {(circuit.annotations ?? []).map((annotation) => {
+          const layout = getAnnotationLayout(annotation.text);
+
+          return (
+            <g
+              key={annotation.id}
+              className={`canvas-annotation ${mode === 'edit' ? 'is-editable' : ''}`}
+              transform={`translate(${annotation.x} ${annotation.y})`}
+              onPointerDown={(event) => startAnnotationDrag(event, annotation)}
+            >
+              <rect className="canvas-annotation-box" width={layout.width} height={layout.height} rx={8} />
+              <text className="canvas-annotation-text" x={layout.paddingX} y={layout.paddingY + layout.fontSize}>
+                {layout.lines.map((line, index) => (
+                  <tspan key={`${annotation.id}-line-${index}`} x={layout.paddingX} dy={index === 0 ? 0 : layout.lineHeight}>
+                    {line || ' '}
+                  </tspan>
+                ))}
+              </text>
+            </g>
+          );
+        })}
 
         {circuit.gates.map((gate) => (
           <GateComp

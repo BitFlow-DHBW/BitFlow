@@ -67,6 +67,8 @@ describe('EditorPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Starter Circuit' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bibliothek einklappen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Details einklappen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
     expect(screen.getByText(/Pin-Zust/)).toBeInTheDocument();
 
@@ -74,6 +76,37 @@ describe('EditorPage', () => {
     await user.click(screen.getAllByRole('button', { name: /Eingang0/ })[0]);
 
     expect(screen.getByRole('button', { name: /Eingang1/ })).toBeInTheDocument();
+  });
+
+  it('collapses the side panels without removing the canvas', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Panel Circuit',
+        circuit: createStarterCircuit('Panel Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Panel Circuit' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Bibliothek einklappen' }));
+    expect(screen.queryByRole('button', { name: /AND/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bibliothek öffnen' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Details einklappen' }));
+    expect(screen.queryByText(/Pin-Zust/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Details öffnen' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
   });
 
   it('supports an edit workflow with placement, annotations, custom components, save and delete', async () => {

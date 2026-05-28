@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import bitflowLogo from '../../../assets/bitflow.svg';
 
 interface AuthPageShellProps {
   title: string;
@@ -11,7 +12,7 @@ export function AuthPageShell({ title, subtitle, children, footer }: AuthPageShe
   return (
     <main className="auth-page">
       <Link className="landing-brand auth-brand" to="/">
-        <span className="brand-mark">BF</span>
+        <img className="brand-mark" src={bitflowLogo} alt="" aria-hidden="true" />
         <span>BitFlow</span>
       </Link>
       <section className="auth-panel">
