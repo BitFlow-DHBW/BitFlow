@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
-    "@tailwindcss/vite": "^4.1.16",
+    "@tailwindcss/vite": "^4.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.15.0",
