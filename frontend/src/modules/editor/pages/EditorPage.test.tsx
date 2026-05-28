@@ -142,7 +142,7 @@ describe('EditorPage', () => {
     const promptSpy = vi.spyOn(window, 'prompt').mockReturnValueOnce('Kommentar A');
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
-    expect(screen.getByText('Kommentar A')).toBeInTheDocument();
+    expect(screen.getAllByText('Kommentar A').length).toBeGreaterThan(0);
     expect(promptSpy).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
@@ -188,6 +188,42 @@ describe('EditorPage', () => {
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
+  });
+
+  it('selects, edits and deletes annotations from the inspector', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Annotation Circuit',
+        circuit: createStarterCircuit('Annotation Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Annotation Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const annotation = svg.querySelector('.canvas-annotation') as SVGGElement;
+    Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
+
+    fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.pointerUp(svg, { pointerId: 1, clientX: 144, clientY: 96 });
+    fireEvent.change(screen.getByLabelText('Kommentar'), { target: { value: 'Bearbeiteter Kommentar' } });
+
+    expect(screen.getByDisplayValue('Bearbeiteter Kommentar')).toBeInTheDocument();
+    expect(screen.getAllByText('Bearbeiteter Kommentar').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
+
+    expect(screen.queryByText('Bearbeiteter Kommentar')).not.toBeInTheDocument();
+    expect(screen.getByText(/Kein Baustein oder Kommentar/)).toBeInTheDocument();
   });
 
   it('warns about unsaved changes before leaving and clears the warning after save', async () => {

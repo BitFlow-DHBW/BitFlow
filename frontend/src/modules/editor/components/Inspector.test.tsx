@@ -3,9 +3,22 @@ import { describe, expect, it, vi } from 'vitest';
 import { Inspector } from './Inspector';
 import { circuitWith, customComponent, gate } from '../../../test/builders';
 
+type InspectorProps = Parameters<typeof Inspector>[0];
+
+function inspectorProps(overrides: Partial<InspectorProps> = {}): InspectorProps {
+  return {
+    circuit: circuitWith([]),
+    selectedGate: null,
+    selectedAnnotation: null,
+    onUpdateGate: vi.fn(),
+    onUpdateAnnotation: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe('Inspector', () => {
   it('shows circuit counts when no gate is selected', () => {
-    render(<Inspector circuit={circuitWith([gate('INPUT', 'input_a')], [])} selectedGate={null} onUpdateGate={vi.fn()} />);
+    render(<Inspector {...inspectorProps({ circuit: circuitWith([gate('INPUT', 'input_a')], []) })} />);
 
     expect(screen.getByText(/Kein Baustein/)).toBeInTheDocument();
     expect(screen.getByText(/1 Komponenten/)).toBeInTheDocument();
@@ -15,7 +28,7 @@ describe('Inspector', () => {
     const onUpdateGate = vi.fn();
     const selectedGate = gate('AND', 'and_inspector', 48, 72);
 
-    render(<Inspector circuit={circuitWith([selectedGate])} selectedGate={selectedGate} onUpdateGate={onUpdateGate} />);
+    render(<Inspector {...inspectorProps({ circuit: circuitWith([selectedGate]), selectedGate, onUpdateGate })} />);
 
     fireEvent.change(screen.getByLabelText('Bezeichnung'), { target: { value: 'Enable' } });
     fireEvent.change(screen.getByLabelText('Referenz'), { target: { value: 'U1' } });
@@ -45,7 +58,7 @@ describe('Inspector', () => {
       label: 'Slice',
     };
     const { rerender } = render(
-      <Inspector circuit={circuitWith([genericGate])} selectedGate={genericGate} onUpdateGate={onUpdateGate} />,
+      <Inspector {...inspectorProps({ circuit: circuitWith([genericGate]), selectedGate: genericGate, onUpdateGate })} />,
     );
 
     const numberInputs = screen.getAllByRole('spinbutton');
@@ -57,9 +70,11 @@ describe('Inspector', () => {
 
     rerender(
       <Inspector
-        circuit={circuitWith([customGate], [], { customComponents: [component] })}
-        selectedGate={customGate}
-        onUpdateGate={onUpdateGate}
+        {...inspectorProps({
+          circuit: circuitWith([customGate], [], { customComponents: [component] }),
+          selectedGate: customGate,
+          onUpdateGate,
+        })}
       />,
     );
 
@@ -70,7 +85,7 @@ describe('Inspector', () => {
     const onUpdateGate = vi.fn();
     const genericGate = gate('GENERIC', 'generic_truth_inspector');
 
-    render(<Inspector circuit={circuitWith([genericGate])} selectedGate={genericGate} onUpdateGate={onUpdateGate} />);
+    render(<Inspector {...inspectorProps({ circuit: circuitWith([genericGate]), selectedGate: genericGate, onUpdateGate })} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Wahrheitstabelle erstellen' }));
 
@@ -87,5 +102,25 @@ describe('Inspector', () => {
         truthTable: expect.arrayContaining([{ inputs: [false, false], outputs: [true] }]),
       }),
     );
+  });
+
+  it('updates selected annotation text', () => {
+    const onUpdateAnnotation = vi.fn();
+    const annotation = { id: 'annotation_note', text: 'Alter Kommentar', x: 24, y: 48 };
+
+    render(
+      <Inspector
+        {...inspectorProps({
+          circuit: circuitWith([], [], { annotations: [annotation] }),
+          selectedAnnotation: annotation,
+          onUpdateAnnotation,
+        })}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Kommentar'), { target: { value: 'Neuer Kommentar' } });
+
+    expect(onUpdateAnnotation).toHaveBeenCalledWith(expect.objectContaining({ id: annotation.id, text: 'Neuer Kommentar' }));
+    expect(screen.getByText('24 / 48')).toBeInTheDocument();
   });
 });

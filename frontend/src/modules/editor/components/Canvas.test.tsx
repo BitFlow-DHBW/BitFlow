@@ -14,6 +14,7 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
     selectedTool: null,
     selectedGateId: null,
     selectedWireId: null,
+    selectedAnnotationId: null,
     dragState: null,
     wireDraft: null,
     draggedTool: null,
@@ -28,6 +29,7 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
     onDragEnd: vi.fn(),
     onSelectGate: vi.fn(),
     onSelectWire: vi.fn(),
+    onSelectAnnotation: vi.fn(),
     onWireStart: vi.fn(),
     onWireEnd: vi.fn(),
     onWirePreview: vi.fn(),
@@ -56,6 +58,20 @@ describe('Canvas', () => {
     expect(screen.getByText('BitFlow Startschaltung')).toBeInTheDocument();
     expect(Number(container.querySelector('.canvas-annotation-box')?.getAttribute('height'))).toBeLessThan(50);
     expect(container.querySelector('.canvas-annotation')).toHaveClass('is-editable');
+  });
+
+  it('renders annotations above gates', () => {
+    const { container } = render(<Canvas {...canvasProps()} />);
+    const gateNode = container.querySelector('.gate-node') as SVGGElement;
+    const annotation = container.querySelector('.canvas-annotation') as SVGGElement;
+
+    expect(gateNode.compareDocumentPosition(annotation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('marks selected annotations', () => {
+    const { container } = render(<Canvas {...canvasProps({ selectedAnnotationId: 'annotation_starter' })} />);
+
+    expect(container.querySelector('.canvas-annotation')).toHaveClass('is-selected');
   });
 
   it('selects wires and places selected tools on grid clicks', () => {
@@ -149,6 +165,7 @@ describe('Canvas', () => {
 
     expect(props.onSelectGate).toHaveBeenCalledWith(null);
     expect(props.onSelectWire).toHaveBeenCalledWith(null);
+    expect(props.onSelectAnnotation).toHaveBeenCalledWith('annotation_starter');
     expect(props.onAnnotationDragStart).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'annotation_starter' }),
       { x: 96, y: 64 },

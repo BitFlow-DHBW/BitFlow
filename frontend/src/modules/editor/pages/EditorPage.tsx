@@ -209,6 +209,7 @@ function EditorWorkspace({
   const [selectedTool, setSelectedTool] = useState<EditorTool | null>(null);
   const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragStartCircuit, setDragStartCircuit] = useState<Circuit | null>(null);
   const [wireDraft, setWireDraft] = useState<WireDraft | null>(null);
@@ -358,6 +359,7 @@ function EditorWorkspace({
 
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
+  const selectedAnnotation = (history.state.annotations ?? []).find((annotation) => annotation.id === selectedAnnotationId) ?? null;
   const editorLayoutClassName = editorLayoutClasses(libraryCollapsed, detailsCollapsed);
 
   const markUnsaved = useCallback(() => {
@@ -428,6 +430,7 @@ function EditorWorkspace({
     });
     setSelectedGateId(gate.id);
     setSelectedWireId(null);
+    setSelectedAnnotationId(null);
     setMode('edit');
   }
 
@@ -460,6 +463,7 @@ function EditorWorkspace({
   }, []);
 
   function handleGateDragStart(gate: Gate, point: Point) {
+    setSelectedAnnotationId(null);
     setDragStartCircuit(history.state);
     setDragState({
       kind: 'gate',
@@ -470,6 +474,9 @@ function EditorWorkspace({
   }
 
   function handleAnnotationDragStart(annotation: Annotation, point: Point) {
+    setSelectedGateId(null);
+    setSelectedWireId(null);
+    setSelectedAnnotationId(annotation.id);
     setDragStartCircuit(history.state);
     setDragState({
       kind: 'annotation',
@@ -514,6 +521,7 @@ function EditorWorkspace({
   function handleWireStart(endpoint: WireEndpoint, point: Point) {
     setSelectedTool(null);
     setSelectedGateId(null);
+    setSelectedAnnotationId(null);
     setWireDraft({ start: endpoint, from: point, to: point });
   }
 
@@ -544,6 +552,8 @@ function EditorWorkspace({
       wires: [...history.state.wires.filter((wire) => wire.id !== wireId), nextWire],
     });
     setWireDraft(null);
+    setSelectedGateId(null);
+    setSelectedAnnotationId(null);
     setSelectedWireId(wireId);
   }
 
@@ -577,7 +587,25 @@ function EditorWorkspace({
     });
   }
 
+  function handleUpdateAnnotation(nextAnnotation: Annotation) {
+    commitCircuit({
+      ...history.state,
+      annotations: (history.state.annotations ?? []).map((annotation) =>
+        annotation.id === nextAnnotation.id ? nextAnnotation : annotation,
+      ),
+    });
+  }
+
   const handleDeleteSelected = useCallback(() => {
+    if (selectedAnnotation) {
+      commitCircuit({
+        ...history.state,
+        annotations: (history.state.annotations ?? []).filter((annotation) => annotation.id !== selectedAnnotation.id),
+      });
+      setSelectedAnnotationId(null);
+      return;
+    }
+
     if (selectedWire) {
       commitCircuit({
         ...history.state,
@@ -601,7 +629,7 @@ function EditorWorkspace({
       ),
     });
     setSelectedGateId(null);
-  }, [commitCircuit, history.state, selectedGate, selectedWire]);
+  }, [commitCircuit, history.state, selectedAnnotation, selectedGate, selectedWire]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -654,18 +682,22 @@ function EditorWorkspace({
     const text = window.prompt('Kommentar', 'Kommentar');
     if (!text) return;
     const point = selectedGate ? { x: selectedGate.x, y: selectedGate.y - 32 } : { x: 144, y: 96 };
+    const annotationId = createId('annotation');
     commitCircuit({
       ...history.state,
       annotations: [
         ...(history.state.annotations ?? []),
         {
-          id: createId('annotation'),
+          id: annotationId,
           text,
           x: snapToGrid(point.x),
           y: snapToGrid(point.y),
         },
       ],
     });
+    setSelectedGateId(null);
+    setSelectedWireId(null);
+    setSelectedAnnotationId(annotationId);
   }
 
   function handleAddCustomComponent(component: CustomComponent) {
@@ -694,7 +726,7 @@ function EditorWorkspace({
         mode={mode}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
-        canDelete={Boolean(selectedGate || selectedWire)}
+        canDelete={Boolean(selectedGate || selectedWire || selectedAnnotation)}
         canSave={canSave}
         canCreateSession={!collaboration.session && !isSessionOnlyProject}
         saveState={saveState}
@@ -765,6 +797,7 @@ function EditorWorkspace({
             selectedTool={selectedTool}
             selectedGateId={selectedGateId}
             selectedWireId={selectedWireId}
+            selectedAnnotationId={selectedAnnotationId}
             dragState={dragState}
             wireDraft={wireDraft}
             draggedTool={draggedTool}
@@ -781,6 +814,7 @@ function EditorWorkspace({
             onDragEnd={handleDragEnd}
             onSelectGate={setSelectedGateId}
             onSelectWire={setSelectedWireId}
+            onSelectAnnotation={setSelectedAnnotationId}
             onWireStart={handleWireStart}
             onWireEnd={handleWireEnd}
             onWirePreview={(point) => setWireDraft((draft) => (draft ? { ...draft, to: point } : draft))}
@@ -796,7 +830,13 @@ function EditorWorkspace({
           onToggle={() => setDetailsCollapsed((current) => !current)}
         >
           <div className="right-panel-stack">
-            <Inspector circuit={history.state} selectedGate={selectedGate} onUpdateGate={handleUpdateGate} />
+            <Inspector
+              circuit={history.state}
+              selectedGate={selectedGate}
+              selectedAnnotation={selectedAnnotation}
+              onUpdateGate={handleUpdateGate}
+              onUpdateAnnotation={handleUpdateAnnotation}
+            />
             <SimulationPanel
               circuit={history.state}
               signals={signals}

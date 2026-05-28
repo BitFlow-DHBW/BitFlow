@@ -1,5 +1,5 @@
 const MAX_LINE_CHARS = 30;
-const MIN_WIDTH = 132;
+const MIN_WIDTH = 72;
 const MAX_WIDTH = 280;
 const CHAR_WIDTH = 7.2;
 const PADDING_X = 12;

@@ -10,6 +10,14 @@ describe('getAnnotationLayout', () => {
     expect(layout.width).toBeGreaterThan(132);
   });
 
+  it('adapts the width to very short comments', () => {
+    const shortLayout = getAnnotationLayout('OK');
+    const longerLayout = getAnnotationLayout('BitFlow Startschaltung');
+
+    expect(shortLayout.width).toBeLessThan(longerLayout.width);
+    expect(shortLayout.width).toBe(72);
+  });
+
   it('expands the height when text wraps across multiple lines', () => {
     const layout = getAnnotationLayout('Dieser Kommentar ist lang genug, um automatisch auf mehrere Zeilen umbrochen zu werden.');
 
