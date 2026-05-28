@@ -23,6 +23,14 @@ describe('schematic SVG helpers', () => {
     expect(componentSymbolSvg(gate('INPUT', 'input_svg'))).toContain('Eingang');
   });
 
+  it('renders Generic as the default label while keeping it editable', () => {
+    const defaultSvg = componentSymbolSvg(gate('GENERIC', 'generic_default_svg'));
+    const renamedSvg = componentSymbolSvg({ ...gate('GENERIC', 'generic_renamed_svg'), label: 'ALU Slice' });
+
+    expect(defaultSvg).toContain('Generic');
+    expect(renamedSvg).toContain('ALU Slice');
+  });
+
   it('builds orthogonal paths and symbol geometry from gate dimensions', () => {
     const input = gate('INPUT', 'input_geometry', 24, 48);
 

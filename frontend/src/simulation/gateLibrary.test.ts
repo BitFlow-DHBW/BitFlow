@@ -9,6 +9,7 @@ import {
   createGate,
   createPins,
   createStarterCircuit,
+  createTruthTableRows,
   gateRectPx,
   normalizeBuiltInGateType,
   pinPosition,
@@ -81,6 +82,29 @@ describe('gateLibrary', () => {
     const configuredGeneric = configureGatePins(genericGate, -1, 99);
     expect(configuredGeneric.inputs).toHaveLength(0);
     expect(configuredGeneric.outputs).toHaveLength(16);
+    expect(configuredGeneric.truthTable).toHaveLength(1);
+  });
+
+  it('creates and resizes generic truth tables while preserving matching rows', () => {
+    const rows = createTruthTableRows(1, 1, [{ inputs: [true], outputs: [true] }]);
+
+    expect(rows).toEqual([
+      { inputs: [false], outputs: [false] },
+      { inputs: [true], outputs: [true] },
+    ]);
+
+    const genericGate = {
+      ...createGate('GENERIC', 0, 0, 'generic_truth'),
+      truthTable: rows,
+    };
+    const widerGate = configureGatePins(genericGate, 2, 2);
+
+    expect(widerGate.truthTable).toEqual([
+      { inputs: [false, false], outputs: [false, false] },
+      { inputs: [false, true], outputs: [false, false] },
+      { inputs: [true, false], outputs: [true, false] },
+      { inputs: [true, true], outputs: [false, false] },
+    ]);
   });
 
   it('leaves non-configurable and custom gate pin counts unchanged', () => {

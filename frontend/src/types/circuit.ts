@@ -62,6 +62,7 @@ export interface Gate {
   symbol?: string;
   inputs: Pin[];
   outputs: Pin[];
+  truthTable?: TruthTableRow[];
 }
 
 export interface Wire {

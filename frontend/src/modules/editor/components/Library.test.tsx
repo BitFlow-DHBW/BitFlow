@@ -21,6 +21,7 @@ describe('Library', () => {
 
     expect(screen.getByRole('button', { name: /AND/ })).toHaveClass('is-selected');
     expect(screen.getByRole('button', { name: /Adder/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\?Generic/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Auswahl/ }));
     await user.click(screen.getByRole('button', { name: /Adder/ }));

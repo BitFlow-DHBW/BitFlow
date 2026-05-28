@@ -30,4 +30,26 @@ describe('TruthTableEditor', () => {
     expect(screen.getByRole('columnheader', { name: 'Y' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
   });
+
+  it('can lock generated input combinations while outputs remain editable', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <TruthTableEditor
+        inputLabels={['A']}
+        outputLabels={['Y']}
+        rows={[{ inputs: [true], outputs: [false] }]}
+        onChange={onChange}
+        readOnlyInputs
+        allowAddRow={false}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /Zeile/ })).not.toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '0' }));
+
+    expect(onChange).toHaveBeenLastCalledWith([{ inputs: [true], outputs: [true] }]);
+  });
 });

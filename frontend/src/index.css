@@ -1247,6 +1247,10 @@ a svg {
   gap: 0.55rem;
 }
 
+.generic-truth-table-actions {
+  display: grid;
+}
+
 .sim-group {
   display: grid;
   gap: 0.5rem;
@@ -1413,6 +1417,15 @@ a svg {
   padding: 0.9rem;
 }
 
+.truth-table-modal {
+  width: min(980px, 100%);
+}
+
+.truth-table-scroll {
+  max-height: min(430px, 52vh);
+  overflow: auto;
+}
+
 .truth-table-editor table {
   width: 100%;
   border-collapse: collapse;
@@ -1432,6 +1445,17 @@ a svg {
   background: var(--surface-soft);
   color: var(--text);
   cursor: pointer;
+}
+
+.truth-table-value {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--line) 46%, transparent);
+  color: var(--muted);
+  font-weight: 800;
 }
 
 @media (max-width: 1100px) {
