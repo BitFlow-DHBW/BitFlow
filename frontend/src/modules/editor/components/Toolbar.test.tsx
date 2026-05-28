@@ -31,6 +31,7 @@ describe('Toolbar', () => {
     const user = userEvent.setup();
     const props = renderToolbar();
 
+    expect(document.querySelector('.editor-toolbar')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'ALU' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Redo' })).toBeEnabled();

@@ -42,6 +42,7 @@ describe('Canvas', () => {
     const { container } = render(<Canvas {...props} />);
 
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Canvas navigation' })).toBeInTheDocument();
     expect(container.querySelectorAll('.gate-node')).toHaveLength(4);
     expect(container.querySelectorAll('.wire')).toHaveLength(3);
     expect(container.querySelector('.wire.is-selected')).toBeInTheDocument();
@@ -128,5 +129,29 @@ describe('Canvas', () => {
 
     expect(props.onGateDragStart).not.toHaveBeenCalled();
     expect(props.onToggleInput).toHaveBeenCalledWith(input.id);
+  });
+
+  it('zooms with the mouse wheel, resets the view and pans on background drag', () => {
+    const props = canvasProps();
+    const { container } = render(<Canvas {...props} />);
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = container.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+
+    expect(svg).toHaveAttribute('viewBox', '0 0 1280 760');
+
+    const zoomEvent = new WheelEvent('wheel', { deltaY: -100, clientX: 640, clientY: 380, cancelable: true });
+    const wheelResult = fireEvent(svg, zoomEvent);
+
+    expect(zoomEvent.defaultPrevented).toBe(true);
+    expect(wheelResult).toBe(false);
+    expect(svg.getAttribute('viewBox')).not.toBe('0 0 1280 760');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset view' }));
+    expect(svg).toHaveAttribute('viewBox', '0 0 1280 760');
+
+    fireEvent.pointerDown(grid, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(svg, { pointerId: 1, clientX: 140, clientY: 120 });
+
+    expect(svg).toHaveAttribute('viewBox', '-40 -20 1280 760');
   });
 });

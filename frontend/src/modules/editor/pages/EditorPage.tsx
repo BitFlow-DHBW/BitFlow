@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
@@ -73,6 +73,7 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
 }
 
 const TOOL_PREVIEW_GATE_ID = 'tool_preview';
+const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Aenderungen. Seite wirklich verlassen?';
 
 export function EditorPage() {
   const { projectId } = useParams();
@@ -126,9 +127,11 @@ export function EditorPage() {
 
 function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProjectSaved: (project: Project) => void }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { preferences } = usePreferences();
   const history = useHistory<Circuit>(project.circuit, project.id);
+  const currentUrlRef = useRef(`${location.pathname}${location.search}${location.hash}`);
   const [mode, setMode] = useState<EditorMode>('edit');
   const [selectedTool, setSelectedTool] = useState<EditorTool | null>(null);
   const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
@@ -143,12 +146,46 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   const [customComponents, setCustomComponents] = useState<CustomComponent[]>(project.customComponents);
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
 
   useEffect(() => {
     setInputSignals(project.inputSignals);
     setCustomComponents(project.customComponents);
+    setHasUnsavedChanges(false);
+    setSaveState('Gespeichert');
   }, [project.id, project.inputSignals, project.customComponents]);
+
+  useEffect(() => {
+    currentUrlRef.current = `${location.pathname}${location.search}${location.hash}`;
+  }, [location.hash, location.pathname, location.search]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+
+    function handlePopState(event: PopStateEvent) {
+      if (window.confirm(UNSAVED_CHANGES_MESSAGE)) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.history.pushState(null, '', currentUrlRef.current);
+    }
+
+    window.addEventListener('popstate', handlePopState, true);
+    return () => window.removeEventListener('popstate', handlePopState, true);
+  }, [hasUnsavedChanges]);
 
   const signals = useMemo(
     () => evaluateCircuit(history.state, { ...simulationMemory, ...inputSignals }),
@@ -165,15 +202,31 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
 
-  const commitCircuit = useCallback((circuit: Circuit, previous?: Circuit) => {
-    history.set(nextCircuitVersion(circuit), previous);
+  const markUnsaved = useCallback(() => {
+    setHasUnsavedChanges(true);
     setSaveState('Ungespeichert');
-  }, [history]);
+  }, []);
 
-  const replaceCircuit = useCallback((circuit: Circuit) => {
-    history.replace(circuit);
-    setSaveState('Ungespeichert');
-  }, [history]);
+  const confirmNavigation = useCallback(
+    () => !hasUnsavedChanges || window.confirm(UNSAVED_CHANGES_MESSAGE),
+    [hasUnsavedChanges],
+  );
+
+  const commitCircuit = useCallback(
+    (circuit: Circuit, previous?: Circuit) => {
+      history.set(nextCircuitVersion(circuit), previous);
+      markUnsaved();
+    },
+    [history, markUnsaved],
+  );
+
+  const replaceCircuit = useCallback(
+    (circuit: Circuit) => {
+      history.replace(circuit);
+      markUnsaved();
+    },
+    [history, markUnsaved],
+  );
 
   function handleCanvasClick(point: Point) {
     if (mode !== 'edit' || !selectedTool || wireDraft) return;
@@ -315,7 +368,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   function handleToggleInput(gateId: string) {
     if (mode !== 'simulate') return;
     setInputSignals((current) => ({ ...current, [gateId]: !current[gateId] }));
-    setSaveState('Ungespeichert');
+    markUnsaved();
   }
 
   function handleUpdateGate(nextGate: Gate) {
@@ -406,6 +459,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
       inputSignals,
       customComponents,
     });
+    setHasUnsavedChanges(false);
     setSaveState('Gespeichert');
     onProjectSaved(savedProject);
   }
@@ -457,9 +511,17 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
             setDragState(null);
           }
         }}
-        onBack={() => navigate('/projects')}
-        onUndo={history.undo}
-        onRedo={history.redo}
+        onBack={() => {
+          if (confirmNavigation()) navigate('/projects');
+        }}
+        onUndo={() => {
+          history.undo();
+          markUnsaved();
+        }}
+        onRedo={() => {
+          history.redo();
+          markUnsaved();
+        }}
         onSave={() => void handleSave()}
         onDeleteSelected={handleDeleteSelected}
         onOpenCustomDialog={() => setCustomDialogOpen(true)}

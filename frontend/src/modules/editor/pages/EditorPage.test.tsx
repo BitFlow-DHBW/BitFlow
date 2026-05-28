@@ -33,6 +33,12 @@ function renderEditor(projectId = 'project_editor') {
   );
 }
 
+function dispatchBeforeUnload() {
+  const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+  window.dispatchEvent(event);
+  return event;
+}
+
 describe('EditorPage', () => {
   beforeEach(() => {
     projectMocks.getProject.mockReset();
@@ -149,6 +155,80 @@ describe('EditorPage', () => {
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
+  });
+
+  it('warns about unsaved changes before leaving and clears the warning after save', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    const circuit = createStarterCircuit('Dirty Circuit');
+    let savedProject = testProject({
+      id: 'project_editor',
+      ownerId: currentUser.id,
+      name: 'Dirty Circuit',
+      circuit,
+    });
+    projectMocks.getProject.mockResolvedValue(savedProject);
+    projectMocks.updateProject.mockImplementation(async (_projectId, patch) => {
+      savedProject = { ...savedProject, ...patch, updatedAt: '2026-05-01T10:00:00.000Z' };
+      return savedProject;
+    });
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Dirty Circuit' })).toBeInTheDocument();
+    expect(dispatchBeforeUnload().defaultPrevented).toBe(false);
+
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+    await user.click(screen.getAllByRole('button', { name: /AND/ })[0]);
+    fireEvent.click(grid, { clientX: 240, clientY: 120 });
+
+    expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
+    expect(dispatchBeforeUnload().defaultPrevented).toBe(true);
+
+    await user.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(screen.getByText('Gespeichert')).toBeInTheDocument());
+
+    expect(dispatchBeforeUnload().defaultPrevented).toBe(false);
+  });
+
+  it('asks for confirmation before using the toolbar back button with unsaved changes', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    const circuit = createStarterCircuit('Guarded Circuit');
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Guarded Circuit',
+        circuit,
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Guarded Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+    await user.click(screen.getAllByRole('button', { name: /AND/ })[0]);
+    fireEvent.click(grid, { clientX: 240, clientY: 120 });
+
+    await user.click(screen.getByRole('button', { name: /Projekt/ }));
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Projects page')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Projekt/ }));
+    expect(confirmSpy).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('Projects page')).toBeInTheDocument();
   });
 
   it('shows a recovery state for missing projects', async () => {

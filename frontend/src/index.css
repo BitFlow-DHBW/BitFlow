@@ -714,13 +714,17 @@ button:disabled {
 }
 
 .editor-toolbar {
+  position: sticky;
+  top: 4.25rem;
+  z-index: 15;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   min-height: 4.5rem;
   border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  backdrop-filter: blur(14px);
   padding: 0.8rem 1rem;
 }
 
@@ -871,13 +875,53 @@ button:disabled {
   background: var(--surface);
 }
 
+.canvas-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 620px;
+}
+
 .editor-canvas {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 620px;
+  min-height: inherit;
   background: var(--surface);
   touch-action: none;
+}
+
+.canvas-frame.is-panning .editor-canvas {
+  cursor: grabbing;
+}
+
+.canvas-view-controls {
+  position: absolute;
+  z-index: 3;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  padding: 0.35rem;
+}
+
+.canvas-view-controls .icon-button.small {
+  width: 2rem;
+  min-width: 2rem;
+  padding: 0;
+}
+
+.zoom-readout {
+  min-width: 3.4rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-align: center;
 }
 
 .grid-line {
@@ -1371,6 +1415,10 @@ button:disabled {
   }
 
   .editor-canvas {
+    min-height: inherit;
+  }
+
+  .canvas-frame {
     min-height: 520px;
   }
 }
