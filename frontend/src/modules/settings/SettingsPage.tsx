@@ -47,7 +47,7 @@ export function SettingsPage() {
     <main className="page-shell narrow-page">
       <section className="page-header">
         <p className="eyebrow">Einstellungen</p>
-        <h1>Arbeitsplatz-Preferenzen</h1>
+        <h1>Arbeitsplatz-Präferenzen</h1>
       </section>
 
       <section className="settings-panel">
