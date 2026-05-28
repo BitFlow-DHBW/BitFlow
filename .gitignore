@@ -1,1 +1,7 @@
 .nuget/
+**/bin/
+**/obj/
+frontend/dist/
+frontend/node_modules/
+docs/Folien
+docs/handout
