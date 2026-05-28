@@ -56,6 +56,7 @@ export default function App() {
             >
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/editor/:projectId" element={<EditorPage />} />
+              <Route path="/session/:sessionId" element={<EditorPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>

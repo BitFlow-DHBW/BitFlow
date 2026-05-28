@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
+import { CollaborationPanel } from '../components/CollaborationPanel';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
 import { Inspector } from '../components/Inspector';
@@ -8,11 +9,14 @@ import { Library } from '../components/Library';
 import { SignalViewer } from '../components/SignalViewer';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { Toolbar } from '../components/Toolbar';
+import { buildInviteLink, readSessionIdFromSearch } from '../collaborationLinks';
+import { canSaveProject, createCollaborationCircuitState } from '../collaborationState';
 import { useAuth } from '../../auth/AuthContext';
 import { usePreferences } from '../../settings/PreferencesContext';
 import { useHistory } from '../../../hooks/useHistory';
+import { useCollaborationSession } from '../../../hooks/useCollaborationSession';
 import { projectService } from '../../../services/projectService';
-import { createCustomGate, createGate, gateRectPx, snapToGrid } from '../../../simulation/gateLibrary';
+import { createCustomGate, createGate, createStarterCircuit, gateRectPx, snapToGrid } from '../../../simulation/gateLibrary';
 import { evaluateCircuit } from '../../../simulation/evaluateCircuit';
 import { buildCircuitNets } from '../../../simulation/netModel';
 import type {
@@ -28,6 +32,7 @@ import type {
   WireEndpoint,
 } from '../../../types/circuit';
 import type { Project } from '../../../types/domain';
+import type { CollaborationCircuitState } from '../../../types/collaboration';
 import { createId } from '../../../utils/id';
 import { isEditableTarget, shortcutMatches } from '../../../utils/keyboardShortcuts';
 
@@ -75,17 +80,45 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
 const TOOL_PREVIEW_GATE_ID = 'tool_preview';
 const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Aenderungen. Seite wirklich verlassen?';
 
+function createTransientSessionProject(sessionId: string, ownerId: string | undefined): Project {
+  const now = new Date().toISOString();
+  const circuit = createStarterCircuit('Shared Session');
+
+  return {
+    id: `session_${sessionId}`,
+    ownerId: ownerId ?? 'session_guest',
+    name: 'Shared Session',
+    description: 'Live collaboration session',
+    circuit,
+    inputSignals: {},
+    customComponents: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function EditorPage() {
-  const { projectId } = useParams();
+  const { projectId, sessionId: routeSessionId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const linkedSessionId = routeSessionId ?? readSessionIdFromSearch(location.search);
+  const transientSessionProject = useMemo(
+    () => (routeSessionId && !projectId ? createTransientSessionProject(routeSessionId, user?.id) : null),
+    [projectId, routeSessionId, user?.id],
+  );
 
   useEffect(() => {
     let active = true;
 
     async function loadProject() {
+      if (transientSessionProject) {
+        setLoading(false);
+        return;
+      }
+
       if (!user || !projectId) return;
       setLoading(true);
       const nextProject = await projectService.getProject(projectId);
@@ -99,7 +132,18 @@ export function EditorPage() {
     return () => {
       active = false;
     };
-  }, [projectId, user]);
+  }, [projectId, transientSessionProject, user]);
+
+  if (transientSessionProject) {
+    return (
+      <EditorWorkspace
+        project={transientSessionProject}
+        initialSessionId={routeSessionId ?? null}
+        isSessionOnlyProject
+        onProjectSaved={() => undefined}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -122,10 +166,20 @@ export function EditorPage() {
     );
   }
 
-  return <EditorWorkspace project={project} onProjectSaved={setProject} />;
+  return <EditorWorkspace project={project} initialSessionId={linkedSessionId} onProjectSaved={setProject} />;
 }
 
-function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProjectSaved: (project: Project) => void }) {
+function EditorWorkspace({
+  project,
+  initialSessionId = null,
+  isSessionOnlyProject = false,
+  onProjectSaved,
+}: {
+  project: Project;
+  initialSessionId?: string | null;
+  isSessionOnlyProject?: boolean;
+  onProjectSaved: (project: Project) => void;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -148,6 +202,9 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
+  const currentEditorStateRef = useRef<CollaborationCircuitState>(
+    createCollaborationCircuitState(history.state, inputSignals, customComponents),
+  );
 
   useEffect(() => {
     setInputSignals(project.inputSignals);
@@ -187,6 +244,64 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     return () => window.removeEventListener('popstate', handlePopState, true);
   }, [hasUnsavedChanges]);
 
+  const currentEditorState = useMemo(
+    () => createCollaborationCircuitState(history.state, inputSignals, customComponents),
+    [customComponents, history.state, inputSignals],
+  );
+
+  useEffect(() => {
+    currentEditorStateRef.current = currentEditorState;
+  }, [currentEditorState]);
+
+  const applyRemoteEditorState = useCallback(
+    (remoteState: CollaborationCircuitState) => {
+      const nextComponents = remoteState.customComponents ?? remoteState.circuit.customComponents ?? [];
+
+      history.replace({
+        ...remoteState.circuit,
+        customComponents: nextComponents,
+      });
+      setInputSignals(remoteState.inputSignals ?? {});
+      setCustomComponents(nextComponents);
+      setSelectedGateId(null);
+      setSelectedWireId(null);
+      setWireDraft(null);
+      setDragState(null);
+      setHasUnsavedChanges(true);
+      setSaveState('Ungespeichert');
+    },
+    [history],
+  );
+
+  const collaboration = useCollaborationSession({
+    autoJoinSessionId: initialSessionId,
+    displayName: user?.name ?? 'User',
+    getCurrentState: () => currentEditorStateRef.current,
+    onRemoteState: applyRemoteEditorState,
+  });
+
+  const inviteLink = useMemo(
+    () => (collaboration.session ? buildInviteLink(collaboration.session.sessionId) : null),
+    [collaboration.session],
+  );
+
+  const canSave = canSaveProject(collaboration.role, isSessionOnlyProject);
+
+  const publishCollaborationState = useCallback(
+    (
+      circuit: Circuit,
+      nextSignals = inputSignals,
+      nextComponents = customComponents,
+      immediate = true,
+    ) => {
+      collaboration.broadcastCircuit(
+        createCollaborationCircuitState(circuit, nextSignals, nextComponents),
+        immediate,
+      );
+    },
+    [collaboration, customComponents, inputSignals],
+  );
+
   const signals = useMemo(
     () => evaluateCircuit(history.state, { ...simulationMemory, ...inputSignals }),
     [history.state, inputSignals, simulationMemory],
@@ -213,19 +328,31 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   );
 
   const commitCircuit = useCallback(
-    (circuit: Circuit, previous?: Circuit) => {
-      history.set(nextCircuitVersion(circuit), previous);
+    (
+      circuit: Circuit,
+      previous?: Circuit,
+      options: { inputSignals?: SignalState; customComponents?: CustomComponent[]; immediate?: boolean } = {},
+    ) => {
+      const nextCircuit = nextCircuitVersion(circuit);
+      history.set(nextCircuit, previous);
       markUnsaved();
+      publishCollaborationState(
+        nextCircuit,
+        options.inputSignals ?? inputSignals,
+        options.customComponents ?? customComponents,
+        options.immediate ?? true,
+      );
     },
-    [history, markUnsaved],
+    [customComponents, history, inputSignals, markUnsaved, publishCollaborationState],
   );
 
   const replaceCircuit = useCallback(
     (circuit: Circuit) => {
       history.replace(circuit);
       markUnsaved();
+      publishCollaborationState(circuit, inputSignals, customComponents, false);
     },
-    [history, markUnsaved],
+    [customComponents, history, inputSignals, markUnsaved, publishCollaborationState],
   );
 
   function handleCanvasClick(point: Point) {
@@ -323,7 +450,9 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   function handleDragEnd() {
     if (!dragState) return;
     if (dragStartCircuit) {
-      history.set(nextCircuitVersion(history.state), dragStartCircuit);
+      const nextCircuit = nextCircuitVersion(history.state);
+      history.set(nextCircuit, dragStartCircuit);
+      publishCollaborationState(nextCircuit, inputSignals, customComponents, true);
     }
     setDragState(null);
     setDragStartCircuit(null);
@@ -367,7 +496,11 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
 
   function handleToggleInput(gateId: string) {
     if (mode !== 'simulate') return;
-    setInputSignals((current) => ({ ...current, [gateId]: !current[gateId] }));
+    setInputSignals((current) => {
+      const nextSignals = { ...current, [gateId]: !current[gateId] };
+      publishCollaborationState(history.state, nextSignals, customComponents, true);
+      return nextSignals;
+    });
     markUnsaved();
   }
 
@@ -448,7 +581,7 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
   }, [clearToolDragPreview, handleDeleteSelected, preferences.shortcuts]);
 
   async function handleSave() {
-    if (!user) return;
+    if (!user || !canSave) return;
     const circuit = {
       ...history.state,
       customComponents,
@@ -486,12 +619,18 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
     if (customComponents.some((entry) => entry.id === component.id)) return;
 
     const nextComponents = [...customComponents, component];
-    setCustomComponents(nextComponents);
-    commitCircuit({
+    const nextCircuit = {
       ...history.state,
       customComponents: nextComponents,
-    });
+    };
+    setCustomComponents(nextComponents);
+    commitCircuit(nextCircuit, undefined, { customComponents: nextComponents });
     setSelectedTool({ kind: 'custom', componentId: component.id });
+  }
+
+  async function handleCopyInviteLink() {
+    if (!inviteLink) return;
+    await navigator.clipboard?.writeText(inviteLink);
   }
 
   return (
@@ -502,7 +641,10 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         canDelete={Boolean(selectedGate || selectedWire)}
+        canSave={canSave}
+        canCreateSession={!collaboration.session && !isSessionOnlyProject}
         saveState={saveState}
+        saveDisabledReason={canSave ? null : 'Only host can save'}
         onModeChange={(nextMode) => {
           setMode(nextMode);
           if (nextMode === 'simulate') setSelectedTool(null);
@@ -517,16 +659,28 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
         onUndo={() => {
           history.undo();
           markUnsaved();
+          window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
         }}
         onRedo={() => {
           history.redo();
           markUnsaved();
+          window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
         }}
         onSave={() => void handleSave()}
+        onCreateSession={() => void collaboration.createSession()}
         onDeleteSelected={handleDeleteSelected}
         onOpenCustomDialog={() => setCustomDialogOpen(true)}
         onOpenImportDialog={() => setImportDialogOpen(true)}
         onAddAnnotation={handleAddAnnotation}
+      />
+
+      <CollaborationPanel
+        session={collaboration.session}
+        role={collaboration.role}
+        inviteLink={inviteLink}
+        message={collaboration.message}
+        onCopyInviteLink={() => void handleCopyInviteLink()}
+        onLeaveSession={() => void collaboration.leaveSession()}
       />
 
       <div className="editor-grid-layout">
@@ -553,7 +707,9 @@ function EditorWorkspace({ project, onProjectSaved }: { project: Project; onProj
             wireDraft={wireDraft}
             draggedTool={draggedTool}
             toolPreviewGate={toolPreviewGate}
+            remoteCursors={collaboration.remoteCursors}
             onCanvasClick={handleCanvasClick}
+            onCanvasPointerMove={collaboration.sendCursor}
             onToolDrop={(tool, point) => placeTool(tool, point)}
             onToolDragPreview={handleToolDragPreview}
             onToolDragCancel={() => setToolPreviewGate(null)}

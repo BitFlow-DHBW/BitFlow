@@ -6,12 +6,16 @@ interface ToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   canDelete: boolean;
+  canSave: boolean;
+  canCreateSession: boolean;
   saveState: string;
+  saveDisabledReason?: string | null;
   onModeChange: (mode: EditorMode) => void;
   onBack: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
+  onCreateSession: () => void;
   onDeleteSelected: () => void;
   onOpenCustomDialog: () => void;
   onOpenImportDialog: () => void;
@@ -29,12 +33,16 @@ export function Toolbar({
   canUndo,
   canRedo,
   canDelete,
+  canSave,
+  canCreateSession,
   saveState,
+  saveDisabledReason,
   onModeChange,
   onBack,
   onUndo,
   onRedo,
   onSave,
+  onCreateSession,
   onDeleteSelected,
   onOpenCustomDialog,
   onOpenImportDialog,
@@ -85,7 +93,10 @@ export function Toolbar({
         <button className="secondary-button" type="button" onClick={onOpenImportDialog}>
           Baustein importieren
         </button>
-        <button className="primary-button" type="button" onClick={onSave}>
+        <button className="secondary-button" type="button" onClick={onCreateSession} disabled={!canCreateSession}>
+          Create Session
+        </button>
+        <button className="primary-button" type="button" onClick={onSave} disabled={!canSave} title={saveDisabledReason ?? undefined}>
           Speichern
         </button>
         <span className="save-state">{saveState}</span>

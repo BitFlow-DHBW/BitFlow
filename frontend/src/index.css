@@ -782,6 +782,63 @@ button:disabled {
   font-weight: 750;
 }
 
+.collaboration-panel {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+  padding: 0.65rem 1rem;
+}
+
+.collaboration-summary,
+.session-actions,
+.participant-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collaboration-summary span,
+.participant-list span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.participant-list span.is-host {
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+.invite-link-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.invite-link-field input {
+  min-height: 2.15rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.session-message {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+
 .editor-grid-layout {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr) 320px;
@@ -1069,6 +1126,25 @@ button:disabled {
   fill: var(--muted);
   font-size: 12px;
   pointer-events: none;
+}
+
+.remote-cursor {
+  pointer-events: none;
+}
+
+.remote-cursor path {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.remote-cursor text {
+  fill: var(--text);
+  stroke: var(--surface);
+  stroke-width: 3;
+  font-size: 12px;
+  font-weight: 850;
+  paint-order: stroke;
 }
 
 .pin.output {
@@ -1377,6 +1453,14 @@ button:disabled {
   .toolbar-actions {
     justify-content: flex-start;
     overflow-x: auto;
+  }
+
+  .collaboration-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-link-field {
+    grid-template-columns: 1fr;
   }
 
   .landing-nav {

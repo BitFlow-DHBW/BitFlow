@@ -10,12 +10,16 @@ function renderToolbar(overrides = {}) {
     canUndo: false,
     canRedo: true,
     canDelete: true,
+    canSave: true,
+    canCreateSession: true,
     saveState: 'Ungespeichert',
+    saveDisabledReason: null,
     onModeChange: vi.fn(),
     onBack: vi.fn(),
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     onSave: vi.fn(),
+    onCreateSession: vi.fn(),
     onDeleteSelected: vi.fn(),
     onOpenCustomDialog: vi.fn(),
     onOpenImportDialog: vi.fn(),
@@ -42,6 +46,7 @@ describe('Toolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Speichern' }));
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein importieren' }));
+    await user.click(screen.getByRole('button', { name: 'Create Session' }));
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
     await user.click(screen.getByRole('button', { name: /Projekt/ }));
 
@@ -50,6 +55,7 @@ describe('Toolbar', () => {
     expect(props.onSave).toHaveBeenCalled();
     expect(props.onOpenCustomDialog).toHaveBeenCalled();
     expect(props.onOpenImportDialog).toHaveBeenCalled();
+    expect(props.onCreateSession).toHaveBeenCalled();
     expect(props.onAddAnnotation).toHaveBeenCalled();
     expect(props.onBack).toHaveBeenCalled();
   });
@@ -58,5 +64,12 @@ describe('Toolbar', () => {
     renderToolbar({ mode: 'simulate' });
 
     expect(screen.getByRole('button', { name: 'Simulate' })).toHaveClass('is-active');
+  });
+
+  it('disables saving for participants', () => {
+    renderToolbar({ canSave: false, saveDisabledReason: 'Only host can save' });
+
+    expect(screen.getByRole('button', { name: 'Speichern' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Speichern' })).toHaveAttribute('title', 'Only host can save');
   });
 });

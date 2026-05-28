@@ -38,7 +38,11 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
 
 describe('Canvas', () => {
   it('renders the editor grid, gates, wires and annotations', () => {
-    const props = canvasProps({ signals: { 'input_a:output:0': true }, selectedWireId: 'wire_input_a_to_and_main_0' });
+    const props = canvasProps({
+      signals: { 'input_a:output:0': true },
+      selectedWireId: 'wire_input_a_to_and_main_0',
+      remoteCursors: [{ participantId: 'participant_b', displayName: 'Bea', position: { x: 160, y: 120 } }],
+    });
     const { container } = render(<Canvas {...props} />);
 
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
@@ -47,6 +51,7 @@ describe('Canvas', () => {
     expect(container.querySelectorAll('.wire')).toHaveLength(3);
     expect(container.querySelector('.wire.is-selected')).toBeInTheDocument();
     expect(screen.getAllByText('A').length).toBeGreaterThan(0);
+    expect(screen.getByText('Bea')).toBeInTheDocument();
     expect(screen.getByText('BitFlow starter schematic')).toBeInTheDocument();
   });
 

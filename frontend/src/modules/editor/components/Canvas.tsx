@@ -24,6 +24,7 @@ import type {
   WireDraft,
   WireEndpoint,
 } from '../../../types/circuit';
+import type { RemoteCursor } from '../../../types/collaboration';
 
 interface CanvasProps {
   circuit: Circuit;
@@ -36,7 +37,9 @@ interface CanvasProps {
   wireDraft: WireDraft | null;
   draggedTool: EditorTool | null;
   toolPreviewGate: Gate | null;
+  remoteCursors?: RemoteCursor[];
   onCanvasClick: (point: Point) => void;
+  onCanvasPointerMove?: (point: Point) => void;
   onToolDrop: (tool: EditorTool, point: Point) => void;
   onToolDragPreview: (point: Point) => void;
   onToolDragCancel: () => void;
@@ -74,7 +77,9 @@ export function Canvas({
   wireDraft,
   draggedTool,
   toolPreviewGate,
+  remoteCursors = [],
   onCanvasClick,
+  onCanvasPointerMove,
   onToolDrop,
   onToolDragPreview,
   onToolDragCancel,
@@ -304,6 +309,7 @@ export function Canvas({
         onPointerMove={(event) => {
           const panState = panStateRef.current;
           if (panState) {
+            onCanvasPointerMove?.(getPointFromClient(event.clientX, event.clientY));
             const screenDelta = { x: event.clientX - panState.startClient.x, y: event.clientY - panState.startClient.y };
             panState.moved = panState.moved || Math.abs(screenDelta.x) > 4 || Math.abs(screenDelta.y) > 4;
             setViewBox(panViewBox(panState.startViewBox, screenDelta, canvasSize));
@@ -311,6 +317,7 @@ export function Canvas({
           }
 
           const point = getPoint(event);
+          onCanvasPointerMove?.(point);
           if (gatePointerRef.current) {
             const distanceX = Math.abs(point.x - gatePointerRef.current.point.x);
             const distanceY = Math.abs(point.y - gatePointerRef.current.point.y);
@@ -478,6 +485,19 @@ export function Canvas({
             onPinPointerUp={(event) => event.stopPropagation()}
           />
         )}
+
+        {remoteCursors.map((cursor) => (
+          <g
+            key={cursor.participantId}
+            className="remote-cursor"
+            transform={`translate(${cursor.position.x} ${cursor.position.y})`}
+          >
+            <path d="M 0 0 L 0 22 L 6 16 L 11 28 L 16 26 L 11 14 L 19 14 Z" />
+            <text x={18} y={28}>
+              {cursor.displayName}
+            </text>
+          </g>
+        ))}
       </svg>
     </div>
   );
