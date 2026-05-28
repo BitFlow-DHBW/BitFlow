@@ -21,7 +21,7 @@ export function LoginPage() {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : 'Anmeldung fehlgeschlagen.');
     }
   }
 
@@ -55,7 +55,7 @@ export function LoginPage() {
         </label>
         {error && <p className="form-error">{error}</p>}
         <button className="primary-button" type="submit">
-          Login
+          Anmelden
         </button>
       </form>
     </AuthPageShell>

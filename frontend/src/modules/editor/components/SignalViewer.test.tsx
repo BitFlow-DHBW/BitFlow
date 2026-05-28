@@ -10,7 +10,7 @@ describe('SignalViewer', () => {
 
     render(<SignalViewer circuit={circuitWith([input, andGate])} signals={{ [input.outputs[0].id]: true }} />);
 
-    expect(screen.getByText('Input Pin.OUT')).toBeInTheDocument();
+    expect(screen.getByText('Eingang.OUT')).toBeInTheDocument();
     expect(screen.getByText('AND.Y')).toBeInTheDocument();
     expect(screen.getByText('1')).toHaveClass('is-on');
   });
@@ -18,6 +18,6 @@ describe('SignalViewer', () => {
   it('shows an empty state when no output pins exist', () => {
     render(<SignalViewer circuit={circuitWith([])} signals={{}} />);
 
-    expect(screen.getByText('Keine Output-Pins vorhanden.')).toBeInTheDocument();
+    expect(screen.getByText('Keine Ausgangs-Pins vorhanden.')).toBeInTheDocument();
   });
 });

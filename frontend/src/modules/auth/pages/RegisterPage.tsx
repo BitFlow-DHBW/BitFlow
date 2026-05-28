@@ -25,11 +25,11 @@ export function RegisterPage() {
 
   return (
     <AuthPageShell
-      title="BitFlow Konto erstellen"
-      subtitle="Erstelle deinen lokalen Workspace."
+      title="BitFlow-Konto erstellen"
+      subtitle="Erstelle dein Konto und verwalte deine Schaltungen an einem Ort."
       footer={
         <span>
-          Bereits registriert? <Link to="/login">Einloggen</Link>
+          Bereits registriert? <Link to="/login">Anmelden</Link>
         </span>
       }
     >

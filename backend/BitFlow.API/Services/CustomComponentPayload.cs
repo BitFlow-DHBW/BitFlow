@@ -52,12 +52,12 @@ internal static class CustomComponentPayload
 
         if (request.InputLabels is null || request.InputLabels.Count == 0)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Baustein benoetigt mindestens einen Eingang.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Baustein benötigt mindestens einen Eingang.");
         }
 
         if (request.OutputLabels is null || request.OutputLabels.Count == 0)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "Baustein benoetigt mindestens einen Ausgang.");
+            throw new ApiException(StatusCodes.Status400BadRequest, "Baustein benötigt mindestens einen Ausgang.");
         }
     }
 }

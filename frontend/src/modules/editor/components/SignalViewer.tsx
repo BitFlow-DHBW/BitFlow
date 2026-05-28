@@ -18,12 +18,12 @@ export function SignalViewer({ circuit, signals }: SignalViewerProps) {
   return (
     <section className="editor-panel signal-viewer">
       <div className="panel-heading">
-        <p className="eyebrow">SignalViewer</p>
+        <p className="eyebrow">Signale</p>
         <h2>Pin-Zustände</h2>
       </div>
       <div className="signal-list">
         {outputPins.length === 0 ? (
-          <p className="muted">Keine Output-Pins vorhanden.</p>
+          <p className="muted">Keine Ausgangs-Pins vorhanden.</p>
         ) : (
           outputPins.map((signal) => (
             <div key={signal.id} className="signal-row">

@@ -16,7 +16,7 @@ export function ResetPasswordPage() {
 
     try {
       await resetPassword(email);
-      setMessage('Anfrage erfolgreich: Das Backend hat die E-Mail-Adresse geprueft.');
+      setMessage('Anfrage erfolgreich: Die E-Mail-Adresse wurde geprüft.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reset fehlgeschlagen.');
     }
@@ -25,8 +25,8 @@ export function ResetPasswordPage() {
   return (
     <AuthPageShell
       title="Passwort zurücksetzen"
-      subtitle="Der Workflow ist vorbereitet und kann später an einen echten Mail-Service angeschlossen werden."
-      footer={<Link to="/login">Zurück zum Login</Link>}
+      subtitle="Gib deine E-Mail-Adresse ein, um dein Konto zu prüfen."
+      footer={<Link to="/login">Zurück zur Anmeldung</Link>}
     >
       <form className="stack-form" onSubmit={handleSubmit}>
         <label>

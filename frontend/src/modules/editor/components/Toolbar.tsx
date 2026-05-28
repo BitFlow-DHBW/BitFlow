@@ -1,3 +1,4 @@
+import { Icon } from '../../../components/Icon';
 import type { EditorMode } from '../../../types/circuit';
 
 interface ToolbarProps {
@@ -23,8 +24,8 @@ interface ToolbarProps {
 }
 
 const modes: Array<{ value: EditorMode; label: string; description: string }> = [
-  { value: 'edit', label: 'Edit', description: 'Platzieren, verschieben, verbinden, löschen' },
-  { value: 'simulate', label: 'Simulate', description: 'Inputs schalten' },
+  { value: 'edit', label: 'Bearbeiten', description: 'Platzieren, verschieben, verbinden, löschen' },
+  { value: 'simulate', label: 'Simulieren', description: 'Eingänge schalten' },
 ];
 
 export function Toolbar({
@@ -51,16 +52,16 @@ export function Toolbar({
   return (
     <header className="editor-toolbar">
       <div className="toolbar-title">
-        <button className="icon-button" type="button" onClick={onBack} aria-label="Zur Projektübersicht">
-          {'<'}
+        <button className="icon-button" type="button" onClick={onBack} aria-label="Zur Projektübersicht" title="Zur Projektübersicht">
+          <Icon name="arrow-left" />
         </button>
         <div>
-          <p className="eyebrow">Schematic Editor</p>
+          <p className="eyebrow">Schaltplaneditor</p>
           <h1>{projectName}</h1>
         </div>
       </div>
 
-      <div className="mode-switcher" role="group" aria-label="Editor Modus">
+      <div className="mode-switcher" role="group" aria-label="Editor-Modus">
         {modes.map((entry) => (
           <button
             key={entry.value}
@@ -75,13 +76,14 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-actions">
-        <button className="icon-button" type="button" onClick={onUndo} disabled={!canUndo} aria-label="Undo">
-          Undo
+        <button className="icon-button" type="button" onClick={onUndo} disabled={!canUndo} aria-label="Rückgängig" title="Rückgängig">
+          <Icon name="undo" />
         </button>
-        <button className="icon-button" type="button" onClick={onRedo} disabled={!canRedo} aria-label="Redo">
-          Redo
+        <button className="icon-button" type="button" onClick={onRedo} disabled={!canRedo} aria-label="Wiederholen" title="Wiederholen">
+          <Icon name="redo" />
         </button>
         <button className="ghost-button" type="button" onClick={onDeleteSelected} disabled={!canDelete}>
+          <Icon name="trash" />
           Löschen
         </button>
         <button className="secondary-button" type="button" onClick={onAddAnnotation}>
@@ -94,9 +96,11 @@ export function Toolbar({
           Baustein importieren
         </button>
         <button className="secondary-button" type="button" onClick={onCreateSession} disabled={!canCreateSession}>
-          Create Session
+          <Icon name="users" />
+          Zusammenarbeiten
         </button>
         <button className="primary-button" type="button" onClick={onSave} disabled={!canSave} title={saveDisabledReason ?? undefined}>
+          <Icon name="save" />
           Speichern
         </button>
         <span className="save-state">{saveState}</span>

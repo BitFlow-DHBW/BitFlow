@@ -3,5 +3,11 @@ obj/
 Data/*.db
 Data/*.db-shm
 Data/*.db-wal
+Data/*.db-journal
+appsettings.Local.json
+appsettings.*.Local.json
+*.local.json
+*.user
+*.suo
 obj/project.nuget.cache
 obj/project.assets.json

@@ -96,7 +96,7 @@ public sealed class CollaborationHub(CollaborationSessionStore sessions, UserSer
         var groupName = GroupName(result.SessionId);
         if (result.SessionEnded)
         {
-            await Clients.Group(groupName).SendAsync("SessionEnded", new SessionEndedDto(result.SessionId, "Session ended by host"));
+            await Clients.Group(groupName).SendAsync("SessionEnded", new SessionEndedDto(result.SessionId, "Session wurde vom Host beendet."));
             return;
         }
 

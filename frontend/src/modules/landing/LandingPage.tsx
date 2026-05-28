@@ -9,7 +9,7 @@ export function LandingPage() {
           <span>BitFlow</span>
         </Link>
         <div className="landing-nav-actions">
-          <Link to="/login">Login</Link>
+          <Link to="/login">Anmelden</Link>
           <Link className="primary-link" to="/register">
             Registrieren
           </Link>
@@ -47,7 +47,7 @@ export function LandingPage() {
               Kostenlos starten
             </Link>
             <Link className="secondary-link large" to="/login">
-              Einloggen
+              Anmelden
             </Link>
           </div>
         </div>
@@ -55,21 +55,21 @@ export function LandingPage() {
 
       <section className="landing-band">
         <div>
-          <p className="eyebrow">Was BitFlow kann</p>
-          <h2>Ein MVP, der schon wie eine echte Arbeitsumgebung funktioniert.</h2>
+          <p className="eyebrow">Funktionen</p>
+          <h2>Schaltungen direkt im Browser entwerfen, testen und organisieren.</h2>
         </div>
         <div className="feature-grid">
           <article>
             <h3>Visueller Editor</h3>
-            <p>SVG-Canvas, Raster, Drag & Drop, Pins und Leitungen bilden die Grundlage für das Arbeiten mit BitFlow.</p>
+            <p>Platziere Logikbausteine, verbinde Pins präzise im Raster und behalte auch größere Schaltungen im Blick.</p>
+          </article>
+          <article>
+            <h3>Live-Simulation</h3>
+            <p>Schalte Eingänge um und prüfe Signalzustände direkt im Editor, ohne den Arbeitsfluss zu unterbrechen.</p>
           </article>
           <article>
             <h3>Projektverwaltung</h3>
-            <p>Schaltungen werden als Projekte im Backend gespeichert.</p>
-          </article>
-          <article>
-            <h3>Erweiterbare Architektur</h3>
-            <p>Auth, Projekte, Simulation und UI sind getrennt, damit Backend und komplexere Bausteine folgen können.</p>
+            <p>Organisiere deine Schaltungen als Projekte und öffne sie jederzeit wieder zur weiteren Bearbeitung.</p>
           </article>
         </div>
       </section>

@@ -53,7 +53,7 @@ describe('authService', () => {
 
     vi.spyOn(apiService, 'post')
       .mockResolvedValueOnce({ data: undefined, status: 204 })
-      .mockRejectedValueOnce(new Error('Fuer diese E-Mail wurde kein Konto gefunden.'));
+      .mockRejectedValueOnce(new Error('Für diese E-Mail wurde kein Konto gefunden.'));
     vi.spyOn(apiService, 'put').mockResolvedValueOnce({
       data: { ...session.user, name: 'Ada Byron' },
       status: 200,

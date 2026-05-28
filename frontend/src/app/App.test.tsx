@@ -24,7 +24,7 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: 'BitFlow' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Login' })).toHaveAttribute('href', '/login');
+    expect(screen.getAllByRole('link', { name: 'Anmelden' })[0]).toHaveAttribute('href', '/login');
   });
 
   it('routes authenticated users from home to the projects page', async () => {

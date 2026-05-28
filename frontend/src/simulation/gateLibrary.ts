@@ -34,7 +34,7 @@ export interface GateTemplate {
 export const GATE_TEMPLATES: GateTemplate[] = [
   {
     type: 'INPUT',
-    label: 'Input Pin',
+    label: 'Eingang',
     description: 'Externer Eingang / Terminal',
     width: 3,
     height: 2,
@@ -44,7 +44,7 @@ export const GATE_TEMPLATES: GateTemplate[] = [
   },
   {
     type: 'OUTPUT',
-    label: 'Output Pin',
+    label: 'Ausgang',
     description: 'Externer Ausgang / Terminal',
     width: 3,
     height: 2,
@@ -137,7 +137,7 @@ export const GATE_TEMPLATES: GateTemplate[] = [
   },
   {
     type: 'GENERIC',
-    label: 'Generic IC',
+    label: 'Universeller IC',
     description: 'Generischer beschriftbarer Baustein',
     width: 5,
     height: 4,
@@ -355,7 +355,7 @@ export function createStarterCircuit(name = 'Neue Schaltung'): Circuit {
         points: [],
       },
     ],
-    annotations: [{ id: 'annotation_starter', text: 'BitFlow starter schematic', x: 96, y: 64 }],
+    annotations: [{ id: 'annotation_starter', text: 'BitFlow Startschaltung', x: 96, y: 64 }],
     customComponents: [],
   };
 }

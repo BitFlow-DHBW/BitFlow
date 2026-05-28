@@ -113,7 +113,7 @@ describe('gateLibrary', () => {
     expect(starter.name).toBe('Starter');
     expect(starter.gates.map((gate) => gate.id)).toEqual(['input_a', 'input_b', 'and_main', 'output_main']);
     expect(starter.wires).toHaveLength(3);
-    expect(starter.annotations?.[0].text).toContain('starter');
+    expect(starter.annotations?.[0].text).toContain('Startschaltung');
   });
 
   it('throws for unknown built-in gate types instead of creating corrupt gates', () => {

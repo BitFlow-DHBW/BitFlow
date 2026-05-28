@@ -123,6 +123,18 @@ export function useCollaborationSession({
     [applySessionSnapshot],
   );
 
+  const endLocalSession = useCallback(
+    (event: SessionEndedEvent) => {
+      clearThrottle(cursorThrottleRef.current);
+      clearThrottle(circuitThrottleRef.current);
+      setSession(null);
+      setLocalParticipantId(null);
+      setStatus('ended');
+      setMessage(event.reason || 'Session wurde vom Host beendet.');
+    },
+    [setLocalParticipantId, setSession],
+  );
+
   const ensureClient = useCallback(async () => {
     if (!clientRef.current) {
       const client = clientFactory();
@@ -153,7 +165,7 @@ export function useCollaborationSession({
     setStatus((current) => (current === 'active' ? current : 'connecting'));
     cancelScheduledStop();
     await clientRef.current.start();
-  }, [cancelScheduledStop, clientFactory, handleSessionCreated, handleSessionJoined, updateParticipants]);
+  }, [cancelScheduledStop, clientFactory, endLocalSession, handleSessionCreated, handleSessionJoined, updateParticipants]);
 
   const createSession = useCallback(async () => {
     try {
@@ -230,24 +242,17 @@ export function useCollaborationSession({
 
   useEffect(() => {
     cancelScheduledStop();
+    const cursorThrottle = cursorThrottleRef.current;
+    const circuitThrottle = circuitThrottleRef.current;
     return () => {
-      clearThrottle(cursorThrottleRef.current);
-      clearThrottle(circuitThrottleRef.current);
+      clearThrottle(cursorThrottle);
+      clearThrottle(circuitThrottle);
       stopTimeoutRef.current = window.setTimeout(() => {
         void clientRef.current?.stop();
         stopTimeoutRef.current = null;
       }, 250);
     };
   }, [cancelScheduledStop]);
-
-  function endLocalSession(event: SessionEndedEvent) {
-    clearThrottle(cursorThrottleRef.current);
-    clearThrottle(circuitThrottleRef.current);
-    setSession(null);
-    setLocalParticipantId(null);
-    setStatus('ended');
-    setMessage(event.reason || 'Session ended by host');
-  }
 
   const role = useMemo<CollaborationRole | null>(
     () => collaborationRole(session?.participants ?? [], localParticipantId),

@@ -36,13 +36,13 @@ describe('AppShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: 'BitFlow Home' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'BitFlow Startseite' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Hauptnavigation' })).toBeInTheDocument();
     expect(screen.getByText('Projects outlet')).toBeInTheDocument();
     expect(screen.getByText('Ada')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Theme wechseln' }));
-    await user.click(screen.getByRole('button', { name: 'Logout' }));
+    await user.click(screen.getByRole('button', { name: 'Design wechseln' }));
+    await user.click(screen.getByRole('button', { name: 'Abmelden' }));
 
     expect(shellMocks.toggleTheme).toHaveBeenCalled();
     expect(shellMocks.logout).toHaveBeenCalled();

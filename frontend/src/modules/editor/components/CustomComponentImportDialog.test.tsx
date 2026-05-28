@@ -30,7 +30,7 @@ describe('CustomComponentImportDialog', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('groups custom gates by other projects and imports selected components', async () => {
+  it('groups custom components by other projects and imports selected components', async () => {
     const user = userEvent.setup();
     const importedComponent = customComponent({ id: 'custom_other', name: 'Half Adder' });
     vi.mocked(projectService.listProjects).mockResolvedValue([
@@ -52,12 +52,12 @@ describe('CustomComponentImportDialog', () => {
     expect(await screen.findByRole('heading', { name: 'Logic Blocks' })).toBeInTheDocument();
     expect(screen.getByText('Half Adder')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Hinzufuegen' }));
+    await user.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
     expect(onImport).toHaveBeenCalledWith(importedComponent);
   });
 
-  it('shows empty states for missing projects and missing custom gates', async () => {
+  it('shows empty states for missing projects and missing custom components', async () => {
     vi.mocked(projectService.listProjects).mockResolvedValueOnce([testProject({ id: 'project_current' })]);
     const { rerender } = render(
       <CustomComponentImportDialog
@@ -95,7 +95,7 @@ describe('CustomComponentImportDialog', () => {
     );
 
     await waitFor(() => expect(projectService.listProjects).toHaveBeenCalledTimes(2));
-    expect(await screen.findByText('Keine Custom Gates gefunden.')).toBeInTheDocument();
+    expect(await screen.findByText('Keine eigenen Bausteine gefunden.')).toBeInTheDocument();
   });
 
   it('disables components that already exist in the current project', async () => {

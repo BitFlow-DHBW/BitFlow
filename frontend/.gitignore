@@ -11,8 +11,15 @@ node_modules
 dist
 dist-ssr
 coverage
+.vite
+playwright-report
+test-results
 *.local
 *.tsbuildinfo
+.env
+.env.*
+!.env.example
+!.env.sample
 
 # Editor directories and files
 .vscode/*

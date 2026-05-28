@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Icon } from '../../../components/Icon';
 import {
   componentInputLabels,
   componentOutputLabels,
@@ -14,7 +15,7 @@ interface CustomComponentDialogProps {
 }
 
 export function CustomComponentDialog({ circuit, open, onClose, onCreate }: CustomComponentDialogProps) {
-  const [name, setName] = useState('Custom Gate');
+  const [name, setName] = useState('Eigener Baustein');
   const [description, setDescription] = useState('');
 
   const inputLabels = useMemo(() => componentInputLabels(circuit), [circuit]);
@@ -35,11 +36,11 @@ export function CustomComponentDialog({ circuit, open, onClose, onCreate }: Cust
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="custom-component-title">
         <div className="modal-header">
           <div>
-            <p className="eyebrow">Custom Component</p>
+            <p className="eyebrow">Eigener Baustein</p>
             <h2 id="custom-component-title">Schaltung als Baustein speichern</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Dialog schließen">
-            ×
+            <Icon name="x" />
           </button>
         </div>
 
@@ -55,12 +56,12 @@ export function CustomComponentDialog({ circuit, open, onClose, onCreate }: Cust
         </div>
 
         <div className="component-summary">
-          <h3>Custom Gate aus aktueller Schaltung erstellen?</h3>
+          <h3>Baustein aus aktueller Schaltung erstellen?</h3>
           <p>
             {inputLabels.length} Eingänge · {outputLabels.length} Ausgänge · {truthTableRowCount} automatisch erzeugte
             Tabellenzeilen
           </p>
-          {!canCreate && <p className="form-error">Mindestens ein Output Pin wird benötigt.</p>}
+          {!canCreate && <p className="form-error">Mindestens ein Ausgang wird benötigt.</p>}
         </div>
 
         <div className="modal-actions">

@@ -17,7 +17,7 @@ describe('Inspector', () => {
 
     render(<Inspector circuit={circuitWith([selectedGate])} selectedGate={selectedGate} onUpdateGate={onUpdateGate} />);
 
-    fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Enable' } });
+    fireEvent.change(screen.getByLabelText('Bezeichnung'), { target: { value: 'Enable' } });
     fireEvent.change(screen.getByLabelText('Referenz'), { target: { value: 'U1' } });
     fireEvent.change(screen.getByLabelText('Wert'), { target: { value: '74HC08' } });
     fireEvent.change(screen.getByDisplayValue('A'), { target: { value: 'IN_A' } });

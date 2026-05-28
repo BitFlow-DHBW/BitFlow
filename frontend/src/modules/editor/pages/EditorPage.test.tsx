@@ -70,10 +70,10 @@ describe('EditorPage', () => {
     expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
     expect(screen.getByText(/Pin-Zust/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Simulate' }));
-    await user.click(screen.getAllByRole('button', { name: /Input Pinfalse/ })[0]);
+    await user.click(screen.getByRole('button', { name: 'Simulieren' }));
+    await user.click(screen.getAllByRole('button', { name: /Eingang0/ })[0]);
 
-    expect(screen.getByRole('button', { name: /Input Pintrue/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Eingang1/ })).toBeInTheDocument();
   });
 
   it('supports an edit workflow with placement, annotations, custom components, save and delete', async () => {
@@ -114,7 +114,7 @@ describe('EditorPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
-    expect(screen.getByRole('button', { name: /Custom Gate/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Eigener Baustein/ })).toBeInTheDocument();
 
     projectMocks.listProjects.mockResolvedValueOnce([
       savedProject,
@@ -138,7 +138,7 @@ describe('EditorPage', () => {
     ]);
     await user.click(screen.getByRole('button', { name: 'Baustein importieren' }));
     expect(await screen.findByRole('heading', { name: 'Other Blocks' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Hinzufuegen' }));
+    await user.click(screen.getByRole('button', { name: 'Hinzufügen' }));
     expect(screen.getByRole('button', { name: /Imported Gate/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Speichern' }));

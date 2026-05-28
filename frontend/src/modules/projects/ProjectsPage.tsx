@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '../../components/Icon';
 import { useAuth } from '../auth/AuthContext';
 import { projectService } from '../../services/projectService';
 import type { Project } from '../../types/domain';
@@ -50,8 +51,8 @@ export function ProjectsPage() {
       <section className="page-header split-header">
         <div>
           <p className="eyebrow">Projektverwaltung</p>
-          <h1>Schaltungen und Workspaces</h1>
-          <p>Projekte werden im Backend gespeichert.</p>
+          <h1>Schaltungen und Projekte</h1>
+          <p>Erstelle, verwalte und öffne deine digitalen Schaltungen.</p>
         </div>
       </section>
 
@@ -60,7 +61,7 @@ export function ProjectsPage() {
           {projects.length === 0 ? (
             <div className="empty-state">
               <h2>Noch keine Projekte</h2>
-              <p>Erstelle links dein erstes Projekt und öffne direkt den Editor.</p>
+              <p>Lege dein erstes Projekt an und öffne direkt den Editor.</p>
             </div>
           ) : (
             projects.map((project) => (
@@ -79,6 +80,7 @@ export function ProjectsPage() {
                     Öffnen
                   </button>
                   <button className="ghost-button danger" type="button" onClick={() => void handleDelete(project.id)}>
+                    <Icon name="trash" />
                     Löschen
                   </button>
                 </div>

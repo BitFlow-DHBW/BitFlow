@@ -20,7 +20,7 @@ describe('schematic SVG helpers', () => {
     expect(componentSymbolSvg(gate('DFF', 'dff_svg'))).toContain('DFF');
     expect(componentSymbolSvg(gate('TFF', 'tff_svg'))).toContain('TFF');
     expect(componentSymbolSvg(gate('JKFF', 'jk_svg'))).toContain('JK');
-    expect(componentSymbolSvg(gate('INPUT', 'input_svg'))).toContain('Input Pin');
+    expect(componentSymbolSvg(gate('INPUT', 'input_svg'))).toContain('Eingang');
   });
 
   it('builds orthogonal paths and symbol geometry from gate dimensions', () => {

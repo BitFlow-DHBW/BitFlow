@@ -146,6 +146,7 @@ button:disabled {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 700;
+  gap: 0.45rem;
   line-height: 1.1;
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
@@ -198,10 +199,22 @@ button:disabled {
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
+  gap: 0;
 }
 
 .icon-button:hover {
   border-color: var(--primary);
+}
+
+.icon-button.small {
+  width: 2rem;
+  min-width: 2rem;
+  padding: 0;
+}
+
+button svg,
+a svg {
+  flex: 0 0 auto;
 }
 
 .large {
@@ -837,6 +850,16 @@ button:disabled {
   margin: 0;
   color: var(--muted);
   font-weight: 750;
+}
+
+.copy-feedback {
+  color: var(--success);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.copy-feedback.is-error {
+  color: var(--danger);
 }
 
 .editor-grid-layout {

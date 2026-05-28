@@ -21,7 +21,7 @@ describe('SettingsPage', () => {
     const [compactPanels, showSignalValues] = screen.getAllByRole('checkbox');
     await user.click(compactPanels);
     await user.click(showSignalValues);
-    await user.click(screen.getByLabelText('Edit-Modus'));
+    await user.click(screen.getByLabelText('Bearbeiten-Modus'));
     await user.keyboard('{Control>}m{/Control}');
 
     const stored = JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}');

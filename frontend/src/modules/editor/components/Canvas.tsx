@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../../../components/Icon';
 import { GateComp } from './GateComp';
 import { WireComp, wireBranchPoint } from './WireComp';
 import {
@@ -253,24 +254,36 @@ export function Canvas({
 
   return (
     <div className={`canvas-frame ${isPanning ? 'is-panning' : ''}`}>
-      <div className="canvas-view-controls" role="group" aria-label="Canvas navigation">
-        <button className="icon-button small" type="button" title="Zoom out" aria-label="Zoom out" onClick={() => zoomBy(1 / CANVAS_ZOOM_STEP)}>
-          -
+      <div className="canvas-view-controls" role="group" aria-label="Arbeitsflächen-Navigation">
+        <button
+          className="icon-button small"
+          type="button"
+          title="Verkleinern"
+          aria-label="Verkleinern"
+          onClick={() => zoomBy(1 / CANVAS_ZOOM_STEP)}
+        >
+          <Icon name="zoom-out" />
         </button>
-        <span className="zoom-readout" aria-label="Zoom level">
+        <span className="zoom-readout" aria-label="Zoomstufe">
           {Math.round(zoomLevel * 100)}%
         </span>
-        <button className="icon-button small" type="button" title="Zoom in" aria-label="Zoom in" onClick={() => zoomBy(CANVAS_ZOOM_STEP)}>
-          +
+        <button
+          className="icon-button small"
+          type="button"
+          title="Vergrößern"
+          aria-label="Vergrößern"
+          onClick={() => zoomBy(CANVAS_ZOOM_STEP)}
+        >
+          <Icon name="zoom-in" />
         </button>
         <button
           className="icon-button small"
           type="button"
-          title="Reset view"
-          aria-label="Reset view"
+          title="Ansicht zurücksetzen"
+          aria-label="Ansicht zurücksetzen"
           onClick={() => setViewBox(createDefaultViewBox(canvasSize))}
         >
-          1:1
+          <Icon name="reset-view" />
         </button>
       </div>
 
