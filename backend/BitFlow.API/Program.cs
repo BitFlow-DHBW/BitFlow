@@ -1,4 +1,5 @@
 using BitFlow.API.Data;
+using BitFlow.API.Hubs;
 using BitFlow.API.Infrastructure;
 using BitFlow.API.Repositories;
 using BitFlow.API.Services;
@@ -15,6 +16,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 
 var connectionString = builder.Configuration.GetConnectionString("BitFlowDb")
     ?? "Data Source=Data/bitflow.db";
@@ -27,6 +29,7 @@ builder.Services.AddScoped<ComponentRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<ComponentService>();
+builder.Services.AddSingleton<CollaborationSessionStore>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? ["http://localhost:5173", "http://localhost:4173"];
@@ -36,7 +39,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod());
+            .AllowAnyMethod()
+            .AllowCredentials());
 });
 
 var app = builder.Build();
@@ -83,6 +87,7 @@ app.MapGet("/api/health", () => Results.Ok(new
 }));
 
 app.MapControllers();
+app.MapHub<CollaborationHub>("/hubs/collaboration");
 
 app.Run();
 
