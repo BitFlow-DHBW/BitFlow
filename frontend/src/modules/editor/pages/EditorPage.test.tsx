@@ -106,11 +106,13 @@ describe('EditorPage', () => {
     fireEvent.click(grid, { clientX: 240, clientY: 120 });
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
 
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValueOnce('Kommentar A');
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
-    expect(screen.getByText('Kommentar A')).toBeInTheDocument();
-    expect(promptSpy).toHaveBeenCalledTimes(1);
+    const commentBox = screen
+      .getAllByRole('textbox', { name: 'Kommentar' })
+      .find((entry) => (entry as HTMLTextAreaElement).value === '') as HTMLTextAreaElement;
+    await user.type(commentBox, 'Kommentar A');
+    expect(screen.getByDisplayValue('Kommentar A')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
