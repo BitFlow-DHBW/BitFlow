@@ -10,6 +10,7 @@ import { Library } from '../components/Library';
 import { SignalViewer } from '../components/SignalViewer';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { Toolbar } from '../components/Toolbar';
+import { getAnnotationLayout, normalizeAnnotationWidth } from '../annotationLayout';
 import { buildInviteLink, readSessionIdFromSearch } from '../collaborationLinks';
 import { mergeRemoteCircuitWithLocalInteraction } from '../collaborationMerge';
 import { canSaveProject, createCollaborationCircuitState } from '../collaborationState';
@@ -505,6 +506,19 @@ function EditorWorkspace({
     });
   }
 
+  function handleAnnotationResizeStart(annotation: Annotation, point: Point) {
+    setSelectedGateId(null);
+    setSelectedWireId(null);
+    setSelectedAnnotationId(annotation.id);
+    setDragStartCircuit(history.state);
+    setDragState({
+      kind: 'annotation-resize',
+      annotationId: annotation.id,
+      startX: point.x,
+      startWidth: getAnnotationLayout(annotation.text, annotation.width).width,
+    });
+  }
+
   function handleDragMove(point: Point) {
     if (!dragState) return;
 
@@ -513,6 +527,17 @@ function EditorWorkspace({
         ...history.state,
         gates: history.state.gates.map((gate) =>
           gate.id === dragState.gateId ? positionGateFromDrag(gate, dragState, point) : gate,
+        ),
+      });
+      return;
+    }
+
+    if (dragState.kind === 'annotation-resize') {
+      const nextWidth = normalizeAnnotationWidth(dragState.startWidth + point.x - dragState.startX);
+      replaceCircuit({
+        ...history.state,
+        annotations: (history.state.annotations ?? []).map((annotation) =>
+          annotation.id === dragState.annotationId ? { ...annotation, width: nextWidth } : annotation,
         ),
       });
       return;
@@ -911,6 +936,7 @@ function EditorWorkspace({
             onToolDragCancel={() => setToolPreviewGate(null)}
             onGateDragStart={handleGateDragStart}
             onAnnotationDragStart={handleAnnotationDragStart}
+            onAnnotationResizeStart={handleAnnotationResizeStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onSelectGate={setSelectedGateId}

@@ -7,7 +7,7 @@ export function mergeRemoteCircuitWithLocalInteraction(
 ): Circuit {
   if (!dragState) return remoteCircuit;
 
-  if (dragState.kind === 'annotation') {
+  if (dragState.kind === 'annotation' || dragState.kind === 'annotation-resize') {
     const draggedAnnotation = localCircuit.annotations?.find((annotation) => annotation.id === dragState.annotationId);
     if (!draggedAnnotation) return remoteCircuit;
 

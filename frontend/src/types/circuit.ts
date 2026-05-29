@@ -113,6 +113,7 @@ export interface Annotation {
   text: string;
   x: number;
   y: number;
+  width?: number;
 }
 
 export type SignalState = Record<string, boolean>;
@@ -131,7 +132,14 @@ export interface AnnotationDragState {
   offsetY: number;
 }
 
-export type DragState = GateDragState | AnnotationDragState;
+export interface AnnotationResizeState {
+  kind: 'annotation-resize';
+  annotationId: string;
+  startX: number;
+  startWidth: number;
+}
+
+export type DragState = GateDragState | AnnotationDragState | AnnotationResizeState;
 
 export interface WireDraft {
   start: WireEndpoint;

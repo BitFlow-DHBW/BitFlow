@@ -25,6 +25,7 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
     onToolDragCancel: vi.fn(),
     onGateDragStart: vi.fn(),
     onAnnotationDragStart: vi.fn(),
+    onAnnotationResizeStart: vi.fn(),
     onDragMove: vi.fn(),
     onDragEnd: vi.fn(),
     onSelectGate: vi.fn(),
@@ -173,6 +174,21 @@ describe('Canvas', () => {
     expect(props.onAnnotationDragStart).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'annotation_starter' }),
       { x: 96, y: 64 },
+    );
+  });
+
+  it('starts resizing selected annotations from the right edge', () => {
+    const props = canvasProps({ selectedAnnotationId: 'annotation_starter' });
+    const { container } = render(<Canvas {...props} />);
+    const resizeHandle = container.querySelector('.canvas-annotation-resize-handle') as SVGRectElement;
+
+    Object.defineProperty(resizeHandle, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(resizeHandle, { button: 0, pointerId: 1, clientX: 240, clientY: 64 });
+
+    expect(props.onSelectAnnotation).toHaveBeenCalledWith('annotation_starter');
+    expect(props.onAnnotationResizeStart).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'annotation_starter' }),
+      { x: 240, y: 64 },
     );
   });
 

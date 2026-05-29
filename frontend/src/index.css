@@ -1279,6 +1279,19 @@ a svg {
   font-weight: 850;
 }
 
+.canvas-annotation-resize-indicator {
+  stroke: var(--warning);
+  stroke-linecap: round;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.canvas-annotation-resize-handle {
+  cursor: ew-resize;
+  fill: transparent;
+  pointer-events: auto;
+}
+
 .remote-cursor {
   pointer-events: none;
 }

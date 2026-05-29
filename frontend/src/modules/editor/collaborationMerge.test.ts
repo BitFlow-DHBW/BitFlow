@@ -29,6 +29,19 @@ describe('mergeRemoteCircuitWithLocalInteraction', () => {
     expect(merged.annotations).toContainEqual(localAnnotation);
   });
 
+  it('keeps the locally resized annotation width when a remote state arrives', () => {
+    const localAnnotation = { id: 'annotation_shared', text: 'Lokal', x: -48, y: 24, width: 144 };
+    const remoteAnnotation = { id: 'annotation_shared', text: 'Remote', x: 120, y: 96, width: 96 };
+
+    const merged = mergeRemoteCircuitWithLocalInteraction(
+      circuitWith([], [], { annotations: [remoteAnnotation] }),
+      circuitWith([], [], { annotations: [localAnnotation] }),
+      { kind: 'annotation-resize', annotationId: localAnnotation.id, startX: 96, startWidth: 120 },
+    );
+
+    expect(merged.annotations).toContainEqual(localAnnotation);
+  });
+
   it('uses the remote circuit unchanged without a local drag interaction', () => {
     const remoteCircuit = circuitWith([gate('OR', 'or_remote')]);
 

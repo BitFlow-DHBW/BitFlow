@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GRID_SIZE } from '../../simulation/gateLibrary';
-import { getAnnotationLayout } from './annotationLayout';
+import { getAnnotationLayout, normalizeAnnotationWidth } from './annotationLayout';
 
 describe('getAnnotationLayout', () => {
   it('keeps short comments compact', () => {
@@ -31,6 +31,17 @@ describe('getAnnotationLayout', () => {
     const layout = getAnnotationLayout('Dieser Kommentar braucht etwas mehr Breite');
 
     expect(layout.width % GRID_SIZE).toBe(0);
+  });
+
+  it('uses a fixed annotation width to wrap lines', () => {
+    const layout = getAnnotationLayout('Dieser Kommentar wird schmal umbrochen', 3 * GRID_SIZE);
+
+    expect(layout.width).toBe(3 * GRID_SIZE);
+    expect(layout.lines.length).toBeGreaterThan(1);
+  });
+
+  it('normalizes manually resized widths to the grid', () => {
+    expect(normalizeAnnotationWidth(91)).toBe(4 * GRID_SIZE);
   });
 
   it('uses manual line breaks for the calculated height', () => {

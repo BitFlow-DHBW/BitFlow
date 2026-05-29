@@ -50,6 +50,7 @@ interface CanvasProps {
   onToolDragCancel: () => void;
   onGateDragStart: (gate: Gate, point: Point) => void;
   onAnnotationDragStart: (annotation: Annotation, point: Point) => void;
+  onAnnotationResizeStart: (annotation: Annotation, point: Point) => void;
   onDragMove: (point: Point) => void;
   onDragEnd: () => void;
   onSelectGate: (gateId: string | null) => void;
@@ -93,6 +94,7 @@ export function Canvas({
   onToolDragCancel,
   onGateDragStart,
   onAnnotationDragStart,
+  onAnnotationResizeStart,
   onDragMove,
   onDragEnd,
   onSelectGate,
@@ -225,6 +227,17 @@ export function Canvas({
     onSelectWire(null);
     onSelectAnnotation(annotation.id);
     onAnnotationDragStart(annotation, getPoint(event));
+  }
+
+  function startAnnotationResize(event: React.PointerEvent<SVGRectElement>, annotation: Annotation) {
+    if (mode !== 'edit') return;
+
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onSelectGate(null);
+    onSelectWire(null);
+    onSelectAnnotation(annotation.id);
+    onAnnotationResizeStart(annotation, getPoint(event));
   }
 
   function isCanvasTarget(event: React.PointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>): boolean {
@@ -502,7 +515,8 @@ export function Canvas({
         ))}
 
         {(circuit.annotations ?? []).map((annotation) => {
-          const layout = getAnnotationLayout(annotation.text);
+          const layout = getAnnotationLayout(annotation.text, annotation.width);
+          const selected = selectedAnnotationId === annotation.id;
 
           return (
             <g
@@ -510,7 +524,7 @@ export function Canvas({
               className={[
                 'canvas-annotation',
                 mode === 'edit' ? 'is-editable' : '',
-                selectedAnnotationId === annotation.id ? 'is-selected' : '',
+                selected ? 'is-selected' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -537,6 +551,25 @@ export function Canvas({
                   </tspan>
                 ))}
               </text>
+              {mode === 'edit' && selected && (
+                <>
+                  <line
+                    className="canvas-annotation-resize-indicator"
+                    x1={layout.width}
+                    x2={layout.width}
+                    y1={-layout.lineHeight / 2 + 6}
+                    y2={layout.height - layout.lineHeight / 2 - 6}
+                  />
+                  <rect
+                    className="canvas-annotation-resize-handle"
+                    x={layout.width - GRID_SIZE / 4}
+                    y={-layout.lineHeight / 2}
+                    width={GRID_SIZE / 2}
+                    height={layout.height}
+                    onPointerDown={(event) => startAnnotationResize(event, annotation)}
+                  />
+                </>
+              )}
             </g>
           );
         })}
