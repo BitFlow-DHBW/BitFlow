@@ -61,17 +61,6 @@ export function SettingsPage() {
           </button>
         </div>
 
-        <div className="setting-row">
-          <div>
-            <h2>Signalwerte anzeigen</h2>
-            <p>Zeigt Live-Signale in Panels und auf Pins sichtbar an.</p>
-          </div>
-          <input
-            type="checkbox"
-            checked={preferences.showSignalValues}
-            onChange={(event) => setPreferences({ ...preferences, showSignalValues: event.target.checked })}
-          />
-        </div>
       </section>
 
       <section className="settings-panel">

@@ -5,7 +5,7 @@ import { PreferencesProvider } from './PreferencesContext';
 import { SettingsPage } from './SettingsPage';
 
 describe('SettingsPage', () => {
-  it('updates theme, signal display and shortcut preferences', async () => {
+  it('updates theme and shortcut preferences', async () => {
     const user = userEvent.setup();
 
     render(
@@ -18,18 +18,18 @@ describe('SettingsPage', () => {
     await user.click(themeToggle);
     expect(themeToggle).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText('Kompakte Panels')).not.toBeInTheDocument();
+    expect(screen.queryByText('Signalwerte anzeigen')).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 
-    const showSignalValues = screen.getByRole('checkbox');
-    await user.click(showSignalValues);
     await user.click(screen.getByLabelText('Bearbeiten-Modus'));
     await user.keyboard('{Control>}m{/Control}');
 
     const stored = JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}');
     expect(stored).toMatchObject({
       theme: 'dark',
-      showSignalValues: false,
       shortcuts: expect.objectContaining({ editMode: 'Ctrl+M' }),
     });
     expect(stored).not.toHaveProperty('compactPanels');
+    expect(stored).not.toHaveProperty('showSignalValues');
   });
 });

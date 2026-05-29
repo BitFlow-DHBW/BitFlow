@@ -12,6 +12,7 @@ describe('preferencesService', () => {
       JSON.stringify({
         theme: 'dark',
         compactPanels: true,
+        showSignalValues: false,
         shortcuts: {
           simulateMode: 'Ctrl+S',
         },
@@ -27,14 +28,16 @@ describe('preferencesService', () => {
       },
     });
     expect(preferencesService.getPreferences()).not.toHaveProperty('compactPanels');
+    expect(preferencesService.getPreferences()).not.toHaveProperty('showSignalValues');
   });
 
   it('persists complete preference objects', () => {
-    preferencesService.savePreferences({ ...defaultPreferences, showSignalValues: false });
+    preferencesService.savePreferences({ ...defaultPreferences, theme: 'dark' });
 
     expect(JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}')).toMatchObject({
-      showSignalValues: false,
+      theme: 'dark',
     });
     expect(JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}')).not.toHaveProperty('compactPanels');
+    expect(JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}')).not.toHaveProperty('showSignalValues');
   });
 });
