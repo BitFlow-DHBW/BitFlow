@@ -1,1 +1,1 @@
-[Webseite](http://bitflow.ddns.net/)
+[Webseite](https://bitflow.ddns.net/)
