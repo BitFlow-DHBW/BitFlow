@@ -1,11 +1,14 @@
+import { GRID_SIZE } from '../../simulation/gateLibrary';
+
 const MAX_LINE_CHARS = 30;
-const MIN_WIDTH = 72;
-const MAX_WIDTH = 280;
+const MIN_WIDTH = GRID_SIZE * 3;
+const MAX_WIDTH = GRID_SIZE * 12;
 const CHAR_WIDTH = 7.2;
-const PADDING_X = 12;
-const PADDING_Y = 10;
+const PADDING_X = GRID_SIZE / 2;
+const PADDING_RIGHT = GRID_SIZE / 16;
+const PADDING_Y = GRID_SIZE / 2;
 const FONT_SIZE = 12;
-const LINE_HEIGHT = 18;
+const LINE_HEIGHT = GRID_SIZE;
 
 export interface AnnotationLayout {
   lines: string[];
@@ -55,6 +58,11 @@ function wrapParagraph(paragraph: string): string[] {
   return lines;
 }
 
+function gridAlignedWidth(contentWidth: number): number {
+  const unclampedWidth = Math.max(MIN_WIDTH, contentWidth);
+  return Math.min(MAX_WIDTH, Math.ceil(unclampedWidth / GRID_SIZE) * GRID_SIZE);
+}
+
 export function getAnnotationLayout(text: string): AnnotationLayout {
   const paragraphs = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   const lines = paragraphs.flatMap(wrapParagraph);
@@ -63,8 +71,8 @@ export function getAnnotationLayout(text: string): AnnotationLayout {
 
   return {
     lines: visibleLines,
-    width: Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.ceil(longestLineLength * CHAR_WIDTH + PADDING_X * 2))),
-    height: PADDING_Y * 2 + visibleLines.length * LINE_HEIGHT,
+    width: gridAlignedWidth(longestLineLength * CHAR_WIDTH + PADDING_X + PADDING_RIGHT),
+    height: (visibleLines.length + 1) * GRID_SIZE,
     paddingX: PADDING_X,
     paddingY: PADDING_Y,
     fontSize: FONT_SIZE,

@@ -517,8 +517,19 @@ export function Canvas({
               transform={`translate(${annotation.x} ${annotation.y})`}
               onPointerDown={(event) => startAnnotationDrag(event, annotation)}
             >
-              <rect className="canvas-annotation-box" width={layout.width} height={layout.height} rx={8} />
-              <text className="canvas-annotation-text" x={layout.paddingX} y={layout.paddingY + layout.fontSize}>
+              <rect
+                className="canvas-annotation-box"
+                y={-layout.lineHeight / 2}
+                width={layout.width}
+                height={layout.height}
+                rx={8}
+              />
+              <text
+                className="canvas-annotation-text"
+                x={layout.paddingX}
+                y={layout.paddingY}
+                dominantBaseline="middle"
+              >
                 {layout.lines.map((line, index) => (
                   <tspan key={`${annotation.id}-line-${index}`} x={layout.paddingX} dy={index === 0 ? 0 : layout.lineHeight}>
                     {line || ' '}
