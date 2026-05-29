@@ -10,7 +10,7 @@ describe('mergeRemoteCircuitWithLocalInteraction', () => {
     const merged = mergeRemoteCircuitWithLocalInteraction(
       circuitWith([remoteGate]),
       circuitWith([localGate]),
-      { dragState: { gateId: localGate.id, offsetX: 12, offsetY: 12 } },
+      { kind: 'gate', gateId: localGate.id, offsetX: 12, offsetY: 12 },
     );
 
     expect(merged.gates).toContainEqual(localGate);
@@ -23,7 +23,20 @@ describe('mergeRemoteCircuitWithLocalInteraction', () => {
     const merged = mergeRemoteCircuitWithLocalInteraction(
       circuitWith([], [], { annotations: [remoteAnnotation] }),
       circuitWith([], [], { annotations: [localAnnotation] }),
-      { dragState: null, annotationDragState: { annotationId: localAnnotation.id, offsetX: 4, offsetY: 6 } },
+      { kind: 'annotation', annotationId: localAnnotation.id, offsetX: 4, offsetY: 6 },
+    );
+
+    expect(merged.annotations).toContainEqual(localAnnotation);
+  });
+
+  it('keeps the locally resized annotation width when a remote state arrives', () => {
+    const localAnnotation = { id: 'annotation_shared', text: 'Lokal', x: -48, y: 24, width: 144 };
+    const remoteAnnotation = { id: 'annotation_shared', text: 'Remote', x: 120, y: 96, width: 96 };
+
+    const merged = mergeRemoteCircuitWithLocalInteraction(
+      circuitWith([], [], { annotations: [remoteAnnotation] }),
+      circuitWith([], [], { annotations: [localAnnotation] }),
+      { kind: 'annotation-resize', annotationId: localAnnotation.id, startX: 96, startWidth: 120 },
     );
 
     expect(merged.annotations).toContainEqual(localAnnotation);
@@ -32,6 +45,6 @@ describe('mergeRemoteCircuitWithLocalInteraction', () => {
   it('uses the remote circuit unchanged without a local drag interaction', () => {
     const remoteCircuit = circuitWith([gate('OR', 'or_remote')]);
 
-    expect(mergeRemoteCircuitWithLocalInteraction(remoteCircuit, circuitWith([]), { dragState: null })).toBe(remoteCircuit);
+    expect(mergeRemoteCircuitWithLocalInteraction(remoteCircuit, circuitWith([]), null)).toBe(remoteCircuit);
   });
 });

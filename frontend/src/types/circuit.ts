@@ -114,34 +114,32 @@ export interface Annotation {
   x: number;
   y: number;
   width?: number;
-  height?: number;
 }
 
 export type SignalState = Record<string, boolean>;
 
-export interface DragState {
+export interface GateDragState {
+  kind: 'gate';
   gateId: string;
   offsetX: number;
   offsetY: number;
 }
 
 export interface AnnotationDragState {
+  kind: 'annotation';
   annotationId: string;
   offsetX: number;
   offsetY: number;
 }
 
-export type AnnotationResizeHandle = 'n' | 'e' | 's' | 'w' | 'ne' | 'se' | 'sw' | 'nw';
-
 export interface AnnotationResizeState {
+  kind: 'annotation-resize';
   annotationId: string;
-  handle: AnnotationResizeHandle;
-  startPoint: Point;
   startX: number;
-  startY: number;
   startWidth: number;
-  startHeight: number;
 }
+
+export type DragState = GateDragState | AnnotationDragState | AnnotationResizeState;
 
 export interface WireDraft {
   start: WireEndpoint;

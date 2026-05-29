@@ -15,7 +15,7 @@ describe('editorGeometry', () => {
   it('keeps drag movement unrestricted in every direction', () => {
     const gate = createGate('OR', 120, 96, 'or_drag');
 
-    const positioned = positionGateFromDrag(gate, { gateId: gate.id, offsetX: 36, offsetY: 30 }, { x: -18, y: -42 });
+    const positioned = positionGateFromDrag(gate, { kind: 'gate', gateId: gate.id, offsetX: 36, offsetY: 30 }, { x: -18, y: -42 });
 
     expect(positioned.x).toBe(-48);
     expect(positioned.y).toBe(-72);
@@ -24,7 +24,7 @@ describe('editorGeometry', () => {
   it('keeps annotation movement unrestricted and snapped to the grid', () => {
     const positioned = positionAnnotationFromDrag(
       { id: 'annotation_test', text: 'Kommentar', x: 48, y: 48 },
-      { annotationId: 'annotation_test', offsetX: 8, offsetY: 10 },
+      { kind: 'annotation', annotationId: 'annotation_test', offsetX: 8, offsetY: 10 },
       { x: -11, y: 61 },
     );
 

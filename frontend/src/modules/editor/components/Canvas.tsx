@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../../../components/Icon';
-import { AnnotationComp } from './AnnotationComp';
 import { GateComp } from './GateComp';
 import { WireComp, wireBranchPoint } from './WireComp';
+import { getAnnotationLayout } from '../annotationLayout';
 import {
   CANVAS_ZOOM_STEP,
   createDefaultViewBox,
@@ -17,15 +17,12 @@ import { isInteractiveSourceGate } from '../../../schematic/symbolGeometry';
 import { GRID_SIZE, snapToGrid } from '../../../simulation/gateLibrary';
 import { buildLiveWireIds, createPinLookup, getWirePoints, normalizeWireEndpoint } from '../../../simulation/wireUtils';
 import type {
-  Annotation,
-  AnnotationDragState,
-  AnnotationResizeHandle,
-  AnnotationResizeState,
   Circuit,
   DragState,
   EditorMode,
   EditorTool,
   Gate,
+  Annotation,
   Point,
   SignalState,
   WireDraft,
@@ -42,8 +39,6 @@ interface CanvasProps {
   selectedWireId: string | null;
   selectedAnnotationId: string | null;
   dragState: DragState | null;
-  annotationDragState: AnnotationDragState | null;
-  annotationResizeState: AnnotationResizeState | null;
   wireDraft: WireDraft | null;
   draggedTool: EditorTool | null;
   toolPreviewGate: Gate | null;
@@ -54,17 +49,13 @@ interface CanvasProps {
   onToolDragPreview: (point: Point) => void;
   onToolDragCancel: () => void;
   onGateDragStart: (gate: Gate, point: Point) => void;
+  onAnnotationDragStart: (annotation: Annotation, point: Point) => void;
+  onAnnotationResizeStart: (annotation: Annotation, point: Point) => void;
   onDragMove: (point: Point) => void;
   onDragEnd: () => void;
   onSelectGate: (gateId: string | null) => void;
   onSelectWire: (wireId: string | null) => void;
   onSelectAnnotation: (annotationId: string | null) => void;
-  onAnnotationDragStart: (annotation: Annotation, point: Point) => void;
-  onAnnotationDragMove: (point: Point) => void;
-  onAnnotationResizeStart: (annotation: Annotation, handle: AnnotationResizeHandle, point: Point) => void;
-  onAnnotationResizeMove: (point: Point) => void;
-  onAnnotationInteractionEnd: () => void;
-  onUpdateAnnotation: (annotation: Annotation) => void;
   onWireStart: (endpoint: WireEndpoint, point: Point) => void;
   onWireEnd: (endpoint: WireEndpoint) => void;
   onWirePreview: (point: Point) => void;
@@ -92,8 +83,6 @@ export function Canvas({
   selectedWireId,
   selectedAnnotationId,
   dragState,
-  annotationDragState,
-  annotationResizeState,
   wireDraft,
   draggedTool,
   toolPreviewGate,
@@ -104,17 +93,13 @@ export function Canvas({
   onToolDragPreview,
   onToolDragCancel,
   onGateDragStart,
+  onAnnotationDragStart,
+  onAnnotationResizeStart,
   onDragMove,
   onDragEnd,
   onSelectGate,
   onSelectWire,
   onSelectAnnotation,
-  onAnnotationDragStart,
-  onAnnotationDragMove,
-  onAnnotationResizeStart,
-  onAnnotationResizeMove,
-  onAnnotationInteractionEnd,
-  onUpdateAnnotation,
   onWireStart,
   onWireEnd,
   onWirePreview,
@@ -143,7 +128,6 @@ export function Canvas({
         width: Math.round(rect.width),
         height: Math.round(rect.height),
       };
-
       setCanvasSize((currentSize) => {
         if (currentSize.width === nextSize.width && currentSize.height === nextSize.height) return currentSize;
         setViewBox((currentViewBox) => resizeViewBox(currentViewBox, currentSize, nextSize));
@@ -232,6 +216,28 @@ export function Canvas({
     onSelectGate(null);
     onSelectAnnotation(null);
     onWireStart(endpoint, point);
+  }
+
+  function startAnnotationDrag(event: React.PointerEvent<SVGGElement>, annotation: Annotation) {
+    if (mode !== 'edit') return;
+
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onSelectGate(null);
+    onSelectWire(null);
+    onSelectAnnotation(annotation.id);
+    onAnnotationDragStart(annotation, getPoint(event));
+  }
+
+  function startAnnotationResize(event: React.PointerEvent<SVGRectElement>, annotation: Annotation) {
+    if (mode !== 'edit') return;
+
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onSelectGate(null);
+    onSelectWire(null);
+    onSelectAnnotation(annotation.id);
+    onAnnotationResizeStart(annotation, getPoint(event));
   }
 
   function isCanvasTarget(event: React.PointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>): boolean {
@@ -363,8 +369,6 @@ export function Canvas({
             gatePointerRef.current.moved = gatePointerRef.current.moved || distanceX > 4 || distanceY > 4;
           }
           if (mode === 'edit' && dragState) onDragMove(point);
-          if (mode === 'edit' && annotationDragState) onAnnotationDragMove(point);
-          if (mode === 'edit' && annotationResizeState) onAnnotationResizeMove(point);
           if (mode === 'edit' && wireDraft) onWirePreview({ x: snapToGrid(point.x), y: snapToGrid(point.y) });
         }}
         onPointerUp={(event) => {
@@ -376,7 +380,6 @@ export function Canvas({
           }
           gatePointerRef.current = null;
           onDragEnd();
-          onAnnotationInteractionEnd();
           if (mode === 'edit' && wireDraft) {
             onWireEnd({ kind: 'point', point: getPoint(event) });
           }
@@ -385,7 +388,6 @@ export function Canvas({
           if (endPan(event, false)) return;
           gatePointerRef.current = null;
           onDragEnd();
-          onAnnotationInteractionEnd();
           if (wireDraft) onWireCancel();
         }}
         onClick={(event) => {
@@ -436,8 +438,8 @@ export function Canvas({
                   if (mode !== 'edit') return;
                   event.stopPropagation();
                   onSelectGate(null);
-                  onSelectWire(wire.id);
                   onSelectAnnotation(null);
+                  onSelectWire(wire.id);
                 }}
               />
               {mode === 'edit' && (
@@ -512,29 +514,65 @@ export function Canvas({
           />
         ))}
 
-        {(circuit.annotations ?? []).map((annotation) => (
-          <AnnotationComp
-            key={annotation.id}
-            annotation={annotation}
-            selected={mode === 'edit' && annotation.id === selectedAnnotationId}
-            mode={mode}
-            onPointerDown={(event, selectedAnnotation, resizeHandle) => {
-              if (mode !== 'edit') return;
-              event.stopPropagation();
-              event.currentTarget.setPointerCapture?.(event.pointerId);
-              const point = getPoint(event);
-              onSelectGate(null);
-              onSelectWire(null);
-              onSelectAnnotation(selectedAnnotation.id);
-              if (resizeHandle) {
-                onAnnotationResizeStart(selectedAnnotation, resizeHandle, point);
-              } else {
-                onAnnotationDragStart(selectedAnnotation, point);
-              }
-            }}
-            onTextChange={onUpdateAnnotation}
-          />
-        ))}
+        {(circuit.annotations ?? []).map((annotation) => {
+          const layout = getAnnotationLayout(annotation.text, annotation.width);
+          const selected = selectedAnnotationId === annotation.id;
+
+          return (
+            <g
+              key={annotation.id}
+              className={[
+                'canvas-annotation',
+                mode === 'edit' ? 'is-editable' : '',
+                selected ? 'is-selected' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              transform={`translate(${annotation.x} ${annotation.y})`}
+              onPointerDown={(event) => startAnnotationDrag(event, annotation)}
+            >
+              <rect
+                className="canvas-annotation-box"
+                y={-layout.lineHeight / 2}
+                width={layout.width}
+                height={layout.height}
+                rx={8}
+              />
+              <text
+                className="canvas-annotation-text"
+                x={layout.width / 2}
+                y={layout.paddingY}
+                dominantBaseline="middle"
+                textAnchor="middle"
+              >
+                {layout.lines.map((line, index) => (
+                  <tspan key={`${annotation.id}-line-${index}`} x={layout.width / 2} dy={index === 0 ? 0 : layout.lineHeight}>
+                    {line || ' '}
+                  </tspan>
+                ))}
+              </text>
+              {mode === 'edit' && selected && (
+                <>
+                  <line
+                    className="canvas-annotation-resize-indicator"
+                    x1={layout.width}
+                    x2={layout.width}
+                    y1={-layout.lineHeight / 2 + 6}
+                    y2={layout.height - layout.lineHeight / 2 - 6}
+                  />
+                  <rect
+                    className="canvas-annotation-resize-handle"
+                    x={layout.width - GRID_SIZE / 4}
+                    y={-layout.lineHeight / 2}
+                    width={GRID_SIZE / 2}
+                    height={layout.height}
+                    onPointerDown={(event) => startAnnotationResize(event, annotation)}
+                  />
+                </>
+              )}
+            </g>
+          );
+        })}
 
         {toolPreviewGate && (
           <GateComp

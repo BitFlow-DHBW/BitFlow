@@ -1,20 +1,14 @@
-import type { AnnotationDragState, AnnotationResizeState, Circuit, DragState } from '../../types/circuit';
-
-interface LocalInteractionState {
-  dragState: DragState | null;
-  annotationDragState?: AnnotationDragState | null;
-  annotationResizeState?: AnnotationResizeState | null;
-}
+import type { Circuit, DragState } from '../../types/circuit';
 
 export function mergeRemoteCircuitWithLocalInteraction(
   remoteCircuit: Circuit,
   localCircuit: Circuit,
-  interaction: LocalInteractionState,
+  dragState: DragState | null,
 ): Circuit {
-  const draggedAnnotationId =
-    interaction.annotationDragState?.annotationId ?? interaction.annotationResizeState?.annotationId;
-  if (draggedAnnotationId) {
-    const draggedAnnotation = localCircuit.annotations?.find((annotation) => annotation.id === draggedAnnotationId);
+  if (!dragState) return remoteCircuit;
+
+  if (dragState.kind === 'annotation' || dragState.kind === 'annotation-resize') {
+    const draggedAnnotation = localCircuit.annotations?.find((annotation) => annotation.id === dragState.annotationId);
     if (!draggedAnnotation) return remoteCircuit;
 
     const remoteAnnotations = remoteCircuit.annotations ?? [];
@@ -26,9 +20,6 @@ export function mergeRemoteCircuitWithLocalInteraction(
         : [...remoteAnnotations, draggedAnnotation],
     };
   }
-
-  const { dragState } = interaction;
-  if (!dragState) return remoteCircuit;
 
   const draggedGate = localCircuit.gates.find((gate) => gate.id === dragState.gateId);
   if (!draggedGate) return remoteCircuit;

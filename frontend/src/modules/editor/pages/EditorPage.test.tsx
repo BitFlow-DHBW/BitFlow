@@ -139,13 +139,11 @@ describe('EditorPage', () => {
     fireEvent.click(grid, { clientX: 240, clientY: 120 });
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
 
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValueOnce('Kommentar A');
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: 'Kommentar' }));
-    const commentBox = screen
-      .getAllByRole('textbox', { name: 'Kommentar' })
-      .find((textbox) => (textbox as HTMLTextAreaElement).value === '') as HTMLTextAreaElement;
-    fireEvent.change(commentBox, { target: { value: 'Kommentar A' } });
-    expect(screen.getAllByDisplayValue('Kommentar A').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Kommentar A').length).toBeGreaterThan(0);
+    expect(promptSpy).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: 'Baustein erstellen' }));
     await user.click(screen.getByRole('button', { name: 'Baustein speichern' }));
@@ -190,7 +188,7 @@ describe('EditorPage', () => {
     fireEvent.click(svg.querySelector('path.wire') as SVGPathElement);
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
     expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
-  }, 10000);
+  });
 
   it('selects, edits and deletes annotations from the inspector', async () => {
     const user = userEvent.setup();
@@ -212,20 +210,19 @@ describe('EditorPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Annotation Circuit' })).toBeInTheDocument();
     const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
-    const annotation = svg.querySelector('.canvas-annotation-node') as SVGGElement;
+    const annotation = svg.querySelector('.canvas-annotation') as SVGGElement;
     Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
 
     fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 144, clientY: 96 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 144, clientY: 96 });
-    fireEvent.change(document.querySelector('.inspector-textarea') as HTMLTextAreaElement, {
-      target: { value: 'Bearbeiteter Kommentar' },
-    });
+    fireEvent.change(screen.getByLabelText('Kommentar'), { target: { value: 'Bearbeiteter Kommentar' } });
 
-    expect(screen.getAllByDisplayValue('Bearbeiteter Kommentar').length).toBeGreaterThan(0);
+    expect(screen.getByDisplayValue('Bearbeiteter Kommentar')).toBeInTheDocument();
+    expect(screen.getAllByText('Bearbeiteter Kommentar').length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: /^Löschen$/ }));
 
-    expect(screen.queryByDisplayValue('Bearbeiteter Kommentar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bearbeiteter Kommentar')).not.toBeInTheDocument();
     expect(screen.getByText(/Kein Baustein oder Kommentar/)).toBeInTheDocument();
   });
 
@@ -259,15 +256,15 @@ describe('EditorPage', () => {
 
     expect(svg.querySelectorAll('.gate-node')).toHaveLength(initialGateCount + 2);
 
-    const initialAnnotationCount = svg.querySelectorAll('.canvas-annotation-node').length;
-    const annotation = svg.querySelector('.canvas-annotation-node') as SVGGElement;
+    const initialAnnotationCount = svg.querySelectorAll('.canvas-annotation').length;
+    const annotation = svg.querySelector('.canvas-annotation') as SVGGElement;
     Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
     fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 144, clientY: 96 });
     fireEvent.pointerUp(svg, { pointerId: 1, clientX: 144, clientY: 96 });
     fireEvent.keyDown(window, { key: 'c', ctrlKey: true });
     fireEvent.keyDown(window, { key: 'v', ctrlKey: true });
 
-    expect(svg.querySelectorAll('.canvas-annotation-node')).toHaveLength(initialAnnotationCount + 1);
+    expect(svg.querySelectorAll('.canvas-annotation')).toHaveLength(initialAnnotationCount + 1);
   });
 
   it('warns about unsaved changes before leaving and clears the warning after save', async () => {

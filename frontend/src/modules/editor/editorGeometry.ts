@@ -1,5 +1,5 @@
 import { gateRectPx, snapToGrid } from '../../simulation/gateLibrary';
-import type { Annotation, AnnotationDragState, DragState, Gate, Point } from '../../types/circuit';
+import type { Annotation, AnnotationDragState, Gate, GateDragState, Point } from '../../types/circuit';
 
 export function positionGateAtPoint(gateDraft: Gate, point: Point): Gate {
   const rect = gateRectPx(gateDraft);
@@ -11,7 +11,7 @@ export function positionGateAtPoint(gateDraft: Gate, point: Point): Gate {
   };
 }
 
-export function positionGateFromDrag(gate: Gate, dragState: DragState, point: Point): Gate {
+export function positionGateFromDrag(gate: Gate, dragState: GateDragState, point: Point): Gate {
   return {
     ...gate,
     x: snapToGrid(point.x - dragState.offsetX),

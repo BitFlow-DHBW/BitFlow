@@ -16,8 +16,6 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
     selectedWireId: null,
     selectedAnnotationId: null,
     dragState: null,
-    annotationDragState: null,
-    annotationResizeState: null,
     wireDraft: null,
     draggedTool: null,
     toolPreviewGate: null,
@@ -26,17 +24,13 @@ function canvasProps(overrides: Partial<CanvasProps> = {}): CanvasProps {
     onToolDragPreview: vi.fn(),
     onToolDragCancel: vi.fn(),
     onGateDragStart: vi.fn(),
+    onAnnotationDragStart: vi.fn(),
+    onAnnotationResizeStart: vi.fn(),
     onDragMove: vi.fn(),
     onDragEnd: vi.fn(),
     onSelectGate: vi.fn(),
     onSelectWire: vi.fn(),
     onSelectAnnotation: vi.fn(),
-    onAnnotationDragStart: vi.fn(),
-    onAnnotationDragMove: vi.fn(),
-    onAnnotationResizeStart: vi.fn(),
-    onAnnotationResizeMove: vi.fn(),
-    onAnnotationInteractionEnd: vi.fn(),
-    onUpdateAnnotation: vi.fn(),
     onWireStart: vi.fn(),
     onWireEnd: vi.fn(),
     onWirePreview: vi.fn(),
@@ -62,7 +56,27 @@ describe('Canvas', () => {
     expect(container.querySelector('.wire.is-selected')).toBeInTheDocument();
     expect(screen.getAllByText('A').length).toBeGreaterThan(0);
     expect(screen.getByText('Bea')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('BitFlow Startschaltung')).toBeInTheDocument();
+    expect(screen.getByText('BitFlow Startschaltung')).toBeInTheDocument();
+    const annotationBox = container.querySelector('.canvas-annotation-box') as SVGRectElement;
+    const annotationText = container.querySelector('.canvas-annotation-text') as SVGTextElement;
+    expect(Number(annotationBox.getAttribute('height'))).toBeLessThan(50);
+    expect(annotationText).toHaveAttribute('text-anchor', 'middle');
+    expect(annotationText).toHaveAttribute('x', String(Number(annotationBox.getAttribute('width')) / 2));
+    expect(container.querySelector('.canvas-annotation')).toHaveClass('is-editable');
+  });
+
+  it('renders annotations above gates', () => {
+    const { container } = render(<Canvas {...canvasProps()} />);
+    const gateNode = container.querySelector('.gate-node') as SVGGElement;
+    const annotation = container.querySelector('.canvas-annotation') as SVGGElement;
+
+    expect(gateNode.compareDocumentPosition(annotation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('marks selected annotations', () => {
+    const { container } = render(<Canvas {...canvasProps({ selectedAnnotationId: 'annotation_starter' })} />);
+
+    expect(container.querySelector('.canvas-annotation')).toHaveClass('is-selected');
   });
 
   it('selects wires and places selected tools on grid clicks', () => {
@@ -97,46 +111,6 @@ describe('Canvas', () => {
     const { container } = render(<Canvas {...props} />);
 
     expect(container.querySelector('path.wire.is-live')).toBeInTheDocument();
-  });
-
-  it('selects, edits, drags and resizes annotations', () => {
-    const annotation = { id: 'annotation_note', text: 'Note', x: 48, y: 72, width: 160, height: 80 };
-    const props = canvasProps({
-      circuit: circuitWith([], [], { annotations: [annotation] }),
-      selectedAnnotationId: annotation.id,
-      annotationDragState: { annotationId: annotation.id, offsetX: 8, offsetY: 8 },
-    });
-    const { container } = render(<Canvas {...props} />);
-    const textbox = screen.getByRole('textbox', { name: 'Kommentar' });
-
-    fireEvent.change(textbox, { target: { value: 'Neue Notiz' } });
-    expect(props.onUpdateAnnotation).toHaveBeenCalledWith(expect.objectContaining({ id: annotation.id, text: 'Neue Notiz' }));
-
-    fireEvent.pointerDown(textbox, { button: 0, pointerId: 1, clientX: 56, clientY: 80 });
-    expect(props.onSelectAnnotation).toHaveBeenCalledWith(annotation.id);
-    expect(props.onAnnotationDragStart).toHaveBeenCalledWith(annotation, { x: 56, y: 80 });
-
-    fireEvent.pointerMove(screen.getByRole('img', { name: 'Schaltungseditor' }), { clientX: 96, clientY: 96 });
-    expect(props.onAnnotationDragMove).toHaveBeenCalledWith({ x: 96, y: 96 });
-
-    fireEvent.pointerDown(container.querySelector('[data-resize-handle="se"]') as SVGRectElement, {
-      button: 0,
-      pointerId: 2,
-      clientX: 208,
-      clientY: 152,
-    });
-    expect(props.onAnnotationResizeStart).toHaveBeenCalledWith(annotation, 'se', { x: 208, y: 152 });
-  });
-
-  it('renders annotations above gates', () => {
-    const input = gate('INPUT', 'input_annotation_layer');
-    const annotation = { id: 'annotation_layer', text: 'Oben', x: input.x, y: input.y, width: 160, height: 80 };
-    const { container } = render(<Canvas {...canvasProps({ circuit: circuitWith([input], [], { annotations: [annotation] }) })} />);
-
-    const gateNode = container.querySelector('.gate-node') as SVGGElement;
-    const annotationNode = container.querySelector('.canvas-annotation-node') as SVGGElement;
-
-    expect(gateNode.compareDocumentPosition(annotationNode) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('handles drag preview, drop payloads and wire drafts', () => {
@@ -184,6 +158,38 @@ describe('Canvas', () => {
 
     expect(props.onGateDragStart).not.toHaveBeenCalled();
     expect(props.onToggleInput).toHaveBeenCalledWith(input.id);
+  });
+
+  it('starts dragging annotations in edit mode', () => {
+    const props = canvasProps();
+    const { container } = render(<Canvas {...props} />);
+    const annotation = container.querySelector('.canvas-annotation') as SVGGElement;
+
+    Object.defineProperty(annotation, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(annotation, { button: 0, pointerId: 1, clientX: 96, clientY: 64 });
+
+    expect(props.onSelectGate).toHaveBeenCalledWith(null);
+    expect(props.onSelectWire).toHaveBeenCalledWith(null);
+    expect(props.onSelectAnnotation).toHaveBeenCalledWith('annotation_starter');
+    expect(props.onAnnotationDragStart).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'annotation_starter' }),
+      { x: 96, y: 64 },
+    );
+  });
+
+  it('starts resizing selected annotations from the right edge', () => {
+    const props = canvasProps({ selectedAnnotationId: 'annotation_starter' });
+    const { container } = render(<Canvas {...props} />);
+    const resizeHandle = container.querySelector('.canvas-annotation-resize-handle') as SVGRectElement;
+
+    Object.defineProperty(resizeHandle, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(resizeHandle, { button: 0, pointerId: 1, clientX: 240, clientY: 64 });
+
+    expect(props.onSelectAnnotation).toHaveBeenCalledWith('annotation_starter');
+    expect(props.onAnnotationResizeStart).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'annotation_starter' }),
+      { x: 240, y: 64 },
+    );
   });
 
   it('zooms with the mouse wheel, resets the view and pans on background drag', () => {
