@@ -9,12 +9,20 @@ function PreferencesHarness() {
   return (
     <div>
       <output aria-label="theme">{preferences.theme}</output>
-      <output aria-label="signals">{String(preferences.showSignalValues)}</output>
+      <output aria-label="editShortcut">{preferences.shortcuts.editMode}</output>
       <button type="button" onClick={toggleTheme}>
         theme
       </button>
-      <button type="button" onClick={() => setPreferences({ ...preferences, showSignalValues: !preferences.showSignalValues })}>
-        signals
+      <button
+        type="button"
+        onClick={() =>
+          setPreferences({
+            ...preferences,
+            shortcuts: { ...preferences.shortcuts, editMode: 'Ctrl+E' },
+          })
+        }
+      >
+        shortcut
       </button>
     </div>
   );
@@ -36,15 +44,16 @@ describe('PreferencesContext', () => {
     expect(screen.getByLabelText('theme')).toHaveTextContent('dark');
     expect(document.documentElement.dataset.theme).toBe('dark');
 
-    await user.click(screen.getByRole('button', { name: 'signals' }));
-    expect(screen.getByLabelText('signals')).toHaveTextContent('false');
+    await user.click(screen.getByRole('button', { name: 'shortcut' }));
+    expect(screen.getByLabelText('editShortcut')).toHaveTextContent('Ctrl+E');
 
     const stored = JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}');
     expect(stored).toMatchObject({
       theme: 'dark',
-      showSignalValues: false,
+      shortcuts: expect.objectContaining({ editMode: 'Ctrl+E' }),
     });
     expect(stored).not.toHaveProperty('compactPanels');
+    expect(stored).not.toHaveProperty('showSignalValues');
   });
 
   it('throws a clear error outside the provider', () => {
