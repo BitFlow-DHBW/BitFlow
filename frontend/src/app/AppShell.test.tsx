@@ -33,6 +33,7 @@ describe('AppShell', () => {
 
   it('renders navigation, outlet content and account actions', async () => {
     const user = userEvent.setup();
+
     render(
       <MemoryRouter initialEntries={['/projects']}>
         <Routes>
@@ -55,14 +56,15 @@ describe('AppShell', () => {
     expect(shellMocks.logout).toHaveBeenCalled();
   });
 
-  it('asks the active navigation guard before navbar navigation and logout', async () => {
+  it('passes guarded navbar navigation and logout requests to the active guard', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const guard = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(false).mockReturnValueOnce(true);
 
     function GuardedProjects() {
       const { setNavigationGuard } = useNavigationGuard();
+
       useEffect(() => {
-        setNavigationGuard(() => window.confirm('Ungespeicherte Änderungen verwerfen?'));
+        setNavigationGuard(guard);
         return () => setNavigationGuard(null);
       }, [setNavigationGuard]);
 
@@ -84,12 +86,14 @@ describe('AppShell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Abmelden' }));
     expect(shellMocks.logout).not.toHaveBeenCalled();
+    expect(guard).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'logout' }));
 
     await user.click(screen.getByRole('link', { name: 'Einstellungen' }));
     expect(screen.getByText('Projects outlet')).toBeInTheDocument();
+    expect(guard).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'navigate', target: '/settings' }));
 
     await user.click(screen.getByRole('link', { name: 'Einstellungen' }));
     expect(screen.getByText('Settings outlet')).toBeInTheDocument();
-    expect(confirmSpy).toHaveBeenCalledTimes(3);
+    expect(guard).toHaveBeenCalledTimes(3);
   });
 });

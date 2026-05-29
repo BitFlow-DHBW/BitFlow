@@ -215,4 +215,24 @@ describe('Canvas', () => {
 
     expect(svg).toHaveAttribute('viewBox', '-40 -20 1280 760');
   });
+
+  it('draws a Ctrl-drag selection marquee on the canvas background', () => {
+    const onAreaSelect = vi.fn();
+    const props = canvasProps({ onAreaSelect });
+    const { container } = render(<Canvas {...props} />);
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = container.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+
+    fireEvent.pointerDown(grid, { button: 0, ctrlKey: true, pointerId: 1, clientX: 96, clientY: 96 });
+    fireEvent.pointerMove(svg, { ctrlKey: true, pointerId: 1, clientX: 360, clientY: 260 });
+
+    expect(container.querySelector('.canvas-selection-marquee')).toHaveAttribute('width', '264');
+    expect(container.querySelector('.canvas-selection-marquee')).toHaveAttribute('height', '164');
+
+    fireEvent.pointerUp(svg, { ctrlKey: true, pointerId: 1, clientX: 360, clientY: 260 });
+
+    expect(onAreaSelect).toHaveBeenCalledWith({ x: 96, y: 96, width: 264, height: 164 });
+    expect(container.querySelector('.canvas-selection-marquee')).not.toBeInTheDocument();
+    expect(props.onCanvasClick).not.toHaveBeenCalled();
+  });
 });

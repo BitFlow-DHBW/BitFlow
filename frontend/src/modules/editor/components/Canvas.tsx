@@ -24,6 +24,7 @@ import type {
   Gate,
   Annotation,
   Point,
+  SelectionArea,
   SignalState,
   WireDraft,
   WireEndpoint,
@@ -36,8 +37,10 @@ interface CanvasProps {
   mode: EditorMode;
   selectedTool: EditorTool | null;
   selectedGateId: string | null;
+  selectedGateIds?: string[];
   selectedWireId: string | null;
   selectedAnnotationId: string | null;
+  selectedAnnotationIds?: string[];
   dragState: DragState | null;
   wireDraft: WireDraft | null;
   draggedTool: EditorTool | null;
@@ -56,6 +59,7 @@ interface CanvasProps {
   onSelectGate: (gateId: string | null) => void;
   onSelectWire: (wireId: string | null) => void;
   onSelectAnnotation: (annotationId: string | null) => void;
+  onAreaSelect?: (area: SelectionArea) => void;
   onWireStart: (endpoint: WireEndpoint, point: Point) => void;
   onWireEnd: (endpoint: WireEndpoint) => void;
   onWirePreview: (point: Point) => void;
@@ -74,14 +78,24 @@ interface PanState {
   moved: boolean;
 }
 
+interface SelectionDragState {
+  pointerId: number;
+  startClient: Point;
+  startPoint: Point;
+  currentPoint: Point;
+  moved: boolean;
+}
+
 export function Canvas({
   circuit,
   signals,
   mode,
   selectedTool,
   selectedGateId,
+  selectedGateIds = [],
   selectedWireId,
   selectedAnnotationId,
+  selectedAnnotationIds = [],
   dragState,
   wireDraft,
   draggedTool,
@@ -100,6 +114,7 @@ export function Canvas({
   onSelectGate,
   onSelectWire,
   onSelectAnnotation,
+  onAreaSelect,
   onWireStart,
   onWireEnd,
   onWirePreview,
@@ -110,11 +125,13 @@ export function Canvas({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const gatePointerRef = useRef<{ gateId: string; point: Point; moved: boolean; toggleOnRelease: boolean } | null>(null);
   const panStateRef = useRef<PanState | null>(null);
+  const selectionDragRef = useRef<SelectionDragState | null>(null);
   const suppressCanvasClickRef = useRef(false);
   const [canvasSize, setCanvasSize] = useState(FALLBACK_SIZE);
   const [viewBox, setViewBox] = useState<ViewBox>(() => createDefaultViewBox(FALLBACK_SIZE));
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [selectionArea, setSelectionArea] = useState<SelectionArea | null>(null);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -180,6 +197,7 @@ export function Canvas({
   const pinMap = useMemo(() => createPinLookup(circuit), [circuit]);
   const liveWireIds = useMemo(() => buildLiveWireIds(circuit, signals), [circuit, signals]);
   const zoomLevel = getViewBoxZoom(viewBox, canvasSize);
+  const selectedObjectCount = selectedGateIds.length + selectedAnnotationIds.length;
 
   function getPointFromClient(clientX: number, clientY: number): Point {
     const svg = svgRef.current;
@@ -223,9 +241,11 @@ export function Canvas({
 
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    onSelectGate(null);
     onSelectWire(null);
-    onSelectAnnotation(annotation.id);
+    if (!(selectedObjectCount > 1 && selectedAnnotationIds.includes(annotation.id))) {
+      onSelectGate(null);
+      onSelectAnnotation(annotation.id);
+    }
     onAnnotationDragStart(annotation, getPoint(event));
   }
 
@@ -243,6 +263,51 @@ export function Canvas({
   function isCanvasTarget(event: React.PointerEvent<SVGSVGElement> | React.MouseEvent<SVGSVGElement>): boolean {
     const target = event.target as SVGElement;
     return target.dataset.role === 'canvas-grid' || target === event.currentTarget;
+  }
+
+  function normalizeSelectionArea(start: Point, end: Point): SelectionArea {
+    return {
+      x: Math.min(start.x, end.x),
+      y: Math.min(start.y, end.y),
+      width: Math.abs(end.x - start.x),
+      height: Math.abs(end.y - start.y),
+    };
+  }
+
+  function startAreaSelection(event: React.PointerEvent<SVGSVGElement>) {
+    if (!isCanvasTarget(event)) return false;
+    if (mode !== 'edit' || event.button !== 0 || (!event.ctrlKey && !event.metaKey)) return false;
+    if (selectedTool || wireDraft || draggedTool) return false;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const point = getPoint(event);
+    selectionDragRef.current = {
+      pointerId: event.pointerId,
+      startClient: { x: event.clientX, y: event.clientY },
+      startPoint: point,
+      currentPoint: point,
+      moved: false,
+    };
+    setSelectionArea(normalizeSelectionArea(point, point));
+    return true;
+  }
+
+  function endAreaSelection(event?: React.PointerEvent<SVGSVGElement>, commitSelection = true) {
+    const selectionDrag = selectionDragRef.current;
+    if (!selectionDrag) return false;
+
+    if (event?.currentTarget.hasPointerCapture?.(selectionDrag.pointerId)) {
+      event.currentTarget.releasePointerCapture?.(selectionDrag.pointerId);
+    }
+
+    const area = normalizeSelectionArea(selectionDrag.startPoint, selectionDrag.currentPoint);
+    suppressCanvasClickRef.current = commitSelection && selectionDrag.moved;
+    selectionDragRef.current = null;
+    setSelectionArea(null);
+
+    if (commitSelection && selectionDrag.moved) onAreaSelect?.(area);
+    return true;
   }
 
   function startPan(event: React.PointerEvent<SVGSVGElement>) {
@@ -277,6 +342,11 @@ export function Canvas({
     panStateRef.current = null;
     setIsPanning(false);
     return true;
+  }
+
+  function handleCanvasPointerDown(event: React.PointerEvent<SVGSVGElement>) {
+    if (startAreaSelection(event)) return;
+    startPan(event);
   }
 
   function zoomBy(scaleFactor: number, focalPoint: Point = { x: viewBox.x + viewBox.width / 2, y: viewBox.y + viewBox.height / 2 }) {
@@ -350,8 +420,23 @@ export function Canvas({
           onSelectAnnotation(null);
           onToolDrop(tool, getPoint(event));
         }}
-        onPointerDown={startPan}
+        onPointerDown={handleCanvasPointerDown}
         onPointerMove={(event) => {
+          const selectionDrag = selectionDragRef.current;
+          if (selectionDrag) {
+            const point = getPoint(event);
+            onCanvasPointerMove?.(point);
+            const screenDelta = {
+              x: event.clientX - selectionDrag.startClient.x,
+              y: event.clientY - selectionDrag.startClient.y,
+            };
+            selectionDrag.moved =
+              selectionDrag.moved || Math.abs(screenDelta.x) > 4 || Math.abs(screenDelta.y) > 4;
+            selectionDrag.currentPoint = point;
+            setSelectionArea(normalizeSelectionArea(selectionDrag.startPoint, point));
+            return;
+          }
+
           const panState = panStateRef.current;
           if (panState) {
             onCanvasPointerMove?.(getPointFromClient(event.clientX, event.clientY));
@@ -372,6 +457,7 @@ export function Canvas({
           if (mode === 'edit' && wireDraft) onWirePreview({ x: snapToGrid(point.x), y: snapToGrid(point.y) });
         }}
         onPointerUp={(event) => {
+          if (endAreaSelection(event)) return;
           if (endPan(event)) return;
 
           const pointer = gatePointerRef.current;
@@ -385,6 +471,7 @@ export function Canvas({
           }
         }}
         onPointerLeave={(event) => {
+          if (endAreaSelection(event, false)) return;
           if (endPan(event, false)) return;
           gatePointerRef.current = null;
           onDragEnd();
@@ -418,6 +505,16 @@ export function Canvas({
           height={viewBox.height}
           fill="url(#editor-grid)"
         />
+
+        {selectionArea && (
+          <rect
+            className="canvas-selection-marquee"
+            x={selectionArea.x}
+            y={selectionArea.y}
+            width={selectionArea.width}
+            height={selectionArea.height}
+          />
+        )}
 
         {circuit.wires.map((wire) => {
           const points = getWirePoints(wire, pinMap);
@@ -482,21 +579,24 @@ export function Canvas({
             key={gate.id}
             gate={gate}
             signals={signals}
-            selected={mode === 'edit' && gate.id === selectedGateId}
+            selected={mode === 'edit' && (gate.id === selectedGateId || selectedGateIds.includes(gate.id))}
             selectedTool={mode === 'edit' ? selectedTool : null}
             onGatePointerDown={(event, selectedGate) => {
               event.stopPropagation();
               event.currentTarget.setPointerCapture(event.pointerId);
               const point = getPoint(event);
+              const preserveSelection = mode === 'edit' && selectedObjectCount > 1 && selectedGateIds.includes(selectedGate.id);
               gatePointerRef.current = {
                 gateId: selectedGate.id,
                 point,
                 moved: false,
                 toggleOnRelease: mode === 'simulate' && event.button === 0 && isInteractiveSourceGate(selectedGate),
               };
-              onSelectGate(selectedGate.id);
               onSelectWire(null);
-              onSelectAnnotation(null);
+              if (!preserveSelection) {
+                onSelectGate(selectedGate.id);
+                onSelectAnnotation(null);
+              }
               if (mode === 'edit') onGateDragStart(selectedGate, point);
             }}
             onGateClick={(event) => {
@@ -516,7 +616,8 @@ export function Canvas({
 
         {(circuit.annotations ?? []).map((annotation) => {
           const layout = getAnnotationLayout(annotation.text, annotation.width);
-          const selected = selectedAnnotationId === annotation.id;
+          const selected = selectedAnnotationId === annotation.id || selectedAnnotationIds.includes(annotation.id);
+          const canResizeAnnotation = selectedAnnotationId === annotation.id && selectedObjectCount <= 1;
 
           return (
             <g
@@ -551,7 +652,7 @@ export function Canvas({
                   </tspan>
                 ))}
               </text>
-              {mode === 'edit' && selected && (
+              {mode === 'edit' && canResizeAnnotation && (
                 <>
                   <line
                     className="canvas-annotation-resize-indicator"

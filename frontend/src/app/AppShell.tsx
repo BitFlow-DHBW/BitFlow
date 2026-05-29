@@ -21,7 +21,7 @@ export function AppShell() {
 
   function navigateWithGuard(to: string) {
     if (location.pathname === to) return;
-    if (confirmNavigation()) navigate(to);
+    if (confirmNavigation({ kind: 'navigate', target: to, proceed: () => navigate(to) })) navigate(to);
   }
 
   function handleNavClick(event: MouseEvent<HTMLAnchorElement>, to: string) {
@@ -31,7 +31,7 @@ export function AppShell() {
   }
 
   function handleLogout() {
-    if (confirmNavigation()) logout();
+    if (confirmNavigation({ kind: 'logout', proceed: logout })) logout();
   }
 
   return (

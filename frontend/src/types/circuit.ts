@@ -38,6 +38,13 @@ export interface Point {
   y: number;
 }
 
+export interface SelectionArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface Pin {
   id: string;
   gateId: string;
@@ -139,7 +146,14 @@ export interface AnnotationResizeState {
   startWidth: number;
 }
 
-export type DragState = GateDragState | AnnotationDragState | AnnotationResizeState;
+export interface SelectionMoveState {
+  kind: 'selection';
+  startPoint: Point;
+  gates: Array<{ id: string; x: number; y: number }>;
+  annotations: Array<{ id: string; x: number; y: number }>;
+}
+
+export type DragState = GateDragState | AnnotationDragState | AnnotationResizeState | SelectionMoveState;
 
 export interface WireDraft {
   start: WireEndpoint;

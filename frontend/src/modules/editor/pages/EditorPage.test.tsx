@@ -6,6 +6,7 @@ import { createStarterCircuit } from '../../../simulation/gateLibrary';
 import { testProject, testUser } from '../../../test/builders';
 import { AuthProvider } from '../../auth/AuthContext';
 import { PreferencesProvider } from '../../settings/PreferencesContext';
+import { PANEL_LAUNCHER_STORAGE_KEY, PANEL_STORAGE_KEY } from '../panelLayout';
 import { EditorPage } from './EditorPage';
 
 const projectMocks = vi.hoisted(() => ({
@@ -44,6 +45,8 @@ describe('EditorPage', () => {
     projectMocks.getProject.mockReset();
     projectMocks.listProjects.mockReset();
     projectMocks.updateProject.mockReset();
+    window.localStorage.removeItem(PANEL_STORAGE_KEY);
+    window.localStorage.removeItem(PANEL_LAUNCHER_STORAGE_KEY);
   });
 
   it('loads a project workspace with toolbar, library, canvas and signal panels', async () => {
@@ -63,13 +66,20 @@ describe('EditorPage', () => {
       JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
     );
 
-    renderEditor();
+    const { container } = renderEditor();
 
     expect(await screen.findByRole('heading', { name: 'Starter Circuit' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bibliothek einklappen' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Details einklappen' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Rechts Dock' })).toBeInTheDocument();
+    expect(container.querySelectorAll('.panel-dock-right')).toHaveLength(1);
+    expect(screen.getByRole('tab', { name: 'Inspector' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Signals' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Inspector einklappen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Panels zuruecksetzen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Signals' }));
+    expect(screen.getByRole('button', { name: 'Signals einklappen' })).toBeInTheDocument();
     expect(screen.getByText(/Pin-Zust/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Simulieren' }));
@@ -78,7 +88,7 @@ describe('EditorPage', () => {
     expect(screen.getByRole('button', { name: /Eingang1/ })).toBeInTheDocument();
   });
 
-  it('collapses the side panels without removing the canvas', async () => {
+  it('collapses and reopens editor panels without removing the canvas', async () => {
     const user = userEvent.setup();
     const currentUser = testUser();
     projectMocks.getProject.mockResolvedValue(
@@ -100,13 +110,17 @@ describe('EditorPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Bibliothek einklappen' }));
     expect(screen.queryByRole('button', { name: /AND/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Bibliothek öffnen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Library' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Details einklappen' }));
+    await user.click(screen.getByRole('tab', { name: 'Signals' }));
+    await user.click(screen.getByRole('button', { name: 'Signals einklappen' }));
     expect(screen.queryByText(/Pin-Zust/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Details öffnen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Signals' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Library' }));
+    expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
   });
 
   it('supports an edit workflow with placement, annotations, custom components, save and delete', async () => {
@@ -267,6 +281,93 @@ describe('EditorPage', () => {
     expect(svg.querySelectorAll('.canvas-annotation')).toHaveLength(initialAnnotationCount + 1);
   });
 
+  it('selects multiple gates with Ctrl-drag and deletes them with Backspace', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    let savedProject = testProject({
+      id: 'project_editor',
+      ownerId: currentUser.id,
+      name: 'Multi Select Circuit',
+      circuit: createStarterCircuit('Multi Select Circuit'),
+    });
+    projectMocks.getProject.mockResolvedValue(savedProject);
+    projectMocks.updateProject.mockImplementation(async (_projectId, patch) => {
+      savedProject = { ...savedProject, ...patch, updatedAt: '2026-05-01T10:00:00.000Z' };
+      return savedProject;
+    });
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Multi Select Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(4);
+
+    fireEvent.pointerDown(grid, { button: 0, ctrlKey: true, pointerId: 1, clientX: 80, clientY: 96 });
+    fireEvent.pointerMove(svg, { ctrlKey: true, pointerId: 1, clientX: 480, clientY: 320 });
+    fireEvent.pointerUp(svg, { ctrlKey: true, pointerId: 1, clientX: 480, clientY: 320 });
+
+    expect(svg.querySelectorAll('.gate-node.is-selected').length).toBeGreaterThan(1);
+
+    const selectedGateNode = svg.querySelector('.gate-node.is-selected') as SVGGElement;
+    Object.defineProperty(selectedGateNode, 'setPointerCapture', { value: vi.fn(), configurable: true });
+    fireEvent.pointerDown(selectedGateNode, { button: 0, pointerId: 2, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 148, clientY: 124 });
+    fireEvent.pointerUp(svg, { pointerId: 2, clientX: 148, clientY: 124 });
+
+    await user.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(projectMocks.updateProject).toHaveBeenCalled());
+    const savedCircuit = projectMocks.updateProject.mock.calls.at(-1)?.[1].circuit;
+    expect(savedCircuit.gates.find((gate: { id: string }) => gate.id === 'input_a')).toMatchObject({ x: 144, y: 144 });
+    expect(savedCircuit.gates.find((gate: { id: string }) => gate.id === 'input_b')).toMatchObject({ x: 144, y: 264 });
+    expect(savedCircuit.gates.find((gate: { id: string }) => gate.id === 'and_main')).toMatchObject({ x: 384, y: 192 });
+    expect(savedCircuit.gates.find((gate: { id: string }) => gate.id === 'output_main')).toMatchObject({ x: 624, y: 192 });
+
+    fireEvent.keyDown(window, { key: 'Backspace' });
+
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(1);
+    expect(svg.querySelectorAll('.wire')).toHaveLength(0);
+    expect(screen.getByText('Ungespeichert')).toBeInTheDocument();
+  });
+
+  it('supports Ctrl+Z and Ctrl+Y for undo and redo', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    projectMocks.getProject.mockResolvedValue(
+      testProject({
+        id: 'project_editor',
+        ownerId: currentUser.id,
+        name: 'Shortcut Circuit',
+        circuit: createStarterCircuit('Shortcut Circuit'),
+      }),
+    );
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Shortcut Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+
+    await user.click(screen.getAllByRole('button', { name: /AND/ })[0]);
+    fireEvent.click(grid, { clientX: 240, clientY: 120 });
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(5);
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(4);
+
+    fireEvent.keyDown(window, { key: 'y', ctrlKey: true });
+    expect(svg.querySelectorAll('.gate-node')).toHaveLength(5);
+  });
+
   it('warns about unsaved changes before leaving and clears the warning after save', async () => {
     const user = userEvent.setup();
     const currentUser = testUser();
@@ -306,7 +407,7 @@ describe('EditorPage', () => {
     expect(dispatchBeforeUnload().defaultPrevented).toBe(false);
   });
 
-  it('asks for confirmation before using the toolbar back button with unsaved changes', async () => {
+  it('shows a custom unsaved-changes dialog before using the toolbar back button', async () => {
     const user = userEvent.setup();
     const currentUser = testUser();
     const circuit = createStarterCircuit('Guarded Circuit');
@@ -322,7 +423,6 @@ describe('EditorPage', () => {
       'bitflow.session',
       JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
     );
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
 
     renderEditor();
 
@@ -333,11 +433,50 @@ describe('EditorPage', () => {
     fireEvent.click(grid, { clientX: 240, clientY: 120 });
 
     await user.click(screen.getByRole('button', { name: /Projekt/ }));
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog', { name: 'Projekt vor dem Verlassen speichern?' })).toBeInTheDocument();
+    expect(screen.queryByText('Projects page')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByRole('dialog', { name: 'Projekt vor dem Verlassen speichern?' })).not.toBeInTheDocument();
     expect(screen.queryByText('Projects page')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Projekt/ }));
-    expect(confirmSpy).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', { name: 'Ohne Speichern verlassen' }));
+    expect(await screen.findByText('Projects page')).toBeInTheDocument();
+  });
+
+  it('can save from the unsaved-changes dialog before leaving', async () => {
+    const user = userEvent.setup();
+    const currentUser = testUser();
+    const circuit = createStarterCircuit('Save Before Leave Circuit');
+    let savedProject = testProject({
+      id: 'project_editor',
+      ownerId: currentUser.id,
+      name: 'Save Before Leave Circuit',
+      circuit,
+    });
+    projectMocks.getProject.mockResolvedValue(savedProject);
+    projectMocks.updateProject.mockImplementation(async (_projectId, patch) => {
+      savedProject = { ...savedProject, ...patch, updatedAt: '2026-05-01T10:00:00.000Z' };
+      return savedProject;
+    });
+    window.localStorage.setItem(
+      'bitflow.session',
+      JSON.stringify({ token: 'session_editor', user: currentUser, createdAt: currentUser.createdAt }),
+    );
+
+    renderEditor();
+
+    expect(await screen.findByRole('heading', { name: 'Save Before Leave Circuit' })).toBeInTheDocument();
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+    const grid = svg.querySelector('[data-role="canvas-grid"]') as SVGRectElement;
+    await user.click(screen.getAllByRole('button', { name: /AND/ })[0]);
+    fireEvent.click(grid, { clientX: 240, clientY: 120 });
+
+    await user.click(screen.getByRole('button', { name: /Projekt/ }));
+    await user.click(screen.getByRole('button', { name: 'Speichern und verlassen' }));
+
+    await waitFor(() => expect(projectMocks.updateProject).toHaveBeenCalled());
     expect(await screen.findByText('Projects page')).toBeInTheDocument();
   });
 

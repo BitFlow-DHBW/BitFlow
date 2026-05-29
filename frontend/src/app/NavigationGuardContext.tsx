@@ -1,9 +1,15 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
-type NavigationGuard = () => boolean;
+export interface NavigationGuardRequest {
+  kind: 'navigate' | 'logout';
+  target?: string;
+  proceed: () => void;
+}
+
+type NavigationGuard = (request?: NavigationGuardRequest) => boolean;
 
 interface NavigationGuardContextValue {
-  confirmNavigation: () => boolean;
+  confirmNavigation: (request?: NavigationGuardRequest) => boolean;
   setNavigationGuard: (guard: NavigationGuard | null) => void;
 }
 
@@ -19,7 +25,10 @@ export function NavigationGuardProvider({ children }: { children: ReactNode }) {
     setActiveGuard(guard ? () => guard : null);
   }, []);
 
-  const confirmNavigation = useCallback(() => activeGuard?.() ?? true, [activeGuard]);
+  const confirmNavigation = useCallback(
+    (request?: NavigationGuardRequest) => activeGuard?.(request) ?? true,
+    [activeGuard],
+  );
 
   const value = useMemo(
     () => ({

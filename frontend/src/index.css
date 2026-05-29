@@ -735,7 +735,7 @@ a svg {
   display: grid;
   height: calc(100dvh - 4.25rem);
   min-height: 0;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   background: var(--bg-strong);
   overflow: hidden;
 }
@@ -812,13 +812,10 @@ a svg {
 
 .collaboration-panel {
   display: grid;
-  grid-row: 2;
   grid-template-columns: auto minmax(220px, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface-soft);
-  padding: 0.65rem 1rem;
+  background: var(--surface);
 }
 
 .collaboration-summary,
@@ -879,25 +876,15 @@ a svg {
 }
 
 .editor-grid-layout {
-  --left-dock-width: 280px;
-  --right-dock-width: 340px;
+  --dock-left-width: 0px;
+  --dock-right-width: 0px;
 
-  display: grid;
-  grid-row: 3;
-  grid-template-columns: var(--left-dock-width) minmax(0, 1fr) var(--right-dock-width);
-  gap: 0.75rem;
+  position: relative;
+  grid-row: 2;
   height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 0.75rem;
-}
-
-.editor-grid-layout.is-left-collapsed {
-  --left-dock-width: 3rem;
-}
-
-.editor-grid-layout.is-right-collapsed {
-  --right-dock-width: 3rem;
 }
 
 .editor-panel {
@@ -906,7 +893,6 @@ a svg {
   overflow: hidden;
 }
 
-.editor-side-panel,
 .library-panel,
 .right-panel-stack,
 .canvas-stage,
@@ -914,71 +900,321 @@ a svg {
   min-height: 0;
 }
 
-.editor-side-panel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-width: 0;
+.canvas-stage {
+  position: absolute;
+  z-index: 1;
+  top: 0.75rem;
+  right: calc(0.75rem + var(--dock-right-width));
+  bottom: 0.75rem;
+  left: calc(0.75rem + var(--dock-left-width));
+  height: auto;
+  min-height: 0;
   overflow: hidden;
-}
-
-.editor-side-panel-left {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.editor-side-panel-right {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.editor-side-panel.is-collapsed {
-  grid-template-rows: minmax(0, 1fr);
-}
-
-.editor-side-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  min-height: 2.45rem;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
+  transition: left 160ms ease, right 160ms ease, bottom 160ms ease;
+}
+
+.panel-dock {
+  position: absolute;
+  z-index: 8;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.panel-dock-left,
+.panel-dock-right {
+  top: 0.75rem;
+  bottom: 0.75rem;
+}
+
+.panel-dock-left {
+  left: 0.75rem;
+  width: var(--dock-left-width);
+}
+
+.panel-dock-right {
+  right: 0.75rem;
+  width: var(--dock-right-width);
+}
+
+.panel-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.8rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+  padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+}
+
+.panel-dock-title {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.panel-dock-title span {
+  color: var(--text);
+  font-weight: 900;
+}
+
+.panel-dock-title small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.panel-dock-actions,
+.panel-dock-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.panel-dock-tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+  padding: 0.4rem;
+  scrollbar-width: thin;
+}
+
+.panel-dock-tabs button {
+  min-height: 2rem;
+  flex: 1 0 auto;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 0.4rem 0.6rem;
+}
+
+.panel-dock-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--primary) 72%, transparent);
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+}
+
+.panel-dock-toolbar {
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  line-height: 1.1;
-  padding: 0.55rem 0.65rem;
 }
 
-.editor-side-toggle:hover {
-  border-color: var(--primary);
-  color: var(--primary-strong);
-}
-
-.editor-side-panel.is-collapsed .editor-side-toggle {
-  width: 100%;
-  height: 100%;
+.panel-dock-content {
   min-height: 0;
-  flex-direction: column;
-  padding: 0.65rem 0.35rem;
-}
-
-.editor-side-panel.is-collapsed .editor-side-toggle span {
-  writing-mode: vertical-rl;
-}
-
-.editor-side-panel-left.is-collapsed .editor-side-toggle span {
-  transform: rotate(180deg);
-}
-
-.editor-side-content {
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: auto;
   overscroll-behavior: contain;
-  padding-top: 0.5rem;
+}
+
+.panel-dock-content > .editor-panel,
+.panel-dock-content .right-panel-stack > .editor-panel,
+.panel-dock-content .session-panel-stack > .editor-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.floating-panel-layer {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  pointer-events: none;
+}
+
+.floating-panel {
+  display: flex;
+  min-width: 16rem;
+  min-height: 8rem;
+  max-width: min(36rem, calc(100% - 1.5rem));
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.floating-panel.is-floating {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.floating-panel.is-docked {
+  width: 100%;
+  max-height: 100%;
+  flex: 0 0 auto;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.1);
+}
+
+.floating-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 2.8rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+  padding: 0.4rem 0.45rem 0.4rem 0.75rem;
+}
+
+.floating-panel-drag-handle {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+}
+
+.floating-panel-drag-handle.is-draggable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.floating-panel-drag-handle.is-draggable:active {
+  cursor: grabbing;
+}
+
+.drag-grip {
+  color: var(--muted);
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.floating-panel-dockbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+  color: var(--muted);
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.floating-panel-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.floating-panel-content > .editor-panel,
+.floating-panel-content .right-panel-stack > .editor-panel,
+.session-panel-stack > .editor-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.session-panel-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.session-panel-stack .collaboration-panel {
+  grid-template-columns: 1fr;
+  padding: 0.9rem;
+}
+
+.panel-launcher {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  width: max-content;
+  max-width: min(26rem, calc(100% - 1.5rem));
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: visible;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  padding: 0.3rem;
+  backdrop-filter: blur(12px);
+}
+
+.panel-launcher.is-minimized {
+  width: auto;
+  max-width: none;
+}
+
+.panel-launcher button,
+.panel-reset-button {
+  min-height: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--muted);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 0.45rem 0.65rem;
+}
+
+.panel-launcher .panel-launcher-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 1.45rem;
+  align-self: stretch;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  cursor: grab;
+  padding: 0.1rem 0.45rem;
+  touch-action: none;
+}
+
+.panel-launcher:not(.is-minimized) .panel-launcher-handle {
+  width: 2rem;
+  padding-inline: 0;
+}
+
+.panel-launcher .panel-launcher-handle:active {
+  cursor: grabbing;
+}
+
+.panel-launcher button.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.panel-reset-button {
+  position: absolute;
+  z-index: 20;
+  right: calc(1rem + var(--dock-right-width));
+  bottom: 1rem;
+}
+
+.unsaved-changes-modal {
+  width: min(520px, 100%);
 }
 
 .library-panel {
@@ -1048,17 +1284,6 @@ a svg {
   background: var(--primary-soft);
 }
 
-.canvas-stage {
-  grid-column: 2;
-  grid-row: 1;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-}
-
 .canvas-frame {
   position: relative;
   width: 100%;
@@ -1081,7 +1306,7 @@ a svg {
 
 .canvas-view-controls {
   position: absolute;
-  z-index: 3;
+  z-index: 6;
   top: 0.75rem;
   right: 0.75rem;
   display: flex;
@@ -1111,6 +1336,14 @@ a svg {
 .grid-line {
   stroke: color-mix(in srgb, var(--line-strong) 58%, transparent);
   stroke-width: 1;
+}
+
+.canvas-selection-marquee {
+  fill: color-mix(in srgb, var(--primary) 16%, transparent);
+  pointer-events: none;
+  stroke: var(--primary);
+  stroke-dasharray: 8 5;
+  stroke-width: 1.5;
 }
 
 .wire {
@@ -1611,11 +1844,6 @@ a svg {
     grid-template-columns: 1fr;
   }
 
-  .editor-grid-layout {
-    --left-dock-width: 240px;
-    --right-dock-width: 300px;
-  }
-
   .panel-heading {
     grid-column: 1 / -1;
   }
@@ -1686,25 +1914,31 @@ a svg {
     min-height: inherit;
   }
 
-  .editor-grid-layout {
-    --left-dock-width: 3rem;
-    --right-dock-width: 3rem;
-    position: relative;
-  }
-
-  .editor-side-panel:not(.is-collapsed) {
-    position: absolute;
-    z-index: 12;
-    top: 0.75rem;
+  .canvas-stage {
+    right: 0.75rem;
     bottom: 0.75rem;
-    width: min(20rem, calc(100% - 4.5rem));
-  }
-
-  .editor-side-panel-left:not(.is-collapsed) {
     left: 0.75rem;
   }
 
-  .editor-side-panel-right:not(.is-collapsed) {
-    right: 0.75rem;
+  .panel-dock-left,
+  .panel-dock-right {
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: min(22rem, calc(100% - 4.5rem));
+  }
+
+  .panel-reset-button {
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .panel-launcher {
+    width: max-content;
+    max-width: min(22rem, calc(100% - 1.5rem));
+  }
+
+  .floating-panel.is-floating {
+    width: min(22rem, calc(100% - 1.5rem)) !important;
+    max-height: min(70vh, calc(100% - 1.5rem)) !important;
   }
 }

@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
 import { CollaborationPanel, type InviteCopyStatus } from '../components/CollaborationPanel';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
-import { EditorSidePanel } from '../components/EditorSidePanel';
+import { FloatingPanel } from '../components/FloatingPanel';
 import { Inspector } from '../components/Inspector';
 import { Library } from '../components/Library';
+import { PanelDock } from '../components/PanelDock';
+import { PanelLauncher } from '../components/PanelLauncher';
 import { SignalViewer } from '../components/SignalViewer';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { Toolbar } from '../components/Toolbar';
+import { UnsavedChangesDialog } from '../components/UnsavedChangesDialog';
 import { getAnnotationLayout, normalizeAnnotationWidth } from '../annotationLayout';
 import { buildInviteLink, readSessionIdFromSearch } from '../collaborationLinks';
 import { mergeRemoteCircuitWithLocalInteraction } from '../collaborationMerge';
@@ -22,13 +25,35 @@ import {
   type EditorClipboardItem,
 } from '../editorClipboard';
 import { positionAnnotationFromDrag, positionGateAtPoint, positionGateFromDrag } from '../editorGeometry';
-import { useNavigationGuard } from '../../../app/NavigationGuardContext';
+import {
+  EDITOR_PANEL_DEFINITIONS,
+  clampFloatingPanels,
+  clampPanelLauncherPosition,
+  createDefaultPanelLauncherPosition,
+  getDockMetrics,
+  getNextActiveDockPanel,
+  getZoomControlSafeArea,
+  groupPanelsByDock,
+  readStoredPanelLauncherPosition,
+  readStoredPanelStates,
+  resetPanelStates,
+  updatePanelDock,
+  updatePanelFloatingPosition,
+  updatePanelOpen,
+  writeStoredPanelLauncherPosition,
+  writeStoredPanelStates,
+  type EditorPanelId,
+  type EditorPanelState,
+  type PanelContainerSize,
+  type PanelDockPosition,
+} from '../panelLayout';
+import { useNavigationGuard, type NavigationGuardRequest } from '../../../app/NavigationGuardContext';
 import { useAuth } from '../../auth/AuthContext';
 import { usePreferences } from '../../settings/PreferencesContext';
 import { useHistory } from '../../../hooks/useHistory';
 import { useCollaborationSession } from '../../../hooks/useCollaborationSession';
 import { projectService } from '../../../services/projectService';
-import { createCustomGate, createGate, createStarterCircuit, snapToGrid } from '../../../simulation/gateLibrary';
+import { createCustomGate, createGate, createStarterCircuit, gateRectPx, snapToGrid } from '../../../simulation/gateLibrary';
 import { evaluateCircuit } from '../../../simulation/evaluateCircuit';
 import { buildCircuitNets } from '../../../simulation/netModel';
 import { createPinLookup, getWirePoints } from '../../../simulation/wireUtils';
@@ -41,6 +66,7 @@ import type {
   EditorTool,
   Gate,
   Point,
+  SelectionArea,
   SignalState,
   WireDraft,
   WireEndpoint,
@@ -84,6 +110,15 @@ function endpointUsesPin(endpoint: WireEndpoint | undefined, pinIds: Set<string>
   return endpoint?.kind === 'pin' ? pinIds.has(endpoint.pinId) : false;
 }
 
+function rectanglesOverlap(area: SelectionArea, bounds: SelectionArea): boolean {
+  return (
+    area.x <= bounds.x + bounds.width &&
+    area.x + area.width >= bounds.x &&
+    area.y <= bounds.y + bounds.height &&
+    area.y + area.height >= bounds.y
+  );
+}
+
 function signalStatesEqual(a: SignalState, b: SignalState): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const key of keys) {
@@ -93,21 +128,12 @@ function signalStatesEqual(a: SignalState, b: SignalState): boolean {
 }
 
 const TOOL_PREVIEW_GATE_ID = 'tool_preview';
-const UNSAVED_CHANGES_MESSAGE = 'Es gibt ungespeicherte Änderungen. Seite wirklich verlassen?';
-
-function startWithCollapsedPanels(): boolean {
-  return Boolean(
-    typeof window !== 'undefined' &&
-      window.matchMedia?.('(max-width: 760px)').matches,
-  );
-}
-
-function editorLayoutClasses(libraryCollapsed: boolean, detailsCollapsed: boolean): string {
-  const classes = ['editor-grid-layout'];
-  if (libraryCollapsed) classes.push('is-left-collapsed');
-  if (detailsCollapsed) classes.push('is-right-collapsed');
-  return classes.join(' ');
-}
+const DEFAULT_ACTIVE_DOCK_PANELS: Record<PanelDockPosition, EditorPanelId | null> = {
+  left: 'library',
+  right: 'inspector',
+};
+const PANEL_LAUNCHER_SIZE = { width: 344, height: 44 };
+const MINIMIZED_PANEL_LAUNCHER_SIZE = { width: 116, height: 44 };
 
 function createTransientSessionProject(sessionId: string, ownerId: string | undefined): Project {
   const now = new Date().toISOString();
@@ -124,6 +150,12 @@ function createTransientSessionProject(sessionId: string, ownerId: string | unde
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function panelDefinition(panelId: EditorPanelId) {
+  const definition = EDITOR_PANEL_DEFINITIONS.find((entry) => entry.id === panelId);
+  if (!definition) throw new Error(`Unknown editor panel: ${panelId}`);
+  return definition;
 }
 
 export function EditorPage() {
@@ -219,8 +251,10 @@ function EditorWorkspace({
   const [mode, setMode] = useState<EditorMode>('edit');
   const [selectedTool, setSelectedTool] = useState<EditorTool | null>(null);
   const [selectedGateId, setSelectedGateId] = useState<string | null>(null);
+  const [selectedGateIds, setSelectedGateIds] = useState<string[]>([]);
   const [selectedWireId, setSelectedWireId] = useState<string | null>(null);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<string[]>([]);
   const [clipboardItem, setClipboardItem] = useState<EditorClipboardItem | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dragStartCircuit, setDragStartCircuit] = useState<Circuit | null>(null);
@@ -235,8 +269,16 @@ function EditorWorkspace({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
   const [inviteCopyStatus, setInviteCopyStatus] = useState<InviteCopyStatus>('idle');
-  const [libraryCollapsed, setLibraryCollapsed] = useState(startWithCollapsedPanels);
-  const [detailsCollapsed, setDetailsCollapsed] = useState(startWithCollapsedPanels);
+  const workbenchRef = useRef<HTMLDivElement | null>(null);
+  const [panelStates, setPanelStates] = useState<EditorPanelState[]>(() => readStoredPanelStates());
+  const [workbenchSize, setWorkbenchSize] = useState<PanelContainerSize>({ width: 1280, height: 720 });
+  const [panelLauncherPosition, setPanelLauncherPosition] = useState(() => readStoredPanelLauncherPosition());
+  const [panelLauncherMinimized, setPanelLauncherMinimized] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<NavigationGuardRequest | null>(null);
+  const [navigationSavePending, setNavigationSavePending] = useState(false);
+  const [navigationDialogError, setNavigationDialogError] = useState<string | null>(null);
+  const [activeDockPanels, setActiveDockPanels] =
+    useState<Record<PanelDockPosition, EditorPanelId | null>>(DEFAULT_ACTIVE_DOCK_PANELS);
   const currentEditorStateRef = useRef<CollaborationCircuitState>(
     createCollaborationCircuitState(history.state, inputSignals, customComponents),
   );
@@ -247,6 +289,35 @@ function EditorWorkspace({
     setHasUnsavedChanges(false);
     setSaveState('Gespeichert');
   }, [project.id, project.inputSignals, project.customComponents]);
+
+  useEffect(() => {
+    writeStoredPanelStates(panelStates);
+  }, [panelStates]);
+
+  useEffect(() => {
+    writeStoredPanelLauncherPosition(panelLauncherPosition);
+  }, [panelLauncherPosition]);
+
+  useEffect(() => {
+    const workbench = workbenchRef.current;
+    if (!workbench) return undefined;
+
+    const updateSize = () => {
+      const rect = workbench.getBoundingClientRect();
+      const nextSize = {
+        width: Math.max(1, Math.round(rect.width)),
+        height: Math.max(1, Math.round(rect.height)),
+      };
+      setWorkbenchSize((current) =>
+        current.width === nextSize.width && current.height === nextSize.height ? current : nextSize,
+      );
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(workbench);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     currentUrlRef.current = `${location.pathname}${location.search}${location.hash}`;
@@ -268,16 +339,20 @@ function EditorWorkspace({
     if (!hasUnsavedChanges) return undefined;
 
     function handlePopState(event: PopStateEvent) {
-      if (window.confirm(UNSAVED_CHANGES_MESSAGE)) return;
-
       event.preventDefault();
       event.stopImmediatePropagation();
       window.history.pushState(null, '', currentUrlRef.current);
+      setNavigationDialogError(null);
+      setPendingNavigation({
+        kind: 'navigate',
+        target: '/projects',
+        proceed: () => navigate('/projects', { replace: true }),
+      });
     }
 
     window.addEventListener('popstate', handlePopState, true);
     return () => window.removeEventListener('popstate', handlePopState, true);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, navigate]);
 
   const currentEditorState = useMemo(
     () => createCollaborationCircuitState(history.state, inputSignals, customComponents),
@@ -320,6 +395,12 @@ function EditorWorkspace({
     () => (collaboration.session ? buildInviteLink(collaboration.session.sessionId) : null),
     [collaboration.session],
   );
+
+  useEffect(() => {
+    if (!collaboration.session && !collaboration.message) return;
+    setActiveDockPanels((current) => ({ ...current, left: 'session' }));
+    setPanelStates((current) => updatePanelOpen(current, 'session', true));
+  }, [collaboration.message, collaboration.session]);
 
   useEffect(() => {
     setInviteCopyStatus('idle');
@@ -372,10 +453,52 @@ function EditorWorkspace({
   const selectedGate = history.state.gates.find((gate) => gate.id === selectedGateId) ?? null;
   const selectedWire = history.state.wires.find((wire) => wire.id === selectedWireId) ?? null;
   const selectedAnnotation = (history.state.annotations ?? []).find((annotation) => annotation.id === selectedAnnotationId) ?? null;
+  const selectedGateIdSet = useMemo(() => new Set(selectedGateIds), [selectedGateIds]);
+  const selectedAnnotationIdSet = useMemo(() => new Set(selectedAnnotationIds), [selectedAnnotationIds]);
+  const selectedObjectCount = selectedGateIds.length + selectedAnnotationIds.length;
   const pinMap = useMemo(() => createPinLookup(history.state), [history.state]);
-  const hasSelectedCanvasItem = Boolean(selectedGate || selectedWire || selectedAnnotation);
+  const hasSelectedCanvasItem = Boolean(selectedWire || selectedGateIds.length > 0 || selectedAnnotationIds.length > 0);
   const canPasteClipboard = mode === 'edit' && Boolean(clipboardItem);
-  const editorLayoutClassName = editorLayoutClasses(libraryCollapsed, detailsCollapsed);
+  const dockMetrics = useMemo(() => getDockMetrics(panelStates), [panelStates]);
+  const zoomControlSafeArea = useMemo(
+    () => getZoomControlSafeArea(workbenchSize, dockMetrics),
+    [dockMetrics, workbenchSize],
+  );
+  const dockedPanelGroups = useMemo(() => groupPanelsByDock(panelStates), [panelStates]);
+  const floatingPanels = useMemo(
+    () => panelStates.filter((panel) => panel.isOpen && !panel.dockPosition),
+    [panelStates],
+  );
+
+  useEffect(() => {
+    setPanelStates((current) => clampFloatingPanels(current, workbenchSize, zoomControlSafeArea));
+  }, [workbenchSize, zoomControlSafeArea]);
+
+  useEffect(() => {
+    setPanelLauncherPosition((current) =>
+      clampPanelLauncherPosition(
+        current,
+        workbenchSize,
+        dockMetrics,
+        zoomControlSafeArea,
+        panelLauncherMinimized ? MINIMIZED_PANEL_LAUNCHER_SIZE : PANEL_LAUNCHER_SIZE,
+      ),
+    );
+  }, [dockMetrics, panelLauncherMinimized, workbenchSize, zoomControlSafeArea]);
+
+  useEffect(() => {
+    setActiveDockPanels((current) => {
+      const nextActivePanels = {
+        left: getNextActiveDockPanel(dockedPanelGroups.left, current.left),
+        right: getNextActiveDockPanel(dockedPanelGroups.right, current.right),
+      };
+
+      return current.left === nextActivePanels.left &&
+        current.right === nextActivePanels.right
+        ? current
+        : nextActivePanels;
+    });
+  }, [dockedPanelGroups]);
 
   const markUnsaved = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -383,8 +506,19 @@ function EditorWorkspace({
   }, []);
 
   const confirmNavigation = useCallback(
-    () => !hasUnsavedChanges || window.confirm(UNSAVED_CHANGES_MESSAGE),
-    [hasUnsavedChanges],
+    (request?: NavigationGuardRequest) => {
+      if (!hasUnsavedChanges) return true;
+      setNavigationDialogError(null);
+      setPendingNavigation(
+        request ?? {
+          kind: 'navigate',
+          target: '/projects',
+          proceed: () => navigate('/projects'),
+        },
+      );
+      return false;
+    },
+    [hasUnsavedChanges, navigate],
   );
 
   useEffect(() => {
@@ -420,6 +554,68 @@ function EditorWorkspace({
     [customComponents, history, inputSignals, markUnsaved, publishCollaborationState],
   );
 
+  const selectGate = useCallback((gateId: string | null) => {
+    setSelectedGateId(gateId);
+    setSelectedGateIds(gateId ? [gateId] : []);
+  }, []);
+
+  const selectWire = useCallback((wireId: string | null) => {
+    setSelectedWireId(wireId);
+  }, []);
+
+  const selectAnnotation = useCallback((annotationId: string | null) => {
+    setSelectedAnnotationId(annotationId);
+    setSelectedAnnotationIds(annotationId ? [annotationId] : []);
+  }, []);
+
+  const clearCanvasSelection = useCallback(() => {
+    setSelectedGateId(null);
+    setSelectedGateIds([]);
+    setSelectedWireId(null);
+    setSelectedAnnotationId(null);
+    setSelectedAnnotationIds([]);
+  }, []);
+
+  function createSelectionDragState(point: Point): DragState {
+    return {
+      kind: 'selection',
+      startPoint: point,
+      gates: history.state.gates
+        .filter((gate) => selectedGateIdSet.has(gate.id))
+        .map((gate) => ({ id: gate.id, x: gate.x, y: gate.y })),
+      annotations: (history.state.annotations ?? [])
+        .filter((annotation) => selectedAnnotationIdSet.has(annotation.id))
+        .map((annotation) => ({ id: annotation.id, x: annotation.x, y: annotation.y })),
+    };
+  }
+
+  function handleAreaSelect(area: SelectionArea) {
+    const nextGateIds = history.state.gates
+      .filter((gate) => {
+        const rect = gateRectPx(gate);
+        return rectanglesOverlap(area, { x: gate.x, y: gate.y, width: rect.width, height: rect.height });
+      })
+      .map((gate) => gate.id);
+    const nextAnnotationIds = (history.state.annotations ?? [])
+      .filter((annotation) => {
+        const layout = getAnnotationLayout(annotation.text, annotation.width);
+        return rectanglesOverlap(area, {
+          x: annotation.x,
+          y: annotation.y - layout.lineHeight / 2,
+          width: layout.width,
+          height: layout.height,
+        });
+      })
+      .map((annotation) => annotation.id);
+
+    setSelectedTool(null);
+    setSelectedWireId(null);
+    setSelectedGateIds(nextGateIds);
+    setSelectedAnnotationIds(nextAnnotationIds);
+    setSelectedGateId(nextGateIds[0] ?? null);
+    setSelectedAnnotationId(nextAnnotationIds[0] ?? null);
+  }
+
   function handleCanvasClick(point: Point) {
     if (mode !== 'edit' || !selectedTool || wireDraft) return;
     placeTool(selectedTool, point);
@@ -448,9 +644,9 @@ function EditorWorkspace({
       ...history.state,
       gates: [...history.state.gates, gate],
     });
-    setSelectedGateId(gate.id);
-    setSelectedWireId(null);
-    setSelectedAnnotationId(null);
+    selectGate(gate.id);
+    selectWire(null);
+    selectAnnotation(null);
     setMode('edit');
   }
 
@@ -483,8 +679,14 @@ function EditorWorkspace({
   }, []);
 
   function handleGateDragStart(gate: Gate, point: Point) {
-    setSelectedAnnotationId(null);
+    selectWire(null);
     setDragStartCircuit(history.state);
+    if (selectedObjectCount > 1 && selectedGateIdSet.has(gate.id)) {
+      setDragState(createSelectionDragState(point));
+      return;
+    }
+
+    selectAnnotation(null);
     setDragState({
       kind: 'gate',
       gateId: gate.id,
@@ -494,10 +696,15 @@ function EditorWorkspace({
   }
 
   function handleAnnotationDragStart(annotation: Annotation, point: Point) {
-    setSelectedGateId(null);
-    setSelectedWireId(null);
-    setSelectedAnnotationId(annotation.id);
+    selectWire(null);
     setDragStartCircuit(history.state);
+    if (selectedObjectCount > 1 && selectedAnnotationIdSet.has(annotation.id)) {
+      setDragState(createSelectionDragState(point));
+      return;
+    }
+
+    selectGate(null);
+    selectAnnotation(annotation.id);
     setDragState({
       kind: 'annotation',
       annotationId: annotation.id,
@@ -507,9 +714,9 @@ function EditorWorkspace({
   }
 
   function handleAnnotationResizeStart(annotation: Annotation, point: Point) {
-    setSelectedGateId(null);
-    setSelectedWireId(null);
-    setSelectedAnnotationId(annotation.id);
+    selectGate(null);
+    selectWire(null);
+    selectAnnotation(annotation.id);
     setDragStartCircuit(history.state);
     setDragState({
       kind: 'annotation-resize',
@@ -521,6 +728,28 @@ function EditorWorkspace({
 
   function handleDragMove(point: Point) {
     if (!dragState) return;
+
+    if (dragState.kind === 'selection') {
+      const deltaX = snapToGrid(point.x - dragState.startPoint.x);
+      const deltaY = snapToGrid(point.y - dragState.startPoint.y);
+      const gatePositions = new Map(dragState.gates.map((gate) => [gate.id, gate]));
+      const annotationPositions = new Map(dragState.annotations.map((annotation) => [annotation.id, annotation]));
+
+      replaceCircuit({
+        ...history.state,
+        gates: history.state.gates.map((gate) => {
+          const startPosition = gatePositions.get(gate.id);
+          return startPosition ? { ...gate, x: startPosition.x + deltaX, y: startPosition.y + deltaY } : gate;
+        }),
+        annotations: (history.state.annotations ?? []).map((annotation) => {
+          const startPosition = annotationPositions.get(annotation.id);
+          return startPosition
+            ? { ...annotation, x: startPosition.x + deltaX, y: startPosition.y + deltaY }
+            : annotation;
+        }),
+      });
+      return;
+    }
 
     if (dragState.kind === 'gate') {
       replaceCircuit({
@@ -564,8 +793,8 @@ function EditorWorkspace({
 
   function handleWireStart(endpoint: WireEndpoint, point: Point) {
     setSelectedTool(null);
-    setSelectedGateId(null);
-    setSelectedAnnotationId(null);
+    selectGate(null);
+    selectAnnotation(null);
     setWireDraft({ start: endpoint, from: point, to: point });
   }
 
@@ -596,9 +825,9 @@ function EditorWorkspace({
       wires: [...history.state.wires.filter((wire) => wire.id !== wireId), nextWire],
     });
     setWireDraft(null);
-    setSelectedGateId(null);
-    setSelectedAnnotationId(null);
-    setSelectedWireId(wireId);
+    selectGate(null);
+    selectAnnotation(null);
+    selectWire(wireId);
   }
 
   function handleToggleInput(gateId: string) {
@@ -678,9 +907,9 @@ function EditorWorkspace({
         ...history.state,
         gates: [...history.state.gates, pastedItem.gate],
       });
-      setSelectedGateId(pastedItem.gate.id);
-      setSelectedWireId(null);
-      setSelectedAnnotationId(null);
+      selectGate(pastedItem.gate.id);
+      selectWire(null);
+      selectAnnotation(null);
       return;
     }
 
@@ -689,9 +918,9 @@ function EditorWorkspace({
         ...history.state,
         annotations: [...(history.state.annotations ?? []), pastedItem.annotation],
       });
-      setSelectedGateId(null);
-      setSelectedWireId(null);
-      setSelectedAnnotationId(pastedItem.annotation.id);
+      selectGate(null);
+      selectWire(null);
+      selectAnnotation(pastedItem.annotation.id);
       return;
     }
 
@@ -699,45 +928,66 @@ function EditorWorkspace({
       ...history.state,
       wires: [...history.state.wires, pastedItem.wire],
     });
-    setSelectedGateId(null);
-    setSelectedWireId(pastedItem.wire.id);
-    setSelectedAnnotationId(null);
-  }, [clipboardItem, commitCircuit, history.state, mode]);
+    selectGate(null);
+    selectWire(pastedItem.wire.id);
+    selectAnnotation(null);
+  }, [clipboardItem, commitCircuit, history.state, mode, selectAnnotation, selectGate, selectWire]);
 
   const handleDeleteSelected = useCallback(() => {
-    if (selectedAnnotation) {
-      commitCircuit({
-        ...history.state,
-        annotations: (history.state.annotations ?? []).filter((annotation) => annotation.id !== selectedAnnotation.id),
-      });
-      setSelectedAnnotationId(null);
-      return;
-    }
-
-    if (selectedWire) {
+    if (selectedWire && selectedGateIds.length === 0 && selectedAnnotationIds.length === 0) {
       commitCircuit({
         ...history.state,
         wires: history.state.wires.filter((wire) => wire.id !== selectedWire.id),
       });
-      setSelectedWireId(null);
+      selectWire(null);
       return;
     }
 
-    if (!selectedGate) return;
-    const pinIds = new Set([...selectedGate.inputs, ...selectedGate.outputs].map((pin) => pin.id));
+    if (selectedGateIds.length === 0 && selectedAnnotationIds.length === 0) return;
+
+    const selectedGates = history.state.gates.filter((gate) => selectedGateIdSet.has(gate.id));
+    const deletedPinIds = new Set(
+      selectedGates.flatMap((gate) => [...gate.inputs, ...gate.outputs].map((pin) => pin.id)),
+    );
+
     commitCircuit({
       ...history.state,
-      gates: history.state.gates.filter((gate) => gate.id !== selectedGate.id),
+      gates: history.state.gates.filter((gate) => !selectedGateIdSet.has(gate.id)),
       wires: history.state.wires.filter(
         (wire) =>
-          !endpointUsesPin(wire.from, pinIds) &&
-          !endpointUsesPin(wire.to, pinIds) &&
-          !pinIds.has(wire.sourcePinId ?? '') &&
-          !pinIds.has(wire.targetPinId ?? ''),
+          !endpointUsesPin(wire.from, deletedPinIds) &&
+          !endpointUsesPin(wire.to, deletedPinIds) &&
+          !deletedPinIds.has(wire.sourcePinId ?? '') &&
+          !deletedPinIds.has(wire.targetPinId ?? ''),
       ),
+      annotations: (history.state.annotations ?? []).filter((annotation) => !selectedAnnotationIdSet.has(annotation.id)),
     });
-    setSelectedGateId(null);
-  }, [commitCircuit, history.state, selectedAnnotation, selectedGate, selectedWire]);
+    clearCanvasSelection();
+  }, [
+    clearCanvasSelection,
+    commitCircuit,
+    history.state,
+    selectedAnnotationIdSet,
+    selectedAnnotationIds.length,
+    selectedGateIdSet,
+    selectedGateIds.length,
+    selectedWire,
+    selectWire,
+  ]);
+
+  const handleUndo = useCallback(() => {
+    if (!history.canUndo) return;
+    history.undo();
+    markUnsaved();
+    window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
+  }, [collaboration, history, markUnsaved]);
+
+  const handleRedo = useCallback(() => {
+    if (!history.canRedo) return;
+    history.redo();
+    markUnsaved();
+    window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
+  }, [collaboration, history, markUnsaved]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -761,6 +1011,19 @@ function EditorWorkspace({
 
       const key = event.key.toLowerCase();
       const primaryModifierPressed = event.ctrlKey || event.metaKey;
+      if (primaryModifierPressed && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) handleRedo();
+        else handleUndo();
+        return;
+      }
+
+      if (primaryModifierPressed && key === 'y') {
+        event.preventDefault();
+        handleRedo();
+        return;
+      }
+
       if (primaryModifierPressed && key === 'c') {
         event.preventDefault();
         handleCopySelection();
@@ -773,7 +1036,7 @@ function EditorWorkspace({
         return;
       }
 
-      if (event.key === 'Delete' || shortcutMatches(event, preferences.shortcuts.deleteSelection)) {
+      if (event.key === 'Delete' || event.key === 'Backspace' || shortcutMatches(event, preferences.shortcuts.deleteSelection)) {
         event.preventDefault();
         handleDeleteSelected();
       }
@@ -781,23 +1044,75 @@ function EditorWorkspace({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [clearToolDragPreview, handleCopySelection, handleDeleteSelected, handlePasteClipboard, preferences.shortcuts]);
+  }, [
+    clearToolDragPreview,
+    handleCopySelection,
+    handleDeleteSelected,
+    handlePasteClipboard,
+    handleRedo,
+    handleUndo,
+    preferences.shortcuts,
+  ]);
 
-  async function handleSave() {
-    if (!user || !canSave) return;
+  async function saveProject(): Promise<boolean> {
+    if (!user || !canSave) return false;
     const circuit = {
       ...history.state,
       customComponents,
       nets: buildCircuitNets({ ...history.state, customComponents }),
     };
-    const savedProject = await projectService.updateProject(project.id, {
-      circuit,
-      inputSignals,
-      customComponents,
-    });
+    try {
+      setSaveState('Speichert...');
+      const savedProject = await projectService.updateProject(project.id, {
+        circuit,
+        inputSignals,
+        customComponents,
+      });
+      setHasUnsavedChanges(false);
+      setSaveState('Gespeichert');
+      onProjectSaved(savedProject);
+      return true;
+    } catch {
+      setSaveState('Speichern fehlgeschlagen');
+      return false;
+    }
+  }
+
+  async function handleSave() {
+    await saveProject();
+  }
+
+  function closeUnsavedChangesDialog() {
+    if (navigationSavePending) return;
+    setPendingNavigation(null);
+    setNavigationDialogError(null);
+  }
+
+  function continueWithoutSaving() {
+    const nextNavigation = pendingNavigation;
+    if (!nextNavigation) return;
+    setPendingNavigation(null);
+    setNavigationDialogError(null);
     setHasUnsavedChanges(false);
-    setSaveState('Gespeichert');
-    onProjectSaved(savedProject);
+    nextNavigation.proceed();
+  }
+
+  async function saveAndContinueNavigation() {
+    const nextNavigation = pendingNavigation;
+    if (!nextNavigation || navigationSavePending) return;
+
+    setNavigationSavePending(true);
+    setNavigationDialogError(null);
+    const saved = await saveProject();
+    setNavigationSavePending(false);
+
+    if (!saved) {
+      setNavigationDialogError('Das Projekt konnte nicht gespeichert werden. Bitte versuche es erneut oder verlasse ohne Speichern.');
+      return;
+    }
+
+    setPendingNavigation(null);
+    nextNavigation.proceed();
   }
 
   function handleAddAnnotation() {
@@ -817,9 +1132,9 @@ function EditorWorkspace({
         },
       ],
     });
-    setSelectedGateId(null);
-    setSelectedWireId(null);
-    setSelectedAnnotationId(annotationId);
+    selectGate(null);
+    selectWire(null);
+    selectAnnotation(annotationId);
   }
 
   function handleAddCustomComponent(component: CustomComponent) {
@@ -840,6 +1155,187 @@ function EditorWorkspace({
     const copied = await copyTextToClipboard(inviteLink);
     setInviteCopyStatus(copied ? 'copied' : 'failed');
   }
+
+  function handlePanelTabClick(panelId: EditorPanelId) {
+    const panel = panelStates.find((entry) => entry.id === panelId);
+    if (!panel?.isOpen && panel?.dockPosition) {
+      setActiveDockPanels((current) => ({ ...current, [panel.dockPosition as PanelDockPosition]: panelId }));
+    }
+    setPanelStates((current) => updatePanelOpen(current, panelId, !panel?.isOpen));
+  }
+
+  function handlePanelClose(panelId: EditorPanelId) {
+    setPanelStates((current) => updatePanelOpen(current, panelId, false));
+  }
+
+  function handlePanelDock(panelId: EditorPanelId, dockPosition: PanelDockPosition) {
+    setActiveDockPanels((current) => ({ ...current, [dockPosition]: panelId }));
+    setPanelStates((current) => updatePanelDock(current, panelId, dockPosition));
+  }
+
+  function handlePanelUndock(panelId: EditorPanelId) {
+    setPanelStates((current) => updatePanelDock(current, panelId, null));
+  }
+
+  function handlePanelMove(panelId: EditorPanelId, position: Point) {
+    setPanelStates((current) =>
+      updatePanelFloatingPosition(current, panelId, position, workbenchSize, zoomControlSafeArea),
+    );
+  }
+
+  function handleResetPanels() {
+    setActiveDockPanels(DEFAULT_ACTIVE_DOCK_PANELS);
+    setPanelStates(clampFloatingPanels(resetPanelStates(), workbenchSize, zoomControlSafeArea));
+    setPanelLauncherMinimized(false);
+    setPanelLauncherPosition(
+      clampPanelLauncherPosition(
+        createDefaultPanelLauncherPosition(),
+        workbenchSize,
+        dockMetrics,
+        zoomControlSafeArea,
+        PANEL_LAUNCHER_SIZE,
+      ),
+    );
+  }
+
+  function handleActiveDockPanelChange(dockPosition: PanelDockPosition, panelId: EditorPanelId) {
+    setActiveDockPanels((current) => ({ ...current, [dockPosition]: panelId }));
+  }
+
+  function handlePanelLauncherMove(position: Point) {
+    setPanelLauncherPosition(() =>
+      clampPanelLauncherPosition(
+        position,
+        workbenchSize,
+        dockMetrics,
+        zoomControlSafeArea,
+        panelLauncherMinimized ? MINIMIZED_PANEL_LAUNCHER_SIZE : PANEL_LAUNCHER_SIZE,
+      ),
+    );
+  }
+
+  function renderPanelContent(panelId: EditorPanelId) {
+    if (panelId === 'library') {
+      return (
+        <Library
+          customComponents={customComponents}
+          selectedTool={selectedTool}
+          onToolDragStart={handleToolDragStart}
+          onToolDragEnd={clearToolDragPreview}
+          onSelectTool={(tool) => {
+            setSelectedTool(tool);
+            setMode('edit');
+          }}
+        />
+      );
+    }
+
+    if (panelId === 'inspector') {
+      const showSingleSelection = selectedObjectCount <= 1;
+      return (
+        <Inspector
+          circuit={history.state}
+          selectedGate={showSingleSelection ? selectedGate : null}
+          selectedAnnotation={showSingleSelection ? selectedAnnotation : null}
+          onUpdateGate={handleUpdateGate}
+          onUpdateAnnotation={handleUpdateAnnotation}
+        />
+      );
+    }
+
+    if (panelId === 'signals') {
+      return (
+        <div className="right-panel-stack">
+          <SimulationPanel
+            circuit={history.state}
+            signals={signals}
+            inputSignals={inputSignals}
+            enabled={mode === 'simulate'}
+            onToggleInput={handleToggleInput}
+          />
+          <SignalViewer circuit={history.state} signals={signals} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="session-panel-stack">
+        <CollaborationPanel
+          session={collaboration.session}
+          role={collaboration.role}
+          inviteLink={inviteLink}
+          copyStatus={inviteCopyStatus}
+          message={collaboration.message}
+          onCopyInviteLink={() => void handleCopyInviteLink()}
+          onLeaveSession={() => void handleLeaveSession()}
+        />
+        {!collaboration.session && !collaboration.message && (
+          <section className="editor-panel session-empty-panel">
+            <div className="panel-heading">
+              <p className="eyebrow">Session</p>
+              <h2>Keine aktive Session</h2>
+            </div>
+            <p className="muted">Starte die Zusammenarbeit ueber die Toolbar.</p>
+          </section>
+        )}
+      </div>
+    );
+  }
+
+  function renderPanel(panel: EditorPanelState) {
+    const definition = panelDefinition(panel.id);
+    return (
+      <FloatingPanel
+        key={panel.id}
+        panel={panel}
+        title={definition.title}
+        onClose={handlePanelClose}
+        onDock={handlePanelDock}
+        onMove={handlePanelMove}
+        onUndock={handlePanelUndock}
+      >
+        {renderPanelContent(panel.id)}
+      </FloatingPanel>
+    );
+  }
+
+  function renderDock(dockPosition: PanelDockPosition) {
+    const panels = dockedPanelGroups[dockPosition];
+    if (panels.length === 0) return null;
+
+    return (
+      <PanelDock
+        dockPosition={dockPosition}
+        panels={panels}
+        definitions={EDITOR_PANEL_DEFINITIONS}
+        activePanelId={activeDockPanels[dockPosition]}
+        renderPanelContent={renderPanelContent}
+        onActivePanelChange={handleActiveDockPanelChange}
+        onClose={handlePanelClose}
+        onDock={handlePanelDock}
+        onUndock={handlePanelUndock}
+      />
+    );
+  }
+
+  function renderPanelLauncher() {
+    return (
+      <PanelLauncher
+        position={panelLauncherPosition}
+        isMinimized={panelLauncherMinimized}
+        definitions={EDITOR_PANEL_DEFINITIONS}
+        panelStates={panelStates}
+        onMove={handlePanelLauncherMove}
+        onToggleMinimized={() => setPanelLauncherMinimized((current) => !current)}
+        onTogglePanel={handlePanelTabClick}
+      />
+    );
+  }
+
+  const workbenchStyle = {
+    '--dock-left-width': `${dockMetrics.left}px`,
+    '--dock-right-width': `${dockMetrics.right}px`,
+  } as CSSProperties;
 
   return (
     <main className="editor-workspace">
@@ -864,18 +1360,12 @@ function EditorWorkspace({
           }
         }}
         onBack={() => {
-          if (confirmNavigation()) navigate('/projects');
+          if (confirmNavigation({ kind: 'navigate', target: '/projects', proceed: () => navigate('/projects') })) {
+            navigate('/projects');
+          }
         }}
-        onUndo={() => {
-          history.undo();
-          markUnsaved();
-          window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
-        }}
-        onRedo={() => {
-          history.redo();
-          markUnsaved();
-          window.setTimeout(() => collaboration.broadcastCircuit(currentEditorStateRef.current, true), 0);
-        }}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onCopySelection={handleCopySelection}
         onPasteClipboard={handlePasteClipboard}
         onSave={() => void handleSave()}
@@ -886,35 +1376,7 @@ function EditorWorkspace({
         onAddAnnotation={handleAddAnnotation}
       />
 
-      <CollaborationPanel
-        session={collaboration.session}
-        role={collaboration.role}
-        inviteLink={inviteLink}
-        copyStatus={inviteCopyStatus}
-        message={collaboration.message}
-        onCopyInviteLink={() => void handleCopyInviteLink()}
-        onLeaveSession={() => void handleLeaveSession()}
-      />
-
-      <div className={editorLayoutClassName}>
-        <EditorSidePanel
-          side="left"
-          label="Bibliothek"
-          collapsed={libraryCollapsed}
-          onToggle={() => setLibraryCollapsed((current) => !current)}
-        >
-          <Library
-            customComponents={customComponents}
-            selectedTool={selectedTool}
-            onToolDragStart={handleToolDragStart}
-            onToolDragEnd={clearToolDragPreview}
-            onSelectTool={(tool) => {
-              setSelectedTool(tool);
-              setMode('edit');
-            }}
-          />
-        </EditorSidePanel>
-
+      <div ref={workbenchRef} className="editor-grid-layout" style={workbenchStyle}>
         <section className="canvas-stage">
           <Canvas
             circuit={history.state}
@@ -922,8 +1384,10 @@ function EditorWorkspace({
             mode={mode}
             selectedTool={selectedTool}
             selectedGateId={selectedGateId}
+            selectedGateIds={selectedGateIds}
             selectedWireId={selectedWireId}
             selectedAnnotationId={selectedAnnotationId}
+            selectedAnnotationIds={selectedAnnotationIds}
             dragState={dragState}
             wireDraft={wireDraft}
             draggedTool={draggedTool}
@@ -939,9 +1403,10 @@ function EditorWorkspace({
             onAnnotationResizeStart={handleAnnotationResizeStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
-            onSelectGate={setSelectedGateId}
-            onSelectWire={setSelectedWireId}
-            onSelectAnnotation={setSelectedAnnotationId}
+            onSelectGate={selectGate}
+            onSelectWire={selectWire}
+            onSelectAnnotation={selectAnnotation}
+            onAreaSelect={handleAreaSelect}
             onWireStart={handleWireStart}
             onWireEnd={handleWireEnd}
             onWirePreview={(point) => setWireDraft((draft) => (draft ? { ...draft, to: point } : draft))}
@@ -950,31 +1415,26 @@ function EditorWorkspace({
           />
         </section>
 
-        <EditorSidePanel
-          side="right"
-          label="Details"
-          collapsed={detailsCollapsed}
-          onToggle={() => setDetailsCollapsed((current) => !current)}
-        >
-          <div className="right-panel-stack">
-            <Inspector
-              circuit={history.state}
-              selectedGate={selectedGate}
-              selectedAnnotation={selectedAnnotation}
-              onUpdateGate={handleUpdateGate}
-              onUpdateAnnotation={handleUpdateAnnotation}
-            />
-            <SimulationPanel
-              circuit={history.state}
-              signals={signals}
-              inputSignals={inputSignals}
-              enabled={mode === 'simulate'}
-              onToggleInput={handleToggleInput}
-            />
-            <SignalViewer circuit={history.state} signals={signals} />
-          </div>
-        </EditorSidePanel>
+        {renderDock('left')}
+        {renderDock('right')}
+
+        <div className="floating-panel-layer">{floatingPanels.map(renderPanel)}</div>
+        {renderPanelLauncher()}
+        <button className="panel-reset-button" type="button" onClick={handleResetPanels}>
+          Panels zuruecksetzen
+        </button>
       </div>
+
+      {pendingNavigation && (
+        <UnsavedChangesDialog
+          canSave={canSave}
+          saving={navigationSavePending}
+          error={navigationDialogError}
+          onCancel={closeUnsavedChangesDialog}
+          onDiscard={continueWithoutSaving}
+          onSaveAndLeave={() => void saveAndContinueNavigation()}
+        />
+      )}
 
       <CustomComponentDialog
         circuit={history.state}
