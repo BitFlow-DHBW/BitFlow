@@ -2,7 +2,7 @@ import { GRID_SIZE } from '../../simulation/gateLibrary';
 
 const DEFAULT_LINE_CHARS = 30;
 export const MIN_ANNOTATION_WIDTH = GRID_SIZE * 3;
-export const MAX_ANNOTATION_WIDTH = GRID_SIZE * 12;
+export const MAX_ANNOTATION_WIDTH = GRID_SIZE * 32;
 const CHAR_WIDTH = 7.2;
 const PADDING_X = GRID_SIZE / 2;
 const PADDING_RIGHT = GRID_SIZE / 16;

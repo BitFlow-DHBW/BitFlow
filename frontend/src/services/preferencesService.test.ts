@@ -11,6 +11,7 @@ describe('preferencesService', () => {
       'bitflow.preferences',
       JSON.stringify({
         theme: 'dark',
+        compactPanels: true,
         shortcuts: {
           simulateMode: 'Ctrl+S',
         },
@@ -25,13 +26,15 @@ describe('preferencesService', () => {
         simulateMode: 'Ctrl+S',
       },
     });
+    expect(preferencesService.getPreferences()).not.toHaveProperty('compactPanels');
   });
 
   it('persists complete preference objects', () => {
-    preferencesService.savePreferences({ ...defaultPreferences, compactPanels: true });
+    preferencesService.savePreferences({ ...defaultPreferences, showSignalValues: false });
 
     expect(JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}')).toMatchObject({
-      compactPanels: true,
+      showSignalValues: false,
     });
+    expect(JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}')).not.toHaveProperty('compactPanels');
   });
 });

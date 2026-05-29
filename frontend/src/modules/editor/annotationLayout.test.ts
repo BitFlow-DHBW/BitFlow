@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GRID_SIZE } from '../../simulation/gateLibrary';
-import { getAnnotationLayout, normalizeAnnotationWidth } from './annotationLayout';
+import { MAX_ANNOTATION_WIDTH, getAnnotationLayout, normalizeAnnotationWidth } from './annotationLayout';
 
 describe('getAnnotationLayout', () => {
   it('keeps short comments compact', () => {
@@ -24,7 +24,7 @@ describe('getAnnotationLayout', () => {
 
     expect(layout.lines.length).toBeGreaterThan(1);
     expect(layout.height).toBe((layout.lines.length + 1) * GRID_SIZE);
-    expect(layout.width).toBeLessThanOrEqual(12 * GRID_SIZE);
+    expect(layout.width).toBeLessThanOrEqual(MAX_ANNOTATION_WIDTH);
   });
 
   it('grows annotation widths in full grid columns', () => {
@@ -43,6 +43,11 @@ describe('getAnnotationLayout', () => {
   it('normalizes manually resized widths to the grid', () => {
     expect(normalizeAnnotationWidth(83)).toBe(3 * GRID_SIZE);
     expect(normalizeAnnotationWidth(84)).toBe(4 * GRID_SIZE);
+  });
+
+  it('allows manually resized comments to become much wider', () => {
+    expect(normalizeAnnotationWidth(30 * GRID_SIZE)).toBe(30 * GRID_SIZE);
+    expect(normalizeAnnotationWidth(MAX_ANNOTATION_WIDTH + 100)).toBe(MAX_ANNOTATION_WIDTH);
   });
 
   it('uses manual line breaks for the calculated height', () => {
