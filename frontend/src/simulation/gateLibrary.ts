@@ -415,7 +415,7 @@ export function createStarterCircuit(name = 'Neue Schaltung'): Circuit {
         points: [],
       },
     ],
-    annotations: [{ id: 'annotation_starter', text: 'BitFlow Startschaltung', x: 96, y: 64 }],
+    annotations: [{ id: 'annotation_starter', text: 'BitFlow Startschaltung', x: 96, y: 48 }],
     customComponents: [],
   };
 }
