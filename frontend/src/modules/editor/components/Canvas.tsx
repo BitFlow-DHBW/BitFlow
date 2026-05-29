@@ -526,12 +526,13 @@ export function Canvas({
               />
               <text
                 className="canvas-annotation-text"
-                x={layout.paddingX}
+                x={layout.width / 2}
                 y={layout.paddingY}
                 dominantBaseline="middle"
+                textAnchor="middle"
               >
                 {layout.lines.map((line, index) => (
-                  <tspan key={`${annotation.id}-line-${index}`} x={layout.paddingX} dy={index === 0 ? 0 : layout.lineHeight}>
+                  <tspan key={`${annotation.id}-line-${index}`} x={layout.width / 2} dy={index === 0 ? 0 : layout.lineHeight}>
                     {line || ' '}
                   </tspan>
                 ))}

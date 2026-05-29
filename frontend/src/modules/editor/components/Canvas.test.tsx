@@ -56,7 +56,11 @@ describe('Canvas', () => {
     expect(screen.getAllByText('A').length).toBeGreaterThan(0);
     expect(screen.getByText('Bea')).toBeInTheDocument();
     expect(screen.getByText('BitFlow Startschaltung')).toBeInTheDocument();
-    expect(Number(container.querySelector('.canvas-annotation-box')?.getAttribute('height'))).toBeLessThan(50);
+    const annotationBox = container.querySelector('.canvas-annotation-box') as SVGRectElement;
+    const annotationText = container.querySelector('.canvas-annotation-text') as SVGTextElement;
+    expect(Number(annotationBox.getAttribute('height'))).toBeLessThan(50);
+    expect(annotationText).toHaveAttribute('text-anchor', 'middle');
+    expect(annotationText).toHaveAttribute('x', String(Number(annotationBox.getAttribute('width')) / 2));
     expect(container.querySelector('.canvas-annotation')).toHaveClass('is-editable');
   });
 
