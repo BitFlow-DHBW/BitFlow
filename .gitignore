@@ -69,3 +69,16 @@ Thumbs.db
 # Local generated documents
 docs/Folien/
 docs/handout/
+
+# Backend
+backend/BitFlow.API/bin/
+backend/BitFlow.API/obj/
+backend/BitFlow.API/Data/*.db
+backend/BitFlow.API/Data/*.db-shm
+backend/BitFlow.API/Data/*.db-wal
+backend/BitFlow.API/Data/*.db-journal
+backend/BitFlow.API/appsettings.Local.json
+backend/BitFlow.API/appsettings.*.Local.json
+backend/BitFlow.API/*.local.json
+backend/BitFlow.API/*.user
+backend/BitFlow.API/*.suo
