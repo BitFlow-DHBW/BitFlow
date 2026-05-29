@@ -60,8 +60,13 @@ function wrapParagraph(paragraph: string, maxLineChars: number): string[] {
 
 export function normalizeAnnotationWidth(width: number): number {
   const finiteWidth = Number.isFinite(width) ? width : MIN_ANNOTATION_WIDTH;
-  const gridWidth = Math.ceil(finiteWidth / GRID_SIZE) * GRID_SIZE;
+  const gridWidth = Math.round(finiteWidth / GRID_SIZE) * GRID_SIZE;
   return Math.min(MAX_ANNOTATION_WIDTH, Math.max(MIN_ANNOTATION_WIDTH, gridWidth));
+}
+
+function contentWidthToGridWidth(contentWidth: number): number {
+  const unclampedWidth = Math.max(MIN_ANNOTATION_WIDTH, contentWidth);
+  return Math.min(MAX_ANNOTATION_WIDTH, Math.ceil(unclampedWidth / GRID_SIZE) * GRID_SIZE);
 }
 
 function lineCapacityForWidth(width: number): number {
@@ -79,7 +84,7 @@ export function getAnnotationLayout(text: string, preferredWidth?: number): Anno
 
   return {
     lines: visibleLines,
-    width: fixedWidth ?? normalizeAnnotationWidth(longestLineLength * CHAR_WIDTH + PADDING_X + PADDING_RIGHT),
+    width: fixedWidth ?? contentWidthToGridWidth(longestLineLength * CHAR_WIDTH + PADDING_X + PADDING_RIGHT),
     height: (visibleLines.length + 1) * GRID_SIZE,
     paddingX: PADDING_X,
     paddingY: PADDING_Y,

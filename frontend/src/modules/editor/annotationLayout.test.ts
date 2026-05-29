@@ -41,7 +41,8 @@ describe('getAnnotationLayout', () => {
   });
 
   it('normalizes manually resized widths to the grid', () => {
-    expect(normalizeAnnotationWidth(91)).toBe(4 * GRID_SIZE);
+    expect(normalizeAnnotationWidth(83)).toBe(3 * GRID_SIZE);
+    expect(normalizeAnnotationWidth(84)).toBe(4 * GRID_SIZE);
   });
 
   it('uses manual line breaks for the calculated height', () => {
