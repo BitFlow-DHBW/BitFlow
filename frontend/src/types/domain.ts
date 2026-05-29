@@ -27,7 +27,6 @@ export interface Project {
 
 export interface UserPreferences {
   theme: 'light' | 'dark';
-  compactPanels: boolean;
   showSignalValues: boolean;
   shortcuts: KeyboardShortcuts;
 }

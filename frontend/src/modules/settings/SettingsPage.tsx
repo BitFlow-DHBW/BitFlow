@@ -63,18 +63,6 @@ export function SettingsPage() {
 
         <div className="setting-row">
           <div>
-            <h2>Kompakte Panels</h2>
-            <p>Zeigt Editor-Panels platzsparender an.</p>
-          </div>
-          <input
-            type="checkbox"
-            checked={preferences.compactPanels}
-            onChange={(event) => setPreferences({ ...preferences, compactPanels: event.target.checked })}
-          />
-        </div>
-
-        <div className="setting-row">
-          <div>
             <h2>Signalwerte anzeigen</h2>
             <p>Zeigt Live-Signale in Panels und auf Pins sichtbar an.</p>
           </div>

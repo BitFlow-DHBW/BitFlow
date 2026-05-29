@@ -5,7 +5,6 @@ const PREFERENCES_KEY = 'bitflow.preferences';
 
 export const defaultPreferences: UserPreferences = {
   theme: 'light',
-  compactPanels: false,
   showSignalValues: true,
   shortcuts: {
     editMode: 'E',
@@ -19,8 +18,8 @@ export const preferencesService = {
     const stored = readStorage<Partial<UserPreferences>>(PREFERENCES_KEY, defaultPreferences);
 
     return {
-      ...defaultPreferences,
-      ...stored,
+      theme: stored.theme ?? defaultPreferences.theme,
+      showSignalValues: stored.showSignalValues ?? defaultPreferences.showSignalValues,
       shortcuts: {
         ...defaultPreferences.shortcuts,
         ...stored.shortcuts,

@@ -9,12 +9,12 @@ function PreferencesHarness() {
   return (
     <div>
       <output aria-label="theme">{preferences.theme}</output>
-      <output aria-label="compact">{String(preferences.compactPanels)}</output>
+      <output aria-label="signals">{String(preferences.showSignalValues)}</output>
       <button type="button" onClick={toggleTheme}>
         theme
       </button>
-      <button type="button" onClick={() => setPreferences({ ...preferences, compactPanels: !preferences.compactPanels })}>
-        compact
+      <button type="button" onClick={() => setPreferences({ ...preferences, showSignalValues: !preferences.showSignalValues })}>
+        signals
       </button>
     </div>
   );
@@ -36,12 +36,15 @@ describe('PreferencesContext', () => {
     expect(screen.getByLabelText('theme')).toHaveTextContent('dark');
     expect(document.documentElement.dataset.theme).toBe('dark');
 
-    await user.click(screen.getByRole('button', { name: 'compact' }));
-    expect(screen.getByLabelText('compact')).toHaveTextContent('true');
-    expect(JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}')).toMatchObject({
+    await user.click(screen.getByRole('button', { name: 'signals' }));
+    expect(screen.getByLabelText('signals')).toHaveTextContent('false');
+
+    const stored = JSON.parse(window.localStorage.getItem('bitflow.preferences') ?? '{}');
+    expect(stored).toMatchObject({
       theme: 'dark',
-      compactPanels: true,
+      showSignalValues: false,
     });
+    expect(stored).not.toHaveProperty('compactPanels');
   });
 
   it('throws a clear error outside the provider', () => {
