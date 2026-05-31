@@ -75,7 +75,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs:
-      - test
+      - frontend-test
       - backend-test
 
     defaults:
@@ -134,7 +134,7 @@ jobs:
   test-deploy:
     runs-on: ubuntu-latest
     needs:
-      - test
+      - frontend-test
       - backend-test
       - build
 
@@ -180,7 +180,7 @@ jobs:
   deploy:
     runs-on: self-hosted
     needs:
-      - test
+      - frontend-test
       - backend-test
       - build
       - test-deploy
