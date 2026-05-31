@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 jobs:
-  test:
+  frontend-test:
     runs-on: ubuntu-latest
 
     defaults:
