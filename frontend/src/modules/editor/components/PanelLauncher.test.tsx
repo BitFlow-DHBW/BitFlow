@@ -23,8 +23,8 @@ describe('PanelLauncher', () => {
 
     await user.click(screen.getByRole('button', { name: 'Session' }));
 
-    expect(screen.getByRole('button', { name: 'Library' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Inspector' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Bibliothek' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Details' })).toHaveAttribute('aria-pressed', 'true');
     expect(onTogglePanel).toHaveBeenCalledWith('session');
   });
 
@@ -43,7 +43,7 @@ describe('PanelLauncher', () => {
       />,
     );
 
-    const handle = screen.getByRole('button', { name: 'Panel-Menue minimieren oder verschieben' });
+    const handle = screen.getByRole('button', { name: 'Bereichsmenü minimieren oder verschieben' });
     Object.defineProperty(handle, 'setPointerCapture', { value: vi.fn(), configurable: true });
     Object.defineProperty(handle, 'hasPointerCapture', { value: vi.fn().mockReturnValue(true), configurable: true });
     Object.defineProperty(handle, 'releasePointerCapture', { value: vi.fn(), configurable: true });
@@ -70,7 +70,7 @@ describe('PanelLauncher', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Panel-Menue minimieren oder verschieben' }));
+    await user.click(screen.getByRole('button', { name: 'Bereichsmenü minimieren oder verschieben' }));
 
     expect(onToggleMinimized).toHaveBeenCalledTimes(1);
 
@@ -86,7 +86,7 @@ describe('PanelLauncher', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Panel-Menue ausklappen' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Library' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bereichsmenü ausklappen' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bibliothek' })).not.toBeInTheDocument();
   });
 });

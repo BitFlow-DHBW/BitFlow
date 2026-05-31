@@ -79,7 +79,7 @@ describe('FloatingPanel', () => {
     render(
       <FloatingPanel
         panel={panelState({ dockPosition: 'right' })}
-        title="Inspector"
+        title="Details"
         onClose={vi.fn()}
         onDock={vi.fn()}
         onMove={vi.fn()}
@@ -89,9 +89,9 @@ describe('FloatingPanel', () => {
       </FloatingPanel>,
     );
 
-    expect(screen.getByRole('region', { name: 'Inspector' })).toHaveClass('is-docked');
+    expect(screen.getByRole('region', { name: 'Details' })).toHaveClass('is-docked');
 
-    await user.click(screen.getByRole('button', { name: 'Loesen' }));
+    await user.click(screen.getByRole('button', { name: 'Lösen' }));
 
     expect(onUndock).toHaveBeenCalledWith('library');
   });

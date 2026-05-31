@@ -18,7 +18,7 @@ export function ResetPasswordPage() {
       await resetPassword(email);
       setMessage('Anfrage erfolgreich: Die E-Mail-Adresse wurde geprüft.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset fehlgeschlagen.');
+      setError(err instanceof Error ? err.message : 'Zurücksetzen fehlgeschlagen.');
     }
   }
 
@@ -36,7 +36,7 @@ export function ResetPasswordPage() {
         {error && <p className="form-error">{error}</p>}
         {message && <p className="form-success">{message}</p>}
         <button className="primary-button" type="submit">
-          Reset-Link anfordern
+          Link zum Zurücksetzen anfordern
         </button>
       </form>
     </AuthPageShell>

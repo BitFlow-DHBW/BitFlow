@@ -1275,7 +1275,7 @@ function EditorWorkspace({
               <p className="eyebrow">Session</p>
               <h2>Keine aktive Session</h2>
             </div>
-            <p className="muted">Starte die Zusammenarbeit ueber die Toolbar.</p>
+            <p className="muted">Starte die Zusammenarbeit über die Toolbar.</p>
           </section>
         )}
       </div>
@@ -1421,7 +1421,7 @@ function EditorWorkspace({
         <div className="floating-panel-layer">{floatingPanels.map(renderPanel)}</div>
         {renderPanelLauncher()}
         <button className="panel-reset-button" type="button" onClick={handleResetPanels}>
-          Panels zuruecksetzen
+          Bereiche zurücksetzen
         </button>
       </div>
 

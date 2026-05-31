@@ -13,6 +13,10 @@ function pinLabel(pin: Pin, fallbackPrefix: string): string {
   return pin.label || pin.name || `${fallbackPrefix}${pin.index + 1}`;
 }
 
+function countLabel(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function GenericTruthTableDialog({ gate, onClose, onSave }: GenericTruthTableDialogProps) {
   const rows = useMemo(
     () => createTruthTableRows(gate.inputs.length, gate.outputs.length, gate.truthTable),
@@ -36,7 +40,7 @@ export function GenericTruthTableDialog({ gate, onClose, onSave }: GenericTruthT
       <section className="modal truth-table-modal" role="dialog" aria-modal="true" aria-labelledby="generic-truth-table-title">
         <div className="modal-header">
           <div>
-            <p className="eyebrow">Generic</p>
+            <p className="eyebrow">Generisch</p>
             <h2 id="generic-truth-table-title">Wahrheitstabelle erstellen</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Dialog schließen">
@@ -46,7 +50,7 @@ export function GenericTruthTableDialog({ gate, onClose, onSave }: GenericTruthT
 
         <div className="component-summary">
           <h3>
-            {gate.inputs.length} in / {gate.outputs.length} out
+            {countLabel(gate.inputs.length, 'Eingang', 'Eingänge')} / {countLabel(gate.outputs.length, 'Ausgang', 'Ausgänge')}
           </h3>
           <p>{rows.length} Kombinationen</p>
         </div>

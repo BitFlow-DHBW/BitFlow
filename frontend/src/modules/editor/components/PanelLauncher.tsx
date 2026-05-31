@@ -79,20 +79,20 @@ export function PanelLauncher({
     <div
       className={`panel-launcher ${isMinimized ? 'is-minimized' : ''}`}
       style={launcherStyle}
-      aria-label="Editor Panels"
+      aria-label="Editor-Bereiche"
     >
       <button
         className="panel-launcher-handle"
         type="button"
-        aria-label={isMinimized ? 'Panel-Menue ausklappen' : 'Panel-Menue minimieren oder verschieben'}
-        title={isMinimized ? 'Panel-Menue ausklappen' : 'Panel-Menue minimieren oder verschieben'}
+        aria-label={isMinimized ? 'Bereichsmenü ausklappen' : 'Bereichsmenü minimieren oder verschieben'}
+        title={isMinimized ? 'Bereichsmenü ausklappen' : 'Bereichsmenü minimieren oder verschieben'}
         onPointerDown={handleDragStart}
         onPointerMove={handleDragMove}
         onPointerUp={handleDragEnd}
         onPointerCancel={handleDragEnd}
       >
         <span aria-hidden="true">::</span>
-        {isMinimized && <span>Panels</span>}
+        {isMinimized && <span>Bereiche</span>}
       </button>
 
       {!isMinimized && definitions.map((definition) => {

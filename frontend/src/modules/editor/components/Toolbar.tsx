@@ -84,10 +84,10 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-actions">
-        <button className="icon-button" type="button" onClick={onUndo} disabled={!canUndo} aria-label="Rückgängig" title="Rückgängig">
+        <button className="icon-button" type="button" onClick={onUndo} disabled={!canUndo} aria-label="Rückgängig" title="Rückgängig (Strg+Z)">
           <Icon name="undo" />
         </button>
-        <button className="icon-button" type="button" onClick={onRedo} disabled={!canRedo} aria-label="Wiederholen" title="Wiederholen">
+        <button className="icon-button" type="button" onClick={onRedo} disabled={!canRedo} aria-label="Wiederholen" title="Wiederholen (Strg+Y)">
           <Icon name="redo" />
         </button>
         <button
