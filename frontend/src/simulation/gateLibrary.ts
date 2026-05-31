@@ -146,7 +146,7 @@ export const GATE_TEMPLATES: GateTemplate[] = [
   },
   {
     type: 'GENERIC',
-    label: 'Generic',
+    label: 'Generisch',
     description: 'Generischer Logikbaustein',
     width: 5,
     height: 4,

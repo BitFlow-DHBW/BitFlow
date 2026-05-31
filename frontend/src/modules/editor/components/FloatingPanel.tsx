@@ -107,12 +107,12 @@ export function FloatingPanel({ panel, title, children, onClose, onDock, onMove,
           <>
             <span>{dockLabels[panel.dockPosition]}</span>
             <button className="ghost-button small" type="button" onClick={() => onUndock(panel.id)}>
-              Loesen
+              Lösen
             </button>
           </>
         ) : (
           <>
-            <span>Anheften</span>
+            <span>Anheften:</span>
             {dockPositions.map((dockPosition) => (
               <button
                 key={dockPosition}

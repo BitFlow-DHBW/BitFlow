@@ -71,12 +71,12 @@ describe('auth pages', () => {
     renderAuthPage(<ResetPasswordPage />);
 
     await user.type(screen.getByLabelText('E-Mail'), 'ada@bitflow.test');
-    await user.click(screen.getByRole('button', { name: 'Reset-Link anfordern' }));
+    await user.click(screen.getByRole('button', { name: 'Link zum Zurücksetzen anfordern' }));
     expect(await screen.findByText(/Anfrage erfolgreich/)).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('E-Mail'));
     await user.type(screen.getByLabelText('E-Mail'), 'missing@bitflow.test');
-    await user.click(screen.getByRole('button', { name: 'Reset-Link anfordern' }));
+    await user.click(screen.getByRole('button', { name: 'Link zum Zurücksetzen anfordern' }));
     expect(await screen.findByText(/E-Mail wurde kein Konto gefunden/)).toBeInTheDocument();
   });
 

@@ -71,15 +71,15 @@ describe('EditorPage', () => {
     expect(await screen.findByRole('heading', { name: 'Starter Circuit' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bibliothek einklappen' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Rechts Dock' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Rechte Leiste' })).toBeInTheDocument();
     expect(container.querySelectorAll('.panel-dock-right')).toHaveLength(1);
-    expect(screen.getByRole('tab', { name: 'Inspector' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Signals' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Inspector einklappen' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Panels zuruecksetzen' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Details' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Signale' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Details einklappen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bereiche zurücksetzen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Signals' }));
-    expect(screen.getByRole('button', { name: 'Signals einklappen' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Signale' }));
+    expect(screen.getByRole('button', { name: 'Signale einklappen' })).toBeInTheDocument();
     expect(screen.getByText(/Pin-Zust/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Simulieren' }));
@@ -110,16 +110,16 @@ describe('EditorPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Bibliothek einklappen' }));
     expect(screen.queryByRole('button', { name: /AND/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Library' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Bibliothek' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: 'Signals' }));
-    await user.click(screen.getByRole('button', { name: 'Signals einklappen' }));
+    await user.click(screen.getByRole('tab', { name: 'Signale' }));
+    await user.click(screen.getByRole('button', { name: 'Signale einklappen' }));
     expect(screen.queryByText(/Pin-Zust/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Signals' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Signale' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('img', { name: 'Schaltungseditor' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Library' }));
+    await user.click(screen.getByRole('button', { name: 'Bibliothek' }));
     expect(screen.getByRole('button', { name: /AND/ })).toBeInTheDocument();
   });
 

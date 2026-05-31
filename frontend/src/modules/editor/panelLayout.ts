@@ -54,10 +54,10 @@ export const PANEL_STORAGE_KEY = 'bitflow.editor.panels.v2';
 export const PANEL_LAUNCHER_STORAGE_KEY = 'bitflow.editor.panelLauncher.v1';
 
 export const EDITOR_PANEL_DEFINITIONS: EditorPanelDefinition[] = [
-  { id: 'library', title: 'Bibliothek', tabLabel: 'Library', tabSide: 'left' },
+  { id: 'library', title: 'Bibliothek', tabLabel: 'Bibliothek', tabSide: 'left' },
   { id: 'session', title: 'Session', tabLabel: 'Session', tabSide: 'left' },
-  { id: 'inspector', title: 'Inspector', tabLabel: 'Inspector', tabSide: 'right' },
-  { id: 'signals', title: 'Signals', tabLabel: 'Signals', tabSide: 'right' },
+  { id: 'inspector', title: 'Details', tabLabel: 'Details', tabSide: 'right' },
+  { id: 'signals', title: 'Signale', tabLabel: 'Signale', tabSide: 'right' },
 ];
 
 const DEFAULT_PANEL_STATES: Record<EditorPanelId, EditorPanelState> = {

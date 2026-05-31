@@ -37,12 +37,12 @@ describe('PanelDock', () => {
       />,
     );
 
-    expect(screen.getByRole('region', { name: 'Rechts Dock' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Inspector' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Signals' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('region', { name: 'Rechte Leiste' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Signale' })).toHaveAttribute('aria-selected', 'false');
     expect(screen.getByText('inspector content')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: 'Signals' }));
+    await user.click(screen.getByRole('tab', { name: 'Signale' }));
 
     expect(onActivePanelChange).toHaveBeenCalledWith('right', 'signals');
   });
@@ -67,9 +67,9 @@ describe('PanelDock', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Signals loesen' }));
-    await user.click(screen.getByRole('button', { name: 'Signals nach links anheften' }));
-    await user.click(screen.getByRole('button', { name: 'Signals einklappen' }));
+    await user.click(screen.getByRole('button', { name: 'Signale lösen' }));
+    await user.click(screen.getByRole('button', { name: 'Signale nach links anheften' }));
+    await user.click(screen.getByRole('button', { name: 'Signale einklappen' }));
 
     expect(onUndock).toHaveBeenCalledWith('signals');
     expect(onDock).toHaveBeenCalledWith('signals', 'left');

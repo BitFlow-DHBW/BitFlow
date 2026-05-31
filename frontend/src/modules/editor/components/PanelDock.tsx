@@ -24,6 +24,11 @@ const dockLabels: Record<PanelDockPosition, string> = {
   right: 'Rechts',
 };
 
+const dockTitles: Record<PanelDockPosition, string> = {
+  left: 'Linke Leiste',
+  right: 'Rechte Leiste',
+};
+
 const dockPositions: PanelDockPosition[] = ['left', 'right'];
 
 export function PanelDock({
@@ -41,26 +46,26 @@ export function PanelDock({
   if (!activePanel) return null;
 
   const activeDefinition = findDefinition(definitions, activePanel.id);
-  const tabListLabel = `${dockLabels[dockPosition]} Dock Panels`;
+  const tabListLabel = `${dockTitles[dockPosition]}: Bereiche`;
 
   return (
     <section
       className={`panel-dock panel-dock-${dockPosition}`}
-      aria-label={`${dockLabels[dockPosition]} Dock`}
+      aria-label={dockTitles[dockPosition]}
       data-dock-position={dockPosition}
     >
       <div className="panel-dock-header">
         <div className="panel-dock-title">
-          <span>{dockLabels[dockPosition]} Dock</span>
-          <small>{panels.length === 1 ? '1 Panel' : `${panels.length} Panels`}</small>
+          <span>{dockTitles[dockPosition]}</span>
+          <small>{panels.length === 1 ? '1 Bereich' : `${panels.length} Bereiche`}</small>
         </div>
 
         <div className="panel-dock-actions">
           <button
             className="icon-button small"
             type="button"
-            aria-label={`${activeDefinition.title} loesen`}
-            title="Loesen"
+            aria-label={`${activeDefinition.title} lösen`}
+            title="Lösen"
             onClick={() => onUndock(activePanel.id)}
           >
             <Icon name="chevron-right" />
@@ -97,8 +102,8 @@ export function PanelDock({
         })}
       </div>
 
-      <div className="panel-dock-toolbar" aria-label={`${activeDefinition.title} Dockposition`}>
-        <span>Andocken</span>
+      <div className="panel-dock-toolbar" aria-label={`${activeDefinition.title} Position`}>
+        <span>Andocken:</span>
         {dockPositions
           .filter((position) => position !== dockPosition)
           .map((position) => (
