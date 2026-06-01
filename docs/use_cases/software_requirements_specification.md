@@ -1,4 +1,8 @@
-# BitFlow - Software Requirements Specification 
+**Dokumentversion:** 1.2
+**Stand:** 2026-06-01
+**Status:** Aktualisiert auf den aktuellen Projektstand
+
+# BitFlow - Software Requirements Specification
 
 ## Table of contents
 - [Table of contents](#table-of-contents)
@@ -34,6 +38,7 @@
         - [UC-18 – Abmelden](#3118-uc-18--abmelden)
         - [UC-19 – Nutzeraccount löschen](#3119-uc-19--nutzeraccount-löschen)
         - [UC-20 – Passwort zurücksetzen](#3120-uc-20--passwort-zurücksetzen)
+        - [UC-21 – Live-Kollaboration starten und beitreten](#3121-uc-21--live-kollaboration-starten-und-beitreten)
     - [Usability](#32-usability)
     - [Reliability](#33-reliability)
     - [Performance](#34-performance)
@@ -51,38 +56,43 @@
 
 ### 1.1 Purpose
 Dieses Dokument beschreibt die grundlegenden Ziele, die Vision und den technologischen Aufbau der Webanwendung BitFlow.
-BitFlow ist eine browserbasierte Simulationsplattform für logische Schaltungen, die es Nutzer*innen ermöglicht, digitale Logiksysteme visuell zu entwerfen, zu simulieren und zu speichern. 
+BitFlow ist eine browserbasierte Simulationsplattform für logische Schaltungen, die es Nutzer*innen ermöglicht, digitale Logiksysteme visuell zu entwerfen, zu simulieren und zu speichern.
 Ziel dieses Projekts ist es, eine moderne und intuitive Alternative zu klassischen Desktop-Simulationstools wie Logi(k)sim zu schaffen.
 
 ### 1.2 Scope
-Das Projekt wird als Webanwendung realisiert, die vollständig im Browser lauffähig ist. Damit wird die Installation zusätzlicher Software überflüssig und eine plattformunabhängige Nutzung ermöglicht.
+Das Projekt wird als Webanwendung realisiert. Das Frontend läuft vollständig im Browser, während ein ASP.NET-Core-Backend Authentifizierung, Benutzer-, Projekt- und Komponentendaten bereitstellt. Damit wird für Nutzer*innen keine lokale Installation benötigt; Projekte werden serverseitig in SQLite gespeichert.
 
-Geplante Teilsysteme sind: 
+Geplante Teilsysteme sind:
 Benutzerverwaltung:
-Benutzer*innen können sich registrieren, anmelden und ihre persönlichen Profildaten verwalten. 
-Außerdem besteht die Möglichkeit, Passwörter zurückzusetzen oder den eigenen Account zu löschen.
-Alle benutzerbeozgenen Daten werden sicher in der Datenbank gespeichert.
+Benutzer*innen können sich registrieren, anmelden und ihre persönlichen Profildaten verwalten.
+Außerdem besteht eine Passwort-zurücksetzen-Seite, die aktuell die E-Mail-Adresse serverseitig prüft. Die API unterstützt das Löschen des eigenen Accounts; die aktuelle Oberfläche stellt dafür noch keinen eigenen Button bereit.
+Alle benutzerbezogenen Daten werden sicher in der Datenbank gespeichert.
 
 Projekt- und Schaltungsmanagement:
 Benutzer*innen können neue Schaltungen oder Projekte erstellen, speichern, laden und löschen.
-Zudem besteht die Möglichkeit, Schaltungen zu importieren oder zu exportieren.
+Der aktuelle Produktstand speichert Projekte über die Backend-API. Ein Datei-Import/-Export kompletter Projekte ist im aktuellen Frontend nicht umgesetzt; importiert werden derzeit benutzerdefinierte Bausteine aus anderen Projekten.
 
 Editor / Arbeitsfläche:
 Der Editor bildet den zentralen Bestandteil der Benutzeroberfläche.
 Logikgatter (z.B. AND, OR) können per Drag & Drop platziert, verbunden und bearbeitet werden.
 Funktionen wie Kopieren, Löschen oder Rückgängig/Wiederholen (Undo/Redo) erleichtern die Bearbeitung.
+Der Editor besitzt andockbare und frei positionierbare Panels für Bibliothek, Inspector, Simulation/Signale und Zusammenarbeit.
 
 Benutzerdefinierte Bausteine:
 Erstellte Schaltungen können zu neuen, wiederverwendbaren Bauteilen zusammengefasst werden.
-Diese Benutzerdefinierten Komponenten lassen sich speichern und in anderen Projekten erneut verwenden.
+Diese benutzerdefinierten Komponenten werden aus den Ein-/Ausgängen der aktuellen Schaltung und einer automatisch erzeugten Wahrheitstabelle abgeleitet. Sie lassen sich in der Projektbibliothek nutzen und aus anderen eigenen Projekten importieren.
 
 Simulation und Visualisierung:
 Die Anwendung bietet eine Echtzeit-Simulation, die das Verhalten der Schaltung direkt visualisiert.
 Signalzustände von Schaltern, LEDs und Anzeigen werden dabei dynamisch dargestellt.
+Unterstützt werden unter anderem `INPUT`, `OUTPUT`, `AND`, `OR`, `NOT`, `XOR`, `DFF`, `TFF`, `JKFF`, generische Wahrheitstabellenbausteine und benutzerdefinierte Bausteine.
+
+Live-Kollaboration:
+Benutzer*innen können im Editor eine Zusammenarbeitssession starten, einen Einladungslink kopieren und gemeinsam an einem Schaltungsstand arbeiten. Die Synchronisation erfolgt über SignalR; Host und Teilnehmende sehen Schaltungsupdates, Teilnehmerstatus und Cursorpositionen.
 
 System und Benutzeroberfläche:
 Das System bietet ein modernes, responsives Design mit umschaltbarem Dark- und Light-Mode.
-Hilfetexte, Tooltips und Bestätigungsdialoge unterstützen die Bedienung.
+Hilfetexte, Tooltips, Speichern-Zustände und Dialoge für ungespeicherte Änderungen unterstützen die Bedienung.
 
 ### 1.3 Definitions, Acronyms and Abbreviations
 | Abbrevation | Explanation                            |
@@ -98,7 +108,7 @@ Hilfetexte, Tooltips und Bestätigungsdialoge unterstützen die Bedienung.
 
 | Title                                                              | Date       | Publishing organization   |
 | -------------------------------------------------------------------|:----------:| ------------------------- |
-| [BitFlow-Blog](https://github.com/SimonJ2222/BitFlow/discussions)  | | |
+| [BitFlow-Blog](https://github.com/BitFlow-DHBW/BitFlow/discussions)  | | |
 
 
 ### 1.5 Overview
@@ -126,7 +136,7 @@ Benutzer(("**Benutzer**"))
 
 %% --- Systemgrenze ---
 subgraph BitFlow["**Bit Flow – Gesamtsystem**"]
-    
+
     %% --- Subsystem: Accounts ---
     subgraph Accounts["**Accounts**"]
         UC1([Registrieren])
@@ -153,6 +163,7 @@ subgraph BitFlow["**Bit Flow – Gesamtsystem**"]
         UC20([Schaltung importieren])
         UC21([Schaltung zu Baustein zusammenfassen])
         UC22([Schaltung exportieren])
+        UC23([Live-Kollaboration starten und beitreten])
     end
 end
 
@@ -179,6 +190,7 @@ Benutzer --> UC19
 Benutzer --> UC20
 Benutzer --> UC21
 Benutzer --> UC22
+Benutzer --> UC23
 
 %% --- Beziehungen zwischen Use Cases ---
 UC6 -.->|«include»| UC5
@@ -188,6 +200,7 @@ UC9 -.->|«extend»| UC8
 UC18 -.->|«include»| UC17
 UC21 -.->|«extend»| UC7
 UC20 -.->|«include»| UC9
+UC23 -.->|«include»| UC8
 
 %% --- Farben und Rahmen ---
 style BitFlow fill:#f3f4f6,stroke:#000000,stroke-width:2px
@@ -218,56 +231,92 @@ style UC19 stroke:#000000,stroke-width:2px
 style UC20 stroke:#000000,stroke-width:2px
 style UC21 stroke:#000000,stroke-width:2px
 style UC22 stroke:#000000,stroke-width:2px
+style UC23 stroke:#000000,stroke-width:2px
 
 ```
 
 ### 2.3 Technology Stack
-The technology we use is:
+Der aktuell verwendete Tech-Stack ist:
 
 Backend:
-- **Programmiersprache:** C#  
-- **Framework:** ASP.NET Core Web API  
-- **API-Tests:** Postman
+- **Programmiersprache:** C#
+- **Framework:** ASP.NET Core 8 Web API
+- **Persistenz:** Entity Framework Core 8 mit SQLite
+- **Realtime:** SignalR-Hub für Live-Kollaboration
+- **API-Dokumentation:** Swagger im Development-Modus
 
 Frontend:
-- **Programmiersprache:** TypeScript  
-- **Framework:** React mit Vite  
-- **CSS-Framework:** Tailwind CSS  
+- **Programmiersprache:** TypeScript
+- **Framework:** React 19 mit Vite/Rolldown-Vite
+- **Routing:** React Router
+- **Realtime-Client:** `@microsoft/signalr`
+- **Styling:** eigenes CSS in `frontend/src/index.css`
 
 IDE:
 Visual Studio Code & WebStorm
 
 Project Management:
--YouTrack
--GitHub
+- YouTrack
+- GitHub
 
-Deployment (geplant):
-- Webhosting über GitHub Pages oder einen ASP.NET-kompatiblen Webserver 
+Deployment:
+- Frontend als Nginx-Container
+- Backend als ASP.NET-Core-Container
+- `docker-compose.yml` mit gemeinsamem Docker-Netzwerk und persistentem SQLite-Volume
+- Images werden im aktuellen Setup über `ghcr.io/bitflow-dhbw` referenziert
 
 Testing:
-- **Unit-Tests:** Jest (Frontend), xUnit (Backend)  
-- **Manuelle Tests:** Browserbasierte Oberflächentests  
-- **API-Tests:** Postman  
+- **Frontend-Tests:** Vitest, Testing Library, jsdom, Coverage über V8
+- **Backend-Tests:** xUnit
+- **Manuelle Tests:** Browserbasierte Oberflächentests
+- **API-Tests:** aktuell über automatisierte Service-/Controller-nahe Tests und manuelle API-Prüfung; Postman ist optional
 
 ## 3. Specific Requirements
 
 ### 3.1 Functionality
+
+#### Implementierungsstand am 2026-06-01
+
+| Use Case | Status im aktuellen Projektstand |
+| --- | --- |
+| UC-01 Dark Mode einstellen | Implementiert über Einstellungen und LocalStorage-Präferenzen; nur für angemeldete Nutzer erreichbar. |
+| UC-02 Änderungen rückgängig machen | Implementiert über Snapshot-History mit Undo/Redo. |
+| UC-03 Projektdatei löschen | Implementiert über Backend-API; die Oberfläche löscht aktuell direkt über die Projektkarte. |
+| UC-04 Schaltung zu Baustein zusammenfassen | Implementiert für die gesamte aktuelle Schaltung; daraus wird automatisch eine Wahrheitstabelle erzeugt. |
+| UC-05 Schaltung exportieren | Im aktuellen Frontend nicht umgesetzt. |
+| UC-06 Gesamte Schaltung löschen | Im aktuellen Frontend nicht als eigener Befehl umgesetzt; einzelne Auswahlobjekte können gelöscht werden. |
+| UC-07 Signalverläufe visualisieren | Implementiert als aktuelle Pin-/Ausgangszustände, nicht als zeitlicher Waveform-Viewer. |
+| UC-08 Schaltung importieren | Dateiimport kompletter Schaltungen ist nicht umgesetzt; Custom Components können aus anderen Projekten importiert werden. |
+| UC-09 Benutzerdefinierte Logikbausteine erstellen | Implementiert über aktuelle Schaltung und Wahrheitstabellenableitung. |
+| UC-10 Logikbausteine per Drag & Drop positionieren | Implementiert. |
+| UC-11 Bausteine verbinden | Implementiert über Pins, Leitungen und Zwischenpunkte. |
+| UC-12 Baustein löschen | Implementiert für Bausteine, Leitungen und Kommentare inklusive zugehöriger Leitungen. |
+| UC-13 Simulation in Echtzeit starten | Implementiert als Live-Auswertung im Simulationsmodus. |
+| UC-14 Schaltung speichern | Implementiert über Backend-API inklusive Schaltung, Input-Signalen, Netzen und Custom Components. |
+| UC-15 Schaltung laden | Implementiert über Backend-API und Projektübersicht. |
+| UC-16 Registrieren | Implementiert. |
+| UC-17 Anmelden | Implementiert mit Bearer-Session-Token. |
+| UC-18 Abmelden | Implementiert. |
+| UC-19 Nutzeraccount löschen | Backend vorhanden; Oberfläche aktuell nicht angebunden. |
+| UC-20 Passwort zurücksetzen | Oberfläche und API prüfen aktuell die E-Mail-Adresse; Mailversand und echtes Setzen eines neuen Passworts sind nicht umgesetzt. |
+| UC-21 Live-Kollaboration starten und beitreten | Implementiert über SignalR-Sessions mit Einladungslink, Teilnehmern und Cursorupdates. |
+
 #### 3.1.1 UC-01 – Dark Mode einstellen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Benutzer möchte das Erscheinungsbild der Webanwendung anpassen, um die Nutzung in dunkler Umgebung zu erleichtern.
 - **Mockup**
-![Darkmode aus Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20Darkmode%20einstellen%20weiss.png)
-![Darkmode an Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20Darkmode%20aktivieren.png)
-- **Voraussetzungen:** Benutzer ist eingeloggt oder nutzt die Anwendung im Gastmodus.  
-- **Auslöser:** Benutzer klickt auf das Einstellungsmenü und aktiviert den Schalter „Dark Mode“.  
+![Darkmode aus Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20Darkmode%20einstellen%20weiss.png)
+![Darkmode an Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20Darkmode%20aktivieren.png)
+- **Voraussetzungen:** Benutzer ist eingeloggt.
+- **Auslöser:** Benutzer klickt auf das Einstellungsmenü und aktiviert den Schalter „Dark Mode“.
 - **Hauptablauf:**
 	1. Benutzer öffnet das Einstellungsmenü.
 	2. Benutzer wählt „Darstellung → Dark Mode“.
-	3. System speichert die Einstellung lokal (im Browser-Storage oder Benutzerprofil).
+	3. System speichert die Einstellung lokal im Browser-Storage (`bitflow.preferences`).
 	4. UI wechselt sofort zur dunklen Farbpalette.
-- **Alternativabläufe:**  
+- **Alternativabläufe:**
 	- 3a. Wenn Browser LocalStorage deaktiviert: Einstellung wird nur temporär gespeichert.
-- **Nachbedingungen:** Oberfläche wird dauerhaft im gewählten Modus angezeigt.  
+- **Nachbedingungen:** Oberfläche wird dauerhaft im gewählten Modus angezeigt.
 - **Akzeptanzkriterien:** Farbwechsel erfolgt flüssig; Einstellung bleibt beim nächsten Start erhalten.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -307,20 +356,20 @@ flowchart LR
 
 
 #### 3.1.2 UC-02 – Änderungen rückgängig machen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Benutzer möchte versehentliche Aktionen im Schaltplan rückgängig machen.
 - **Mockup**
-![Rückgängig MockUp](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20undo%20und%20redo.png) 
-- **Voraussetzungen:** Es existiert mindestens eine Aktion im Verlauf.  
-- **Auslöser:** Benutzer drückt `Ctrl+Z` oder klickt auf „Rückgängig“.  
+![Rückgängig MockUp](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20undo%20und%20redo.png)
+- **Voraussetzungen:** Es existiert mindestens eine Aktion im Verlauf.
+- **Auslöser:** Benutzer drückt `Ctrl+Z` oder klickt auf „Rückgängig“.
 - **Hauptablauf:**
 	1. Benutzer führt Aktionen im Canvas aus.
 	2. System speichert jede Aktion in einem Undo-Stack.
 	3. Benutzer löst „Undo“ aus.
 	4. System stellt vorherigen Zustand des Canvas wieder her.
-- **Alternativabläufe:**  
-	- 2a. Kein Undo-Verlauf vorhanden → System zeigt Hinweis „Keine Änderungen rückgängig zu machen“.  
-- **Nachbedingungen:** Letzte Änderung ist rückgängig gemacht.  
+- **Alternativabläufe:**
+	- 2a. Kein Undo-Verlauf vorhanden → System zeigt Hinweis „Keine Änderungen rückgängig zu machen“.
+- **Nachbedingungen:** Letzte Änderung ist rückgängig gemacht.
 - **Akzeptanzkriterien:** Alle Aktionen (z. B. Baustein verschieben, Leitung löschen) lassen sich rückgängig machen.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -355,67 +404,68 @@ flowchart LR
 
 
 #### 3.1.3 UC-03 – Projektdatei löschen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Ein bestehendes Projekt soll dauerhaft entfernt werden.
 - **Mockup**
-![Projektdatei löschen Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20Projekt%20l%C3%B6schen.png)
-- **Voraussetzungen:** Benutzer ist eingeloggt und hat Schreibrechte auf das Projekt.  
-- **Auslöser:** Benutzer wählt im Projektmanager „Löschen“.  
+![Projektdatei löschen Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20Projekt%20l%C3%B6schen.png)
+- **Voraussetzungen:** Benutzer ist eingeloggt und hat Schreibrechte auf das Projekt.
+- **Auslöser:** Benutzer wählt im Projektmanager „Löschen“.
 - **Hauptablauf:**
-	1. System zeigt Sicherheitsabfrage an.
-	2. Benutzer bestätigt Löschung.
-	3. System entfernt Projektdatei aus DB oder LocalStorage.
-	4. System aktualisiert Projektliste.  
-- **Alternativabläufe:**  
-	- 2a. Benutzer bricht ab → Aktion wird verworfen.  
-- **Nachbedingungen:** Projektdatei ist gelöscht.  
+	1. Benutzer klickt auf „Löschen“ in der Projektkarte.
+	2. System sendet `DELETE /api/projects/{id}` mit dem Session-Token.
+	3. Backend prüft den Besitzer und entfernt das Projekt aus SQLite.
+	4. System lädt die Projektliste neu.
+- **Alternativabläufe:**
+	- 2a. Projekt nicht gefunden oder gehört einem anderen Nutzer → Backend antwortet mit Fehler, Liste bleibt unverändert.
+- **Nachbedingungen:** Projektdatei ist gelöscht.
 - **Akzeptanzkriterien:** Gelöschte Datei taucht nicht mehr im Projektmanager auf.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
     participant UI as Projektmanager
-    participant Storage as DB/LocalStorage
+    participant Storage as Backend/SQLite
 
     Benutzer ->>+ UI: Wählt Projekt und klickt „Löschen“
-    UI ->> Benutzer: Zeigt Sicherheitsabfrage
-    alt Benutzer bestätigt Löschung
-        UI ->>+ Storage: Projektdatei entfernen
+    UI ->>+ Storage: DELETE /api/projects/{id}
+    alt Projekt gehört Benutzer
         Storage -->>- UI: Löschung erfolgreich
         UI -->> Benutzer: Projektliste aktualisieren
-    else Benutzer bricht ab
-        UI -->>- Benutzer: Aktion verworfen
+    else Projekt nicht gefunden
+        Storage -->>- UI: Fehlerantwort
+        UI -->>- Benutzer: Projektliste bleibt unverändert
     end
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	C1([Start]) --> C2["System zeigt Sicherheitsabfrage"]
-	C2 --> C3{"Benutzer bestätigt?"}
-	C3 -->|Ja| C4["System entfernt Projektdatei aus DB oder LocalStorage"]
+	C1([Start]) --> C2["Benutzer klickt Löschen"]
+	C2 --> C3{"Projekt gehört Benutzer?"}
+	C3 -->|Ja| C4["System entfernt Projekt aus SQLite"]
 	C4 --> C5["System aktualisiert Projektliste"]
-	C3 -->|Nein| C6["Aktion wird verworfen"]
+	C3 -->|Nein| C6["System zeigt bzw. protokolliert Fehler"]
 	C4 --> C7([Ende])
 	C6 --> C7
 ```
 
 
 #### 3.1.4 UC-04 – Schaltung zu Baustein zusammenfassen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Eine bestehende Schaltung soll als wiederverwendbarer Baustein gespeichert werden.
-- **Mockup*
-![Schaltung zu Baustein Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Baustein%20erstellen.png)
-![Schaltung zu Baustein Mockup 2](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Benutzerdefinierte%20Bausteine.png)
-- **Voraussetzungen:** Schaltung ist vollständig und fehlerfrei.  
-- **Auslöser:** Benutzer klickt auf „Als Baustein speichern“.  
+- **Mockup**
+![Schaltung zu Baustein Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Baustein%20erstellen.png)
+![Schaltung zu Baustein Mockup 2](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Benutzerdefinierte%20Bausteine.png)
+- **Voraussetzungen:** Schaltung enthält mindestens einen Ausgang.
+- **Auslöser:** Benutzer klickt auf „Baustein erstellen“.
 - **Hauptablauf:**
-	1. Benutzer markiert relevante Schaltungsteile.
-	2. System öffnet Dialog „Neuer Logikbaustein“.
-	3. Benutzer vergibt Name, Symbol, Beschreibung.
-	4. System erstellt Metadatei und speichert Baustein in der Bibliothek.
-- **Alternativabläufe:**  
-	- 1a. Schaltung enthält unverbundene Pins → Warnung und Möglichkeit zur Korrektur.  
-- **Nachbedingungen:** Neuer Baustein steht in der Bibliothek zur Verfügung.  
+	1. Benutzer öffnet im Editor „Baustein erstellen“.
+	2. System analysiert die gesamte aktuelle Schaltung.
+	3. System leitet Eingänge aus `INPUT`-Gattern und Ausgänge aus `OUTPUT`-Gattern ab.
+	4. Benutzer vergibt Name und Beschreibung.
+	5. System erzeugt automatisch eine Wahrheitstabelle und speichert den Baustein in der Projektbibliothek.
+- **Alternativabläufe:**
+	- 3a. Kein Ausgang vorhanden → System blockiert das Speichern mit einer Fehlermeldung.
+- **Nachbedingungen:** Neuer Baustein steht in der Bibliothek zur Verfügung.
 - **Akzeptanzkriterien:** Baustein kann im nächsten Projekt per Drag & Drop verwendet werden.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -424,47 +474,46 @@ sequenceDiagram
     participant Editor as Schaltungseditor
     participant System as Bausteinverwaltung
 
-    Benutzer ->>+ Editor: Klick auf „Als Baustein speichern“
-    Editor ->> Benutzer: Auswahl der Schaltungsteile anfordern
-    Benutzer ->> Editor: Markiert relevante Schaltung
-    Editor ->>+ System: Öffnet Dialog „Neuer Logikbaustein“
+    Benutzer ->>+ Editor: Klick auf „Baustein erstellen“
+    Editor ->>+ System: Analysiert aktuelle Schaltung
     deactivate Editor
-    Benutzer ->> System: Gibt Name, Symbol, Beschreibung ein
-    alt Schaltung fehlerfrei
-        System ->> System: Metadatei erstellen und speichern
+    Benutzer ->> System: Gibt Name und Beschreibung ein
+    alt Mindestens ein Ausgang vorhanden
+        System ->> System: Wahrheitstabelle erzeugen und Baustein speichern
         System -->> Benutzer: Neuer Baustein in Bibliothek sichtbar
-    else Unverbundene Pins vorhanden
-        System -->>- Benutzer: Warnung + Korrekturmöglichkeit
+    else Kein Ausgang vorhanden
+        System -->>- Benutzer: Fehlermeldung anzeigen
     end
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	D1([Start]) --> D2["Benutzer markiert relevante Schaltungsteile"]
-	D2 --> D3["System öffnet Dialog 'Neuer Logikbaustein'"]
-	D3 --> D4["Benutzer vergibt Name, Symbol, Beschreibung"]
-	D4 --> D5{"Schaltung enthält unverbundene Pins?"}
-	D5 -->|Nein| D6["System erstellt Metadatei und speichert Baustein"]
-	D5 -->|Ja| D7["System zeigt Warnung und ermöglicht Korrektur"]
+	D1([Start]) --> D2["Benutzer öffnet 'Baustein erstellen'"]
+	D2 --> D3["System analysiert aktuelle Schaltung"]
+	D3 --> D4["Benutzer vergibt Name und Beschreibung"]
+	D4 --> D5{"Mindestens ein Ausgang vorhanden?"}
+	D5 -->|Ja| D6["System erzeugt Wahrheitstabelle und speichert Baustein"]
+	D5 -->|Nein| D7["Speichern blockiert und Fehlermeldung anzeigen"]
 	D6 --> D8([Ende])
 	D7 --> D8
 ```
 
 
 #### 3.1.5 UC-05 – Schaltung exportieren
-- **Akteure:** Benutzer  
-- **Ziel:** Schaltung in externes Format (z. B. JSON, XML, VHDL) exportieren.
+- **Akteure:** Benutzer
+- **Ziel:** Schaltung in ein externes Format exportieren.
+- **Aktueller Projektstand:** Dieser Use Case ist im aktuellen Frontend nicht umgesetzt. Projekte werden über die Backend-API gespeichert und geladen; es gibt keinen Datei-Download für komplette Schaltungen.
 - **Mockup**
-![Schaltung exportieren Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20Projekt%20exportieren.png)
-- **Voraussetzungen:** Projekt geöffnet.  
-- **Auslöser:** Klick auf „Exportieren“.  
+![Schaltung exportieren Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20Projekt%20exportieren.png)
+- **Voraussetzungen:** Projekt geöffnet; Exportfunktion wurde implementiert.
+- **Auslöser:** Klick auf „Exportieren“.
 - **Hauptablauf:**
-    1. Benutzer klickt auf export 
-  	2. System generiert Datei und bietet Download an.
-	3. Benutzer speichert Datei lokal.  
-- **Alternativabläufe:**  
-	- 2a. Export fehlschlägt → System zeigt Fehlerdialog mit Log.  
-- **Nachbedingungen:** Datei ist im Zielverzeichnis gespeichert.  
+    1. Benutzer klickt auf „Exportieren“.
+    2. System generiert eine JSON-Datei und bietet Download an.
+	3. Benutzer speichert Datei lokal.
+- **Alternativabläufe:**
+	- 2a. Export fehlschlägt → System zeigt Fehlerdialog mit Log.
+- **Nachbedingungen:** Datei ist im Zielverzeichnis gespeichert.
 - **Akzeptanzkriterien:** Exportierte Datei enthält vollständige Netzliste und Bausteindefinitionen.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -475,9 +524,8 @@ sequenceDiagram
     participant DateiSystem as Lokales Dateisystem
 
     Benutzer ->>+ Editor: Klick auf „Exportieren“
-    Editor ->> Benutzer: Auswahl des Exportformats anzeigen
-    Benutzer ->>+ Exporter: Wählt Format (z. B. JSON, XML, VHDL)
-    Exporter ->> Editor: Netzliste generieren
+    Editor ->>+ Exporter: Übergibt aktuellen Schaltungszustand
+    Exporter ->> Editor: JSON-Datei generieren
     deactivate Editor
     Exporter ->>+ DateiSystem: Datei schreiben
     deactivate Exporter
@@ -502,19 +550,20 @@ flowchart LR
 
 
 #### 3.1.6 UC-06 – Gesamte Schaltung löschen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Der Benutzer möchte das aktuelle Canvas vollständig leeren.
+- **Aktueller Projektstand:** Ein eigener Befehl „Gesamte Schaltung löschen“ ist im aktuellen Frontend nicht umgesetzt. Vorhanden ist das Löschen ausgewählter Bausteine, Leitungen und Kommentare.
 - **MockUp**
-![Schaltung löschen Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20leer.png)  
-- **Voraussetzungen:** Schaltung ist geladen.  
-- **Auslöser:** Klick auf „Alles löschen (das "Mülltonne"-Icon)“.  
+![Schaltung löschen Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20leer.png)
+- **Voraussetzungen:** Schaltung ist geladen.
+- **Auslöser:** Geplanter Klick auf „Alles löschen“.
 - **Hauptablauf:**
 	1. System fragt nach Bestätigung.
 	2. Benutzer bestätigt.
 	3. System löscht alle Bausteine und Leitungen.
-- **Alternativabläufe:**  
-	- 2a. Benutzer bricht ab → keine Änderung.  
-- **Nachbedingungen:** Canvas ist leer.  
+- **Alternativabläufe:**
+	- 2a. Benutzer bricht ab → keine Änderung.
+- **Nachbedingungen:** Canvas ist leer.
 - **Akzeptanzkriterien:** Kein Element verbleibt sichtbar.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -546,20 +595,22 @@ flowchart LR
 
 
 #### 3.1.7 UC-07 – Signalverläufe visualisieren
-- **Akteure:** Benutzer  
-- **Ziel:** Benutzer möchte die zeitlichen Signaländerungen im Diagramm sehen.
+- **Akteure:** Benutzer
+- **Ziel:** Benutzer möchte die aktuellen Signalzustände der Ein- und Ausgänge sehen.
+- **Aktueller Projektstand:** Der SignalViewer zeigt aktuelle Pin-Zustände als `1` oder `0`. Ein zeitlicher Waveform-Verlauf ist noch nicht umgesetzt.
 - **Mockup**
-![Simulation gestartet Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Simulation%20gestartet.png)
-![Signalverläufe visualisiert Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Signalverl%C3%A4ufe%20visualisieren.png)
-- **Voraussetzungen:** Simulation wurde ausgeführt.  
-- **Auslöser:** Klick auf „Signalverlauf anzeigen“.  
+![Simulation gestartet Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Simulation%20gestartet.png)
+![Signalverläufe visualisiert Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Signalverl%C3%A4ufe%20visualisieren.png)
+- **Voraussetzungen:** Projekt ist im Editor geöffnet.
+- **Auslöser:** Benutzer öffnet den Simulations-/Signalbereich.
 - **Hauptablauf:**
-	1. System öffnet Signalviewer.
-	2. Benutzer wählt Knoten oder Leitungen.
-	3. System zeigt Wellenformen in Echtzeit oder Zeitachse.  
-- **Alternativabläufe:**  
-	- 2a. Kein Signal gewählt → Meldung „Bitte Leitung auswählen“.  
-- **Nachbedingungen:** Signaldiagramm ist sichtbar.  
+	1. System öffnet SimulationPanel und SignalViewer.
+	2. Benutzer wechselt in den Simulationsmodus.
+	3. Benutzer schaltet Eingänge.
+	4. System zeigt aktuelle Ausgangs- und Pin-Zustände.
+- **Alternativabläufe:**
+	- 1a. Keine Ausgangs-Pins vorhanden → System zeigt „Keine Ausgangs-Pins vorhanden.“.
+- **Nachbedingungen:** Signaldiagramm ist sichtbar.
 - **Akzeptanzkriterien:** Werteänderungen stimmen mit Simulation überein.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -569,144 +620,148 @@ sequenceDiagram
     participant Simulation as Simulationsmodul
     participant Viewer as Signal-Viewer
 
-    Benutzer ->>+ UI: Klick auf „Signalverlauf anzeigen“
-    UI ->>+ Simulation: Prüft, ob Simulation aktiv ist
-    Simulation -->> UI: Bestätigung
-    UI ->>+ Viewer: Öffnet Signal-Viewer
+    Benutzer ->>+ UI: Öffnet Simulations-/Signalbereich
+    UI ->>+ Simulation: Wertet aktuelle Schaltung aus
+    Simulation -->> UI: Aktuelle Signalwerte
+    UI ->>+ Viewer: Zeigt Pin-Zustände
     deactivate UI
-    Benutzer ->> Viewer: Wählt Knoten/Leitung
-    alt Signal vorhanden
-        Simulation ->> Viewer: Sendet Signalverlauf (Zeit/Wert)
+    Benutzer ->> Viewer: Schaltet Eingang im Simulationsmodus
+    alt Signale vorhanden
+        Simulation ->> Viewer: Sendet aktuellen Wert
         deactivate Simulation
-        Viewer -->> Benutzer: Zeigt Echtzeit-Wellenform
-    else Kein Signal gewählt
-        Viewer -->>- Benutzer: Meldung „Bitte Leitung auswählen“
+        Viewer -->> Benutzer: Zeigt 0/1-Zustände
+    else Keine Ausgangs-Pins
+        Viewer -->>- Benutzer: Meldung „Keine Ausgangs-Pins vorhanden“
     end
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	G1([Start]) --> G2["System öffnet Signalviewer"]
-	G2 --> G3["Benutzer wählt Knoten oder Leitungen"]
-	G3 --> G4{"Signal gewählt?"}
-	G4 -->|Ja| G5["System zeigt Wellenformen in Echtzeit oder Zeitachse"]
-	G4 -->|Nein| G6["System zeigt Meldung 'Bitte Leitung auswählen'"]
+	G1([Start]) --> G2["System öffnet SimulationPanel und SignalViewer"]
+	G2 --> G3["Benutzer schaltet Eingänge"]
+	G3 --> G4{"Ausgangs-Pins vorhanden?"}
+	G4 -->|Ja| G5["System zeigt aktuelle 0/1-Zustände"]
+	G4 -->|Nein| G6["System zeigt Meldung 'Keine Ausgangs-Pins vorhanden'"]
 	G5 --> G7([Ende])
 	G6 --> G7
 ```
 
 
 #### 3.1.8 UC-08 – Schaltung importieren
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Bestehende Schaltung aus Datei laden.
+- **Aktueller Projektstand:** Ein Dateiimport kompletter Schaltungen ist nicht umgesetzt. Der aktuell vorhandene Import bezieht sich auf benutzerdefinierte Bausteine aus anderen Projekten.
 - **Mockup**
-![Schaltung auswählen](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20Projekte%20importieren.png)
-![Schaltung importieren Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20mit%20einem%20Projekt%20Darkmode.png)
-- **Voraussetzungen:** Datei vorhanden, gültiges Format.  
-- **Auslöser:** Klick auf „Importieren“.  
+![Schaltung auswählen](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20Projekte%20importieren.png)
+![Schaltung importieren Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20mit%20einem%20Projekt%20Darkmode.png)
+- **Voraussetzungen:** Mindestens ein anderes eigenes Projekt enthält benutzerdefinierte Bausteine.
+- **Auslöser:** Klick auf „Baustein importieren“.
 - **Hauptablauf:**
-	1. Benutzer wählt Datei.
-	2. System liest Datei ein und validiert Format.
-	3. Schaltung wird auf der Startseite angezeigt.  
-- **Alternativabläufe:**  
-	- 2a. Datei fehlerhaft → Fehlerdialog.  
-- **Nachbedingungen:** Schaltung ist geladen.  
-- **Akzeptanzkriterien:** Alle Bausteine korrekt platziert.
+	1. System lädt die Projektliste über die Backend-API.
+	2. System zeigt benutzerdefinierte Bausteine aus anderen Projekten gruppiert nach Projekt.
+	3. Benutzer wählt einen Baustein.
+	4. System fügt den Baustein zur aktuellen Projektbibliothek hinzu.
+- **Alternativabläufe:**
+	- 1a. Keine anderen Projekte oder keine Bausteine vorhanden → System zeigt einen Hinweis.
+- **Nachbedingungen:** Importierter Baustein ist im aktuellen Editor verfügbar.
+- **Akzeptanzkriterien:** Importierter Baustein kann im aktuellen Projekt per Drag & Drop verwendet werden.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
     participant UI as Schaltungseditor
-    participant DateiSystem as Lokales Dateisystem
+    participant API as Backend-API
     participant System as Bausteinverwaltung
 
-    Benutzer ->>+ UI: Klick auf „Importieren“
-    UI ->>+ DateiSystem: Öffnet Dateiauswahldialog
-    Benutzer ->> DateiSystem: Wählt Datei
-    DateiSystem -->>- UI: Übergibt Schaltungsdaten
-    UI ->>+ System: Validiert und lädt Schaltung
-    alt Datei gültig
-        System -->> UI: Schaltung erfolgreich geladen
-        UI -->>- Benutzer: Schaltung im Canvas anzeigen
-    else Datei fehlerhaft
-        System -->>- Benutzer: Fehlerdialog „Ungültiges Format“
+    Benutzer ->>+ UI: Klick auf „Baustein importieren“
+    UI ->>+ API: Projekte abrufen
+    API -->>- UI: Projekte mit Custom Components
+    Benutzer ->> UI: Wählt Baustein
+    UI ->>+ System: Baustein zur aktuellen Bibliothek hinzufügen
+    alt Baustein noch nicht vorhanden
+        System -->> UI: Baustein importiert
+        UI -->>- Benutzer: Baustein in Bibliothek anzeigen
+    else Baustein bereits vorhanden
+        System -->>- Benutzer: Button deaktiviert / Hinweis
     end
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	H1([Start]) --> H2["Benutzer wählt Datei"]
-	H2 --> H3["System liest Datei ein und validiert Format"]
-	H3 --> H4{"Datei gültig?"}
-	H4 -->|Ja| H5["Schaltung wird angezeigt"]
-	H4 -->|Nein| H6["System zeigt Fehlerdialog"]
+	H1([Start]) --> H2["System lädt andere Projekte"]
+	H2 --> H3["System listet Custom Components"]
+	H3 --> H4{"Baustein auswählbar?"}
+	H4 -->|Ja| H5["Baustein wird zur Bibliothek hinzugefügt"]
+	H4 -->|Nein| H6["System zeigt Hinweis"]
 	H5 --> H7([Ende])
 	H6 --> H7
 ```
 
 
 #### 3.1.9 UC-09 – Benutzerdefinierte Logikbausteine erstellen
-- **Akteure:** Benutzer  
-- **Ziel:** Eigene Bausteine mit individuellem Verhalten definieren.
+- **Akteure:** Benutzer
+- **Ziel:** Eigene Bausteine aus der aktuellen Schaltung erzeugen.
 - **Mockup**
-![Benutzerdefinierte Logikbausteine erstellen Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Benutzerdefinierte%20Bausteine.png)
-- **Voraussetzungen:** Benutzer hat Schreibrechte in Bibliothek.  
-- **Auslöser:** Menü „Neuer Baustein“.  
+![Benutzerdefinierte Logikbausteine erstellen Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Benutzerdefinierte%20Bausteine.png)
+- **Voraussetzungen:** Benutzer ist im Editor, die Schaltung enthält mindestens einen Ausgang.
+- **Auslöser:** Toolbar-Aktion „Baustein erstellen“.
 - **Hauptablauf:**
-	1. System öffnet Baustein-Editor.
-	2. Benutzer legt Pins, Symbole, Logik (z. B. durch Wahrheitstabelle) fest.
-	3. System kompiliert und speichert Baustein.  
-- **Alternativabläufe:**  
-	- 3a. Kompilierungsfehler → Benutzer erhält Fehlermeldung.  
-- **Nachbedingungen:** Neuer Baustein steht zur Verwendung bereit.  
+	1. System öffnet den Dialog „Schaltung als Baustein speichern“.
+	2. System ermittelt Eingangs- und Ausgangslabels.
+	3. Benutzer gibt Name und Beschreibung ein.
+	4. System berechnet eine Wahrheitstabelle aus der aktuellen Schaltung.
+	5. System speichert den Baustein in der aktuellen Projektbibliothek.
+- **Alternativabläufe:**
+	- 2a. Kein Ausgang vorhanden → Speichern wird deaktiviert und eine Fehlermeldung angezeigt.
+- **Nachbedingungen:** Neuer Baustein steht zur Verwendung bereit.
 - **Akzeptanzkriterien:** Baustein erscheint in Bibliothek und funktioniert korrekt.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
-    participant Editor as Baustein-Editor
-    participant Compiler as Logik-Compiler
+    participant Editor as Editor
+    participant Factory as CustomComponentFactory
     participant Bibliothek as Bausteinbibliothek
 
-    Benutzer ->>+ Editor: Menü „Neuer Baustein“ auswählen
-    Editor ->> Benutzer: Öffnet Editor (Pins, Symbol, Logik)
-    Benutzer ->> Editor: Definiert Bausteineigenschaften
-    Editor ->>+ Compiler: Logik kompilieren
+    Benutzer ->>+ Editor: „Baustein erstellen“ auswählen
+    Editor ->> Benutzer: Öffnet Dialog mit Name/Beschreibung
+    Benutzer ->> Editor: Bestätigt Bausteindaten
+    Editor ->>+ Factory: Wahrheitstabelle aus Schaltung erzeugen
     deactivate Editor
-    alt Kompilierung erfolgreich
-        Compiler ->>+ Bibliothek: Baustein speichern
+    alt Ausgang vorhanden
+        Factory ->>+ Bibliothek: Baustein speichern
         Bibliothek -->>- Benutzer: Neuer Baustein erscheint in Liste
-    else Kompilierungsfehler
-        Compiler -->>- Benutzer: Fehlermeldung anzeigen
+    else Kein Ausgang vorhanden
+        Factory -->>- Benutzer: Fehlermeldung anzeigen
     end
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	I1([Start]) --> I2["System öffnet Baustein-Editor"]
-	I2 --> I3["Benutzer legt Pins, Symbole, Logik fest"]
-	I3 --> I4["System kompiliert und speichert Baustein"]
-	I4 --> I5{"Kompilierungsfehler?"}
-	I5 -->|Nein| I6["Baustein gespeichert und verfügbar"]
-	I5 -->|Ja| I7["Fehlermeldung anzeigen"]
+	I1([Start]) --> I2["System öffnet Dialog"]
+	I2 --> I3["Benutzer gibt Name und Beschreibung ein"]
+	I3 --> I4["System erzeugt Wahrheitstabelle"]
+	I4 --> I5{"Ausgang vorhanden?"}
+	I5 -->|Ja| I6["Baustein gespeichert und verfügbar"]
+	I5 -->|Nein| I7["Fehlermeldung anzeigen"]
 	I6 --> I8([Ende])
 	I7 --> I8
 ```
 
 
 #### 3.1.10 UC-10 – Logikbausteine per Drag & Drop positionieren
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Bausteine intuitiv auf dem Canvas platzieren.
 - **Mockup**
-![Drag and Drop Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Bausteine%20platzieren.png)
-- **Voraussetzungen:** Schaltung geöffnet.  
-- **Auslöser:** Benutzer zieht Element aus Bibliothek.  
+![Drag and Drop Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Bausteine%20platzieren.png)
+- **Voraussetzungen:** Schaltung geöffnet.
+- **Auslöser:** Benutzer zieht Element aus Bibliothek.
 - **Hauptablauf:**
 	1. Benutzer wählt Baustein.
 	2. Drag & Drop auf Canvas.
 	3. System platziert Baustein.
- 
-- **Nachbedingungen:** Baustein auf Canvas platziert.  
+
+- **Nachbedingungen:** Baustein auf Canvas platziert.
 - **Akzeptanzkriterien:** Drag & Drop funktioniert flüssig.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -732,20 +787,20 @@ flowchart LR
 
 
 #### 3.1.11 UC-11 – Bausteine verbinden
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Bausteine logisch miteinander verbinden.
 - **Mockup**
-![Bausteine verbinden Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Bausteine%20verbinden.png)
-- **Voraussetzungen:** Zwei oder mehr Bausteine auf Canvas.  
-- **Auslöser:** Klick und Ziehen von Pin zu Pin.  
+![Bausteine verbinden Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Bausteine%20verbinden.png)
+- **Voraussetzungen:** Zwei oder mehr Bausteine auf Canvas.
+- **Auslöser:** Klick und Ziehen von Pin zu Pin.
 - **Hauptablauf:**
 	1. Benutzer startet Verbindung am Ausgangspin.
 	2. System zeigt Leitung.
 	3. Benutzer verbindet mit Zielpin.
-	4. System validiert Verbindung.  
-- **Alternativabläufe:**  
-	- 4a. Ungültige Verbindung → rote Leitung, Fehlertext.  
-- **Nachbedingungen:** Signalleitung hergestellt.  
+	4. System validiert Verbindung.
+- **Alternativabläufe:**
+	- 4a. Ungültige Verbindung → rote Leitung, Fehlertext.
+- **Nachbedingungen:** Signalleitung hergestellt.
 - **Akzeptanzkriterien:** Verbindung korrekt in Simulation berücksichtigt.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -780,15 +835,16 @@ flowchart LR
 
 
 #### 3.1.12 UC-12 – Baustein löschen
-- **Akteure:** Benutzer  
-- **Ziel:** Baustein aus Schaltung entfernen.  
-- **Voraussetzungen:** Baustein ausgewählt.  
-- **Auslöser:** Tastendruck `Entf`.  
+- **Akteure:** Benutzer
+- **Ziel:** Ausgewählte Elemente aus der Schaltung entfernen.
+- **Voraussetzungen:** Baustein, Leitung oder Kommentar ist ausgewählt.
+- **Auslöser:** Tastendruck `Entf`, `Backspace` oder Toolbar-Aktion „Löschen“.
 - **Hauptablauf:**
-	1. System entfernt Baustein und zugehörige Leitungen.
-	2. Canvas aktualisiert.  
-- **Nachbedingungen:** Baustein nicht mehr vorhanden.  
-- **Akzeptanzkriterien:** Keine unverbundenen Leitungen verbleiben.
+	1. System entfernt ausgewählte Elemente.
+	2. Bei gelöschten Bausteinen entfernt das System alle zugehörigen Leitungen.
+	3. Canvas aktualisiert den Zustand und legt einen Undo-Snapshot an.
+- **Nachbedingungen:** Ausgewählte Elemente sind nicht mehr vorhanden.
+- **Akzeptanzkriterien:** Keine Leitungen bleiben an gelöschten Pins hängen; Aktion kann rückgängig gemacht werden.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
@@ -796,33 +852,34 @@ sequenceDiagram
     participant Canvas as Schaltplan-Canvas
     participant System as Bausteinverwaltung
 
-    Benutzer ->>+ Canvas: Wählt Baustein und drückt Entf
-    Canvas ->>+ System: Baustein und zugehörige Leitungen löschen
+    Benutzer ->>+ Canvas: Wählt Element und drückt Entf/Backspace
+    Canvas ->>+ System: Element und zugehörige Leitungen löschen
     System -->>- Canvas: Aktualisierte Schaltung
-    Canvas -->>- Benutzer: Schaltung ohne Baustein anzeigen
+    Canvas -->>- Benutzer: Schaltung ohne ausgewähltes Element anzeigen
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	L1([Start]) --> L2["System entfernt Baustein und zugehörige Leitungen"]
-	L2 --> L3["Canvas aktualisiert"]
+	L1([Start]) --> L2["System entfernt Auswahl und zugehörige Leitungen"]
+	L2 --> L3["Canvas aktualisiert und Undo-Snapshot entsteht"]
 	L3 --> L4([Ende])
 ```
 
 
 #### 3.1.13 UC-13 – Simulation in Echtzeit starten
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Verhalten der Schaltung prüfen.
 - **Mockup**
-![Simulation starten](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Simulation%20gestartet.png)
-- **Voraussetzungen:** Vollständige, fehlerfreie Schaltung.  
-- **Auslöser:** Klick auf „Simulieren“.  
+![Simulation starten](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20Simulation%20gestartet.png)
+- **Voraussetzungen:** Projekt ist im Editor geöffnet.
+- **Auslöser:** Wechsel in den Modus „Simulieren“.
 - **Hauptablauf:**
-	1. System prüft Schaltung.
-	2. LEDs, Anzeigen und Signale aktualisieren sich live.  
-- **Alternativabläufe:**  
-	- 2a. Fehlerhafte Netzliste → Abbruch mit Meldung.  
-- **Nachbedingungen:** Simulation beendet oder pausiert.  
+	1. System wertet die Schaltung im Browser aus.
+	2. Benutzer kann Eingänge im SimulationPanel schalten.
+	3. Ausgänge und Pin-Zustände aktualisieren sich live.
+- **Alternativabläufe:**
+	- 2a. Fehlerhafte Netzliste → Abbruch mit Meldung.
+- **Nachbedingungen:** Simulation beendet oder pausiert.
 - **Akzeptanzkriterien:** Echtzeitsimulation reagiert korrekt auf Eingaben.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -831,10 +888,10 @@ sequenceDiagram
     participant System as Simulationsmodul
     participant Canvas as Schaltplan-Canvas
 
-    Benutzer ->>+ System: Klick auf „Simulieren“
-    System ->>+ Canvas: Netzliste prüfen
-    alt Netzliste fehlerfrei
-        System ->> System: Startet Simulation
+    Benutzer ->>+ System: Wechselt in den Modus „Simulieren“
+    System ->>+ Canvas: Schaltung auswerten
+    alt Auswertung möglich
+        System ->> System: Berechnet Signalzustände
         System ->> Canvas: Aktualisiert LEDs/Signale in Echtzeit
         Canvas -->>- Benutzer: Live-Simulation sichtbar
     else Fehlerhafte Netzliste
@@ -854,58 +911,59 @@ flowchart LR
 
 
 #### 3.1.14 UC-14 – Schaltung speichern
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Aktuelle Arbeit sichern.
 - **Mockup**
-![Projekt speichern Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20speichern.png)
-- **Voraussetzungen:** Schaltung geöffnet.  
-- **Auslöser:** Klick auf „Speichern“ oder `Ctrl+S`.  
+![Projekt speichern Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Projekt%20bearbeiten%20speichern.png)
+- **Voraussetzungen:** Schaltung geöffnet.
+- **Auslöser:** Klick auf „Speichern“ oder `Ctrl+S`.
 - **Hauptablauf:**
-	1. System speichert Datei in DB oder lokal.
-	2. Versionsnummer wird angehoben.  
-- **Nachbedingungen:** Schaltung gespeichert.  
+	1. System erstellt den aktuellen Schaltungszustand inklusive Netzen.
+	2. System sendet `PUT /api/projects/{id}` an die Backend-API.
+	3. Backend speichert Schaltung, Eingänge und Custom Components in SQLite.
+	4. Oberfläche setzt den Status auf „Gespeichert“.
+- **Nachbedingungen:** Schaltung gespeichert.
 - **Akzeptanzkriterien:** Datei im Projektmanager sichtbar.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
     participant System as Speicherverwaltung
-    participant DB as DB/LocalStorage
+    participant DB as Backend/SQLite
 
     Benutzer ->>+ System: Klick auf „Speichern“ oder Ctrl+S
-    System ->>+ DB: Schaltung speichern
+    System ->>+ DB: PUT /api/projects/{id}
     DB -->>- System: Speichern erfolgreich
-    System ->> System: Versionsnummer erhöhen
     System -->>- Benutzer: Meldung „Schaltung gespeichert“
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
 	N1([Start]) --> N2["Benutzer klickt auf 'Speichern' oder Ctrl+S"]
-	N2 --> N3["System speichert Datei in DB oder lokal"]
-	N3 --> N4["Versionsnummer wird erhöht"]
+	N2 --> N3["System speichert Projekt über Backend-API"]
+	N3 --> N4["Status wechselt auf 'Gespeichert'"]
 	N4 --> N5([Ende])
 ```
 
 
 #### 3.1.15 UC-15 – Schaltung laden
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Frühere Schaltung öffnen.
 - **Mockup**
-![Schaltung laden Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Startseite%20mit%20vielen%20Projekten.png)
-- **Auslöser:** Klick auf „Laden“.  
+![Schaltung laden Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Startseite%20mit%20vielen%20Projekten.png)
+- **Auslöser:** Klick auf „Laden“.
 - **Hauptablauf:**
 	1. System zeigt Projektliste.
 	2. Benutzer wählt Projekt.
-	3. System lädt Schaltung ins Canvas.  
-- **Nachbedingungen:** Schaltung verfügbar.  
+	3. System lädt Schaltung ins Canvas.
+- **Nachbedingungen:** Schaltung verfügbar.
 - **Akzeptanzkriterien:** Vollständiger Zustand geladen.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
     participant System as Projektmanager
-    participant DB as DB/LocalStorage
+    participant DB as Backend/SQLite
     participant Canvas as Schaltplan-Canvas
 
     Benutzer ->>+ System: Klick auf „Laden“
@@ -928,21 +986,21 @@ flowchart LR
 ```
 
 #### 3.1.16 UC-16 – Registrieren
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Neues Konto anlegen.
 - **Mockup**
-![Registrieren Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Registrierung.png)
-![Registrieren Mockup Fehler 1](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Registrierung%20Fehler_1.png)
-![Registrieren Mockup Fehler 2](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Registrierung%20Fehler_2.png)
-![Registrieren Mockup Fehler 3](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Registrierung%20Fehler_3.png)
-- **Auslöser:** Klick auf „Registrieren“.  
+![Registrieren Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Registrierung.png)
+![Registrieren Mockup Fehler 1](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Registrierung%20Fehler_1.png)
+![Registrieren Mockup Fehler 2](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Registrierung%20Fehler_2.png)
+![Registrieren Mockup Fehler 3](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Registrierung%20Fehler_3.png)
+- **Auslöser:** Klick auf „Registrieren“.
 - **Hauptablauf:**
 	1. Benutzer gibt E-Mail, Passwort und Namen ein.
 	2. System validiert Eingaben.
-	3. Konto wird erstellt.  
-- **Alternativabläufe:**  
-	- 2a. E-Mail existiert → Fehlermeldung.  
-- **Nachbedingungen:** Neues Konto angelegt.  
+	3. Konto wird erstellt.
+- **Alternativabläufe:**
+	- 2a. E-Mail existiert → Fehlermeldung.
+- **Nachbedingungen:** Neues Konto angelegt.
 - **Akzeptanzkriterien:** Benutzer kann sich anschließend anmelden.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -978,20 +1036,20 @@ flowchart LR
 
 
 #### 3.1.17 UC-17 – Anmelden
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Zugriff auf persönliche Projekte.
 - **Mockup**
-![Login Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Anmeldung.png)
-![Login Mockup Fehler 1](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Anmeldung%20Ung%C3%BCltige%20%26%20falsche%20Benutzereingaben.png)
+![Login Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Anmeldung.png)
+![Login Mockup Fehler 1](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Anmeldung%20Ung%C3%BCltige%20%26%20falsche%20Benutzereingaben.png)
 
-- **Auslöser:** Klick auf „Login“.  
+- **Auslöser:** Klick auf „Login“.
 - **Hauptablauf:**
 	1. Benutzer gibt Zugangsdaten ein.
 	2. System prüft Authentifizierung.
-	3. Zugriff gewährt.  
-- **Alternativabläufe:**  
-	- 2a. Passwort falsch → Fehlermeldung.  
-- **Nachbedingungen:** Benutzer eingeloggt.  
+	3. Zugriff gewährt.
+- **Alternativabläufe:**
+	- 2a. Passwort falsch → Fehlermeldung.
+- **Nachbedingungen:** Benutzer eingeloggt.
 - **Akzeptanzkriterien:** Zugang nur bei korrekten Daten.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -1024,49 +1082,50 @@ flowchart LR
 
 
 #### 3.1.18 UC-18 – Abmelden
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Sitzung sicher beenden.
 - **Mockup**
-![Abmelden Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Abmelden.png)
-- **Auslöser:** Klick auf „Logout“.  
+![Abmelden Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Abmelden.png)
+- **Auslöser:** Klick auf „Logout“.
 - **Hauptablauf:**
-	1. System löscht Session-Cookies.
-	2. Benutzer wird zur Startseite geleitet.  
-- **Nachbedingungen:** Sitzung beendet.  
+	1. Frontend ruft `/api/auth/logout` auf und entfernt das Session-Token aus dem LocalStorage.
+	2. Benutzer wird zur Startseite geleitet.
+- **Nachbedingungen:** Sitzung beendet.
 - **Akzeptanzkriterien:** Kein Zugriff mehr auf geschützte Bereiche.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
     participant System as Sitzungsverwaltung
-    participant Browser as Client-Session
+    participant Browser as LocalStorage-Session
 
     Benutzer ->> +System: Klick auf „Logout“
-    System ->>+ Browser: Session-Cookies löschen
+    System ->>+ Browser: Bearer-Session entfernen
     deactivate Browser
     System -->>- Benutzer: Weiterleitung zur Startseite
 ```
 - **Aktivitätsdiagramm:**
 ```mermaid
 flowchart LR
-	R1([Start]) --> R2["System löscht Session-Cookies"]
+	R1([Start]) --> R2["System entfernt Session-Token"]
 	R2 --> R3["Benutzer wird zur Startseite geleitet"]
 	R3 --> R4([Ende])
 ```
 
 
 #### 3.1.19 UC-19 – Nutzeraccount löschen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Konto entfernen.
+- **Aktueller Projektstand:** Die Backend-API unterstützt `DELETE /api/auth/me`. In der aktuellen Profiloberfläche ist das Löschen des Accounts noch nicht angebunden.
 - **Mockup**
-![Profil löschen Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Profil%20bearbeiten%20und%20l%C3%B6schen.png)
-- **Voraussetzungen:** Authentifiziert.  
-- **Auslöser:** Klick auf „Account löschen“.  
+![Profil löschen Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Profil%20bearbeiten%20und%20l%C3%B6schen.png)
+- **Voraussetzungen:** Authentifiziert.
+- **Auslöser:** Geplanter Klick auf „Account löschen“ oder direkter API-Aufruf.
 - **Hauptablauf:**
 	1. System fragt nach Bestätigung.
 	2. Benutzer bestätigt.
-	3. Daten werden gelöscht.  
-- **Nachbedingungen:** Konto entfernt, Daten anonymisiert.  
+	3. Daten werden gelöscht.
+- **Nachbedingungen:** Konto entfernt, Daten anonymisiert.
 - **Akzeptanzkriterien:** Kein Login mehr möglich.
 - **Sequenzdiagramm:**
 ```mermaid
@@ -1098,23 +1157,23 @@ flowchart LR
 
 
 #### 3.1.20 UC-20 – Passwort zurücksetzen
-- **Akteure:** Benutzer  
+- **Akteure:** Benutzer
 - **Ziel:** Passwort wiederherstellen.
+- **Aktueller Projektstand:** Die Oberfläche und API prüfen aktuell nur, ob die E-Mail-Adresse existiert. Ein Mailversand mit Reset-Link und das Setzen eines neuen Passworts sind noch nicht umgesetzt.
 - **Mockup**
-![Passwort zurücksetzen Mockup](https://github.com/SimonJ2222/BitFlow/blob/main/docs/mockups/Passwort%20vergessen.png)
-- **Auslöser:** Klick auf „Passwort vergessen“.  
+![Passwort zurücksetzen Mockup](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/mockups/Passwort%20vergessen.png)
+- **Auslöser:** Klick auf „Passwort vergessen“.
 - **Hauptablauf:**
 	1. Benutzer gibt E-Mail-Adresse ein.
-	2. System sendet Link.
-	3. Benutzer setzt neues Passwort.  
-- **Nachbedingungen:** Neues Passwort gültig.  
-- **Akzeptanzkriterien:** Login mit neuem Passwort möglich.
+	2. System prüft, ob ein Konto zu dieser E-Mail existiert.
+	3. System zeigt eine Erfolgsmeldung oder Fehlermeldung.
+- **Nachbedingungen:** Konto wurde geprüft; Passwort bleibt unverändert.
+- **Akzeptanzkriterien:** Existierende E-Mail-Adressen werden bestätigt, nicht existierende Adressen liefern eine kontrollierte Fehlermeldung.
 - **Sequenzdiagramm:**
 ```mermaid
 sequenceDiagram
     actor Benutzer
     participant System as Authentifizierungsservice
-    participant Mail as E-Mail-Service
     participant DB as Benutzerdatenbank
 
     Benutzer ->>+ System: Klick auf „Passwort vergessen“
@@ -1122,13 +1181,8 @@ sequenceDiagram
     Benutzer ->>- System: Adresse absenden
     System ->>+ DB: Prüft Benutzerkonto
     alt Konto vorhanden
-        System ->>+ Mail: Sende Passwort-Link
-        Mail -->>+ Benutzer: E-Mail mit Reset-Link
-        deactivate Mail
-        Benutzer ->>- System: Öffnet Link und setzt neues Passwort
-        System ->> DB: Passwort aktualisieren
-        DB -->>- System: Bestätigung
-        System -->> Benutzer: Neues Passwort aktiv
+        DB -->>- System: Konto gefunden
+        System -->> Benutzer: E-Mail-Adresse wurde geprüft
     else Konto nicht gefunden
         System -->>- Benutzer: Fehlermeldung anzeigen
     end
@@ -1137,9 +1191,62 @@ sequenceDiagram
 ```mermaid
 flowchart LR
 	T1([Start]) --> T2["Benutzer gibt E-Mail-Adresse ein"]
-	T2 --> T3["System sendet Reset-Link"]
-	T3 --> T4["Benutzer setzt neues Passwort"]
+	T2 --> T3["System prüft Benutzerkonto"]
+	T3 --> T4["System zeigt Ergebnis der Prüfung"]
 	T4 --> T5([Ende])
+```
+
+
+#### 3.1.21 UC-21 – Live-Kollaboration starten und beitreten
+- **Akteure:** Benutzer, Host, Teilnehmer
+- **Ziel:** Mehrere Benutzer möchten gemeinsam an einer Schaltung arbeiten.
+- **Voraussetzungen:** Benutzer ist angemeldet und befindet sich im Editor.
+- **Auslöser:** Host klickt auf „Zusammenarbeiten“ oder Teilnehmer öffnet einen Session-Link.
+- **Hauptablauf:**
+	1. Host startet eine Session über den SignalR-Hub.
+	2. System erstellt eine Session mit aktuellem Schaltungsstand.
+	3. Host kopiert den Einladungslink.
+	4. Teilnehmer tritt über `/session/{sessionId}` bei.
+	5. System synchronisiert Schaltung, Eingänge, Custom Components, Teilnehmerliste und Cursorpositionen.
+	6. Host kann den gemeinsam bearbeiteten Stand speichern.
+- **Alternativabläufe:**
+	- 4a. Session existiert nicht oder wurde beendet → System zeigt eine Fehlermeldung.
+	- 6a. Teilnehmer ist nicht Host → Speichern ist deaktiviert.
+- **Nachbedingungen:** Teilnehmer sehen den aktuellen Schaltungsstand.
+- **Akzeptanzkriterien:** Änderungen und Cursorpositionen werden an andere Teilnehmer übertragen; beim Verlassen des Hosts endet die Session.
+- **Sequenzdiagramm:**
+```mermaid
+sequenceDiagram
+    actor Host
+    actor Teilnehmer
+    participant UI as Editor
+    participant Hub as SignalR CollaborationHub
+    participant Store as CollaborationSessionStore
+
+    Host ->>+ UI: Klick auf „Zusammenarbeiten“
+    UI ->>+ Hub: CreateSession(currentCircuit)
+    Hub ->>+ Store: Session anlegen
+    Store -->>- Hub: Sessiondaten
+    Hub -->>- UI: SessionCreated + Einladungslink
+    Teilnehmer ->>+ Hub: JoinSession(sessionId)
+    Hub ->>+ Store: Teilnehmer hinzufügen
+    Store -->>- Hub: Aktueller Schaltungsstand
+    Hub -->> Teilnehmer: SessionJoined
+    Hub -->> Host: ParticipantJoined
+    Host ->> Hub: UpdateCircuit / UpdateCursor
+    Hub -->> Teilnehmer: CircuitUpdated / CursorUpdated
+```
+- **Aktivitätsdiagramm:**
+```mermaid
+flowchart LR
+	U1([Start]) --> U2["Host startet Session"]
+	U2 --> U3["System erzeugt Einladungslink"]
+	U3 --> U4["Teilnehmer tritt Session bei"]
+	U4 --> U5["System synchronisiert Schaltung und Cursor"]
+	U5 --> U6{"Host verlässt Session?"}
+	U6 -->|Nein| U5
+	U6 -->|Ja| U7["Session endet"]
+	U7 --> U8([Ende])
 ```
 
 
@@ -1147,35 +1254,40 @@ flowchart LR
 
 - **Schnell erfassbar:** Minimaler Einarbeitungsaufwand durch intuitives GUI.
 
-- **Erkundbarkeit:** Kontext-Menüs, konfigurierbarer Toolbar, direkte Inline-Hilfe (Hover-Tootips).
+- **Erkundbarkeit:** Editor-Panels, Toolbar-Aktionen, Tooltips und direkte Statusanzeigen.
 
-- **Effizienz:** Tastaturkürzel für alle häufigen Aktionen (Place Gate, Connect, Delete, Save, Simulate, Step).
+- **Effizienz:** Tastaturkürzel für Bearbeiten, Simulieren, Löschen, Kopieren/Einfügen sowie Undo/Redo.
 
 - **Konsistenz:** Einheitliche Icons, responsive Panels, konsistente Zeichen- und Snap-Regeln wie in Desktop-Editoren.
 
-- **Fehlertoleranz:** Undo/Redo unbegrenzt (bis zu Speichergrenze), Safety-Prompts bei destruktiven Aktionen.
+- **Fehlertoleranz:** Undo/Redo über Snapshot-History, Speichern-Zustand und Navigationsdialog bei ungespeicherten Änderungen.
 
 ### 3.3 Reliability
 
-- **Autosave & Checkpoints:** Automatisches Speichern alle X Sekunden (konfigurierbar), inkrementelle Snapshots für Recovery.
+- **Persistenz:** Projekte werden manuell über die Backend-API in SQLite gespeichert.
 
-- **Crash des Browsers:** beim Reopen wird letzte Autosave-Version angeboten.
+- **Ungespeicherte Änderungen:** Beim Verlassen des Editors wird vor Datenverlust gewarnt.
 
-- **Autosave & Checkpoints:** Automatisches Speichern alle X Sekunden (konfigurierbar)
+- **Session-Sicherheit:** Bearer-Session-Token werden serverseitig geprüft und laufen nach 14 Tagen ab.
 
-- **Fehlerresistenz:** Simulator-Engine isoliert in Worker-Prozessen (WebWorker/WASM), Abstürze des Simulations-Threads beeinflussen UI nicht.
+- **Fehlerresistenz:** Die In-Browser-Simulation arbeitet deterministisch mit begrenzten Iterationen; ungültige Daten werden in Backend-Services kontrolliert abgelehnt.
 
-### 3.4 Perfomance
+### 3.4 Performance
 
 - UI-Startzeit + Interaktions-Latenz gering.
 
-- **Simulation:** kleine Schaltungen in-browser in Echtzeit
+- **Simulation:** kleine und mittlere Schaltungen werden im Browser live ausgewertet.
+
+- **Kollaboration:** Schaltungs- und Cursorupdates werden über SignalR übertragen.
 
 ### 3.5 Supportability
-- **Server-Side Logs:** Structured logging, correlation-id für Requests (Traceability).
+- **Server-Side Logs:** ASP.NET-Core-Logging über Console und Debug Provider.
+- **Healthcheck:** `/api/health` liefert Status, Service-Namen und Timestamp.
 
 ### 3.6 Design Constraints
-- **Browser-Support:** Ziel: aktuelle Chrome, Firefox, Edge.
+- **Browser-Support:** Ziel: aktuelle Chrome, Firefox, Edge und Safari.
+- **Backend-Runtime:** .NET 8, SQLite-Datei im lokalen `Data`-Ordner oder Docker-Volume.
+- **Frontend-Runtime:** Browser-SPA, lokale Entwicklung über Vite mit Proxy auf Backend und SignalR-Hub.
 
 ### 3.7 On-line User Documentation and Help System Requirements
 Da es sich um eine einfache Anwendung handelt, die von dem Entwicklerteam so intuitiv wie möglich gestaltet wird, ist keine Ausführliche Dokumentation notwendig.
@@ -1187,16 +1299,22 @@ Es ist nicht geplant Komponenten zu kaufen.
 ### 3.9 Interfaces
 User Interfaces:
 - Grafische Benutzeroberfläche (GUI) mit Drag-and-Drop-Funktion für Logikbausteine.
-- Menüstruktur zum Laden, Speichern, Importieren und Exportieren von Projekten.
+- Projektübersicht zum Erstellen, Laden und Löschen von Projekten.
 - Schaltflächen zur Simulation, Rückgängig-Funktion und Visualisierung von Signalverläufen.
 - Einstellungsbereich für Dark Mode und Systemeinstellungen.
 - Fehlermeldungen und Statusanzeigen (z. B. „Simulation gestartet“, „Fehler in Schaltung“).
+- Kollaborationsbereich für Sessionstatus, Einladungslink und Teilnehmer.
+
+Backend Interfaces:
+- REST-Endpunkte unter `/api/auth`, `/api/projects`, `/api/components`.
+- SignalR-Hub unter `/hubs/collaboration`.
+- Healthcheck unter `/api/health`.
 
 ### 3.10 Licensing Requirements
 Dieses Projekt wurde zu Lernzwecken entwickelt. Es wird ohne Gewährleistung oder Support bereitgestellt. Das Entwicklerteam übernimmt keine Verantwortung für eventuelle Fehler oder Schäden, die aus der Nutzung resultieren.
 
 ## 4. Supporting Information
-For any further information you can check out the Blog on out [GitHub Discussions Page](https://github.com/SimonJ2222/BitFlow/discussions). 
+Weitere Informationen stehen auf der [GitHub Discussions Page](https://github.com/BitFlow-DHBW/BitFlow/discussions).
 The Team Members are:
 - Mohid Syed
 - Florian Blum

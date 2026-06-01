@@ -1,149 +1,189 @@
+%% Dokumentversion: 1.1
+%% Stand: 2026-06-01
+%% Status: Aktualisiert auf den aktuellen Projektstand
+
 classDiagram
 direction TB
 
-%% ==========================
-%% API Layer (Controllers)
-%% ==========================
+class Program {
+    +MapControllers()
+    +MapHub("/hubs/collaboration")
+    +MapGet("/api/health")
+}
+
+class AuthenticatedControllerBase {
+    #RequireUserAsync(cancellationToken) User
+    #GetBearerToken() string?
+}
+
 class UserController {
-    +Register(dto: RegisterDto): IActionResult
-    +Login(dto: LoginDto): IActionResult
-    +Logout(): IActionResult
-    +DeleteAccount(): IActionResult
-    +ResetPassword(email: string): IActionResult
+    +Register(RegisterRequest) AuthSessionDto
+    +Login(LoginRequest) AuthSessionDto
+    +Logout() IActionResult
+    +Me() UserDto
+    +UpdateProfile(UpdateUserRequest) UserDto
+    +DeleteAccount() IActionResult
+    +ResetPassword(ResetPasswordRequest) IActionResult
 }
 
 class ProjectController {
-    +CreateProject(dto: ProjectDto): IActionResult
-    +GetProjects(userId: string): List<Project>
-    +LoadProject(id: string): Project
-    +SaveProject(dto: ProjectDto): IActionResult
-    +DeleteProject(id: string): IActionResult
-    +ImportProject(file: IFormFile): IActionResult
-    +ExportProject(id: string): FileResult
+    +List() IReadOnlyList~ProjectDto~
+    +Create(CreateProjectRequest) ActionResult~ProjectDto~
+    +Get(id) ProjectDto
+    +Update(id, UpdateProjectRequest) ProjectDto
+    +AddCustomComponent(id, CustomComponentDto) ProjectDto
+    +Delete(id) IActionResult
 }
 
 class ComponentController {
-    +CreateFromCircuit(dto: CircuitDto): IActionResult
-    +CreateCustom(dto: TruthTableDto): IActionResult
-    +GetCustomComponents(userId: string): List<CustomComponent>
-    +DeleteCustomComponent(id: string): IActionResult
+    +List() IReadOnlyList~CustomComponentDto~
+    +Create(CustomComponentDto) ActionResult~CustomComponentDto~
+    +Get(id) CustomComponentDto
+    +Delete(id) IActionResult
 }
 
-%% ==========================
-%% Service Layer
-%% ==========================
+class CollaborationHub {
+    +CreateSession(JsonElement, displayName) CollaborationSessionDto
+    +JoinSession(sessionId, displayName) CollaborationSessionDto
+    +LeaveSession(sessionId) void
+    +UpdateCircuit(sessionId, JsonElement) void
+    +UpdateCursor(sessionId, CursorPositionDto) void
+    +OnDisconnectedAsync(exception) Task
+}
+
 class UserService {
-    +Register(email: string, password: string): User
-    +Authenticate(email: string, password: string): Session
-    +DeleteAccount(id: string): void
-    +ResetPassword(email: string): void
+    +RegisterAsync(RegisterRequest) AuthSessionDto
+    +LoginAsync(LoginRequest) AuthSessionDto
+    +FindUserByTokenAsync(token) User?
+    +LogoutAsync(token) Task
+    +UpdateProfileAsync(User, UpdateUserRequest) UserDto
+    +ResetPasswordAsync(ResetPasswordRequest) Task
+    +DeleteAccountAsync(User) Task
 }
 
 class ProjectService {
-    +CreateProject(userId: string, name: string): Project
-    +SaveProject(project: Project): void
-    +LoadProject(id: string): Project
-    +DeleteProject(id: string): void
-    +ImportProject(file: File): Project
-    +ExportProject(id: string, format: string): File
+    +ListProjectsAsync(ownerId) IReadOnlyList~ProjectDto~
+    +GetProjectAsync(ownerId, projectId) ProjectDto
+    +CreateProjectAsync(ownerId, CreateProjectRequest) ProjectDto
+    +UpdateProjectAsync(ownerId, projectId, UpdateProjectRequest) ProjectDto
+    +AddCustomComponentAsync(ownerId, projectId, CustomComponentDto) ProjectDto
+    +DeleteProjectAsync(ownerId, projectId) Task
 }
 
 class ComponentService {
-    +CreateFromCircuit(circuit: Circuit): CustomComponent
-    +CompileTruthTable(table: TruthTable): CustomComponent
-    +GetAll(userId: string): List<CustomComponent>
-    +Delete(id: string): void
+    +ListComponentsAsync(ownerId) IReadOnlyList~CustomComponentDto~
+    +GetComponentAsync(ownerId, componentId) CustomComponentDto
+    +CreateComponentAsync(ownerId, CustomComponentDto) CustomComponentDto
+    +DeleteComponentAsync(ownerId, componentId) Task
 }
 
-%% ==========================
-%% Domain Layer
-%% ==========================
-class User {
-    -Id: Guid
-    -Email: string
-    -PasswordHash: string
-    -Projects: List<Project>
+class CollaborationSessionStore {
+    +CreateSession(hostUserId, connectionId, displayName, currentCircuit) CollaborationSessionDto
+    +JoinSession(sessionId, userId, displayName, connectionId) CollaborationSessionDto
+    +LeaveSession(sessionId, connectionId) CollaborationLeaveResult
+    +UpdateCircuit(sessionId, connectionId, currentCircuit) CircuitUpdatedDto
+    +UpdateCursor(sessionId, connectionId, cursorPosition) CollaborationParticipantDto
 }
 
-class Project {
-    -Id: Guid
-    -UserId: Guid
-    -Name: string
-    -Circuits: List<Circuit>
-    -CreatedAt: DateTime
-    +Save(): void
-    +Export(): File
-}
-
-class Circuit {
-    -Id: Guid
-    -Name: string
-    -Components: List<Component>
-    -Connections: List<Connection>
-    +GroupAsComponent(name: string): CustomComponent
-}
-
-class Component {
-    -Id: Guid
-    -Name: string
-    -Pins: List<Pin>
-    -Position: Position
-}
-
-class CustomComponent {
-    -Id: Guid
-    -Definition: string
-    -CompiledLogic: CompiledLogic
-    +Compile(): void
-    +FromCircuit(c: Circuit): CustomComponent
-}
-
-class Pin {
-    -Label: string
-    -State: bool
-}
-
-class Connection {
-    -Source: Pin
-    -Target: Pin
-}
-
-%% ==========================
-%% Data Access Layer (Repositories)
-%% ==========================
 class UserRepository {
-    +Save(user: User): void
-    +FindByEmail(email: string): User
-    +Delete(id: Guid): void
+    +FindByEmailAsync(normalizedEmail) User?
+    +FindSessionAsync(token) UserSession?
+    +Add(User) void
+    +AddSession(UserSession) void
+    +Remove(User) void
+    +RemoveSession(UserSession) void
+    +SaveChangesAsync() Task
 }
 
 class ProjectRepository {
-    +Save(project: Project): void
-    +FindById(id: Guid): Project
-    +Delete(id: Guid): void
+    +ListByOwnerAsync(ownerId) IReadOnlyList~Project~
+    +FindForOwnerAsync(ownerId, projectId) Project?
+    +Add(Project) void
+    +Remove(Project) void
+    +SaveChangesAsync() Task
 }
 
 class ComponentRepository {
-    +Save(component: CustomComponent): void
-    +FindById(id: Guid): CustomComponent
-    +FindAll(userId: Guid): List<CustomComponent>
-    +Delete(id: Guid): void
+    +ListByOwnerAsync(ownerId) IReadOnlyList~Component~
+    +FindForOwnerAsync(ownerId, componentId) Component?
+    +Add(Component) void
+    +Remove(Component) void
+    +SaveChangesAsync() Task
 }
 
-%% ==========================
-%% Relationships
-%% ==========================
+class BitFlowDbContext {
+    +Users DbSet~User~
+    +Sessions DbSet~UserSession~
+    +Projects DbSet~Project~
+    +Components DbSet~Component~
+}
+
+class User {
+    +Id string
+    +Name string
+    +Email string
+    +NormalizedEmail string
+    +PasswordHash string
+    +CreatedAt DateTimeOffset
+}
+
+class UserSession {
+    +Token string
+    +UserId string
+    +CreatedAt DateTimeOffset
+    +ExpiresAt DateTimeOffset
+}
+
+class Project {
+    +Id string
+    +OwnerId string
+    +Name string
+    +Description string
+    +CircuitJson string
+    +InputSignalsJson string
+    +CustomComponentsJson string
+    +CreatedAt DateTimeOffset
+    +UpdatedAt DateTimeOffset
+}
+
+class Component {
+    +Id string
+    +OwnerId string
+    +Name string
+    +ComponentJson string
+    +CreatedAt DateTimeOffset
+}
+
+Program --> UserController
+Program --> ProjectController
+Program --> ComponentController
+Program --> CollaborationHub
+
+AuthenticatedControllerBase <|-- UserController
+AuthenticatedControllerBase <|-- ProjectController
+AuthenticatedControllerBase <|-- ComponentController
+
 UserController --> UserService
 ProjectController --> ProjectService
+ProjectController --> UserService
 ComponentController --> ComponentService
+ComponentController --> UserService
+CollaborationHub --> CollaborationSessionStore
+CollaborationHub --> UserService
 
 UserService --> UserRepository
 ProjectService --> ProjectRepository
 ComponentService --> ComponentRepository
 
-User --> Project : owns
-Project --> Circuit : contains
-Circuit --> Component : contains
-Component <|-- CustomComponent
-Component --> Pin : has
-Pin --> Connection : connects
+UserRepository --> BitFlowDbContext
+ProjectRepository --> BitFlowDbContext
+ComponentRepository --> BitFlowDbContext
+
+BitFlowDbContext --> User
+BitFlowDbContext --> UserSession
+BitFlowDbContext --> Project
+BitFlowDbContext --> Component
+
+User "1" --> "0..*" UserSession : owns
+User "1" --> "0..*" Project : owns
+User "1" --> "0..*" Component : owns
