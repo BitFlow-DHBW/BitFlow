@@ -1,7 +1,9 @@
+**Dokumentversion:** 1.2
+**Stand:** 2026-06-01
+**Status:** Aktualisiert auf den aktuellen Projektstand
+
 # BitFlow
 # Software Architecture Document
-
-Version 1.1
 
 
 ---
@@ -12,42 +14,43 @@ Date | Version | Description | Author
 ---- | ------- | ----------- | ------
 <08/12/25> | <1.0> | Erstellung des Dokuments und erste Einträge | BitFlow-Team
 <22/12/25> | <1.1> | Vollständige Ausfüllung | BitFlow-Team
+<01/06/26> | <1.2> | Abgleich mit aktuellem Codebestand: Backend, SQLite, Vitest, SignalR-Kollaboration und tatsächlicher Custom-Component-Workflow | BitFlow-Team
 
 ---
 
 # Table of Contents
 
-1. Introduction  
-&emsp;1.1 Purpose  
-&emsp;1.2 Scope  
-&emsp;1.3 Definitions, Acronyms and Abbreviations  
-&emsp;1.4 References  
-&emsp;1.5 Overview  
+1. Introduction
+&emsp;1.1 Purpose
+&emsp;1.2 Scope
+&emsp;1.3 Definitions, Acronyms and Abbreviations
+&emsp;1.4 References
+&emsp;1.5 Overview
 
-2. Architectural Representation  
+2. Architectural Representation
 
-3. Architectural Goals and Constraints  
+3. Architectural Goals and Constraints
 
-4. Use-Case View  
+4. Use-Case View
 
-5. Logical View  
-&emsp;5.1 Overview  
-&emsp;5.2 Architecturally Significant Design Packages  
-&emsp;5.3 Use-Case Realizations  
+5. Logical View
+&emsp;5.1 Overview
+&emsp;5.2 Architecturally Significant Design Packages
+&emsp;5.3 Use-Case Realizations
 
-6. Process View  
+6. Process View
 
-7. Deployment View  
+7. Deployment View
 
-8. Implementation View  
-&emsp;8.1 Overview  
-&emsp;8.2 Layers  
+8. Implementation View
+&emsp;8.1 Overview
+&emsp;8.2 Layers
 
-9. Data View (optional)  
+9. Data View (optional)
 
-10. Size and Performance  
+10. Size and Performance
 
-11. Quality  
+11. Quality
 
 ---
 
@@ -55,12 +58,12 @@ Date | Version | Description | Author
 
 ## 1. Introduction
 
-Dieses Dokument beschreibt die Software-Architektur von **BitFlow**, einem browserbasierten Logikschaltungs-Editor und -Simulator.  
+Dieses Dokument beschreibt die Software-Architektur von **BitFlow**, einem browserbasierten Logikschaltungs-Editor und -Simulator.
 Die Architektur wird anhand des **4+1-Sichtenmodells nach Kruchten** dargestellt und fasst die wesentlichen Architekturentscheidungen, Qualitätsziele und Strukturen des Systems zusammen.
 
 ### 1.1 Purpose
 
-Ziel dieses Dokuments ist es, die wesentlichen architektonischen Entscheidungen von BitFlow nachvollziehbar zu dokumentieren.  
+Ziel dieses Dokuments ist es, die wesentlichen architektonischen Entscheidungen von BitFlow nachvollziehbar zu dokumentieren.
 Es dient als gemeinsame Grundlage für Entwicklung, Bewertung und Weiterentwicklung des Systems und richtet sich an Entwickler, Projektbeteiligte und Lehrende.
 
 ### 1.2 Scope
@@ -69,25 +72,26 @@ Das Software Architecture Document gilt für das gesamte BitFlow-System, einschl
 - grafischem Editor für Logikschaltungen,
 - Simulationslogik,
 - Bausteinbibliothek (inkl. benutzerdefinierter Bausteine),
-- Persistenzmechanismen sowie
-- optionalem Backend für Benutzer- und Projektdaten.
+- Persistenzmechanismen,
+- ASP.NET-Core-Backend für Benutzer-, Session-, Projekt- und Komponentendaten sowie
+- SignalR-basierter Live-Kollaboration.
 
 ### 1.3 Definitions, Acronyms and Abbreviations
 
-- **ASR**: Architecture Significant Requirement  
-- **UI**: User Interface  
-- **SPA**: Single Page Application  
-- **SRP**: Single Responsibility Principle  
+- **ASR**: Architecture Significant Requirement
+- **UI**: User Interface
+- **SPA**: Single Page Application
+- **SRP**: Single Responsibility Principle
 
 ### 1.4 References
 
-- [Software Requirements Specification (SRS)](https://github.com/SimonJ2222/BitFlow/blob/main/docs/use_cases/software_requirements_specification.md)
-- [Architecture Significant Requirements (ASR)](https://github.com/SimonJ2222/BitFlow/blob/main/docs/Architecture%20Significant%20Requirements%20(ASR).md)
-- [Vorlesungsunterlagen „Software Engineering“](https://moodle.dhbw.de/course/view.php?id=12128) 
+- [Software Requirements Specification (SRS)](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/use_cases/software_requirements_specification.md)
+- [Architecture Significant Requirements (ASR)](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/Architecture%20Significant%20Requirements%20(ASR).md)
+- [Vorlesungsunterlagen „Software Engineering“](https://moodle.dhbw.de/course/view.php?id=12128)
 
 ### 1.5 Overview
 
-Das Dokument ist entsprechend dem Software Architecture Document aufgebaut und gliedert die Architektur von BitFlow in mehrere Sichten.  
+Das Dokument ist entsprechend dem Software Architecture Document aufgebaut und gliedert die Architektur von BitFlow in mehrere Sichten.
 Neben funktionalen Aspekten werden insbesondere Qualitätsanforderungen, Laufzeitverhalten, Deployment sowie zentrale Entwurfsentscheidungen beschrieben.
 
 
@@ -116,51 +120,54 @@ Die Architektur von BitFlow wird durch mehrere qualitätsrelevante Anforderungen
 
 ### 3.1 Wichtige Qualitätsziele (ASRs)
 
-**Performance**  
-- Änderungen in Schaltungen bis ca. 200 Bausteinen müssen innerhalb von ≤ 50 ms verarbeitet werden.  
+**Performance**
+- Änderungen in Schaltungen bis ca. 200 Bausteinen müssen innerhalb von ≤ 50 ms verarbeitet werden.
 - UI soll jederzeit flüssig bleiben (≥ 30 FPS), selbst während Simulation und Interaktionen.
 
-**Usability**  
-- Drag & Drop und visuelle Interaktionen müssen ohne wahrnehmbare Verzögerungen funktionieren.  
+**Usability**
+- Drag & Drop und visuelle Interaktionen müssen ohne wahrnehmbare Verzögerungen funktionieren.
 - Leitungszustände, Fehlermeldungen und Simulationsergebnisse sollen sofort angezeigt werden.
 
-**Reliability**  
-- Undo/Redo muss stabil funktionieren und Systemzustände zuverlässig wiederherstellen.  
-- Autosave verhindert Datenverlust (≤ 10 Sekunden).  
+**Reliability**
+- Undo/Redo muss stabil funktionieren und Systemzustände zuverlässig wiederherstellen.
+- Manuelles Speichern über die Backend-API muss zuverlässig sein.
+- Ungespeicherte Änderungen müssen beim Verlassen des Editors abgefangen werden.
 - Fehler in Simulation oder Bausteinen dürfen die UI nicht blockieren.
 
-**Modifiability**  
-- Neue Bausteine (benutzerdefiniert oder systemseitig) sollen einfach integrierbar sein.  
-- Simulation, Speichermechanismen und Validierungsstrategien müssen austauschbar sein.  
+**Modifiability**
+- Neue Bausteine (benutzerdefiniert oder systemseitig) sollen einfach integrierbar sein.
+- Simulation, Speichermechanismen und Validierungsstrategien müssen austauschbar sein.
 - Module sollen klar gekapselt und unabhängig voneinander testbar sein.
 
-**Security**  
-- Nur authentifizierte Nutzer dürfen Projekte anzeigen oder bearbeiten.  
+**Security**
+- Nur authentifizierte Nutzer dürfen Projekte anzeigen oder bearbeiten.
 - Projekte müssen eindeutig einem Benutzer zugeordnet werden.
+- Session-Tokens müssen serverseitig geprüft und zeitlich begrenzt sein.
 
-**Availability**  
-- UI muss verfügbar bleiben, selbst wenn die Simulation Fehler wirft.  
-- Der Simulationsprozess soll isoliert laufen und bei Bedarf automatisch neu starten.
+**Availability**
+- UI muss verfügbar bleiben, selbst wenn eine Schaltung fehlerhaft oder komplex ist.
+- Live-Kollaborationssessions müssen kontrolliert beendet werden, wenn der Host die Session verlässt.
 
 ---
 
 ### 3.2 Zentrale Architekturentscheidungen
 
-- Strikte Trennung der Kernbereiche: **UI**, **Application Services**, **Domain**, **Simulation**, **Storage**, **Library**.  
-- Simulation läuft in einem separaten Ausführungsprozess (z. B. WebWorker), um UI-Blockaden zu vermeiden.  
-- Alle Bausteintypen basieren auf einheitlichen abstrakten Interfaces.  
-- Undo/Redo wird über Zustandssnapshots realisiert, nicht über Kommandohistorien.  
-- Benutzerdefinierte Bausteine werden über einen separaten Compiler validiert.  
+- Strikte Trennung der Kernbereiche: **UI**, **Frontend-Services**, **Domain/Simulation**, **Backend-API**, **Storage**, **Library** und **Realtime Collaboration**.
+- Simulation läuft aktuell im Frontend über `evaluateCircuit` mit begrenzten Iterationen; WebWorker sind architektonisch möglich, aber nicht umgesetzt.
+- Alle Bausteintypen basieren auf einheitlichen abstrakten Interfaces.
+- Undo/Redo wird über Zustandssnapshots realisiert, nicht über Kommandohistorien.
+- Benutzerdefinierte Bausteine werden aus der aktuellen Schaltung als Wahrheitstabelle erzeugt.
 - UI kommuniziert ausschließlich über Services und nicht direkt mit der Domain.
 
 ---
 
 ### 3.3 Technische Randbedingungen
 
-- Anwendung muss vollständig im Browser lauffähig sein (React + TypeScript).  
-- Keine Plugins oder native Komponenten; nur Web-Standards.  
-- Persistenz erfolgt flexibel über LocalStorage oder Backend-APIs.  
-- Zielplattformen: Chrome, Firefox, Safari, Edge.  
+- Frontend muss im Browser lauffähig sein (React + TypeScript).
+- Backend läuft als ASP.NET-Core-8-Web-API mit SQLite-Persistenz.
+- Keine Plugins oder native Komponenten; nur Web-Standards.
+- Persistenz erfolgt über Backend-APIs; LocalStorage wird für Sessiondaten, Präferenzen und UI-Zustände genutzt.
+- Zielplattformen: Chrome, Firefox, Safari, Edge.
 - Simulation muss deterministisch sein, um Debugging und Testbarkeit sicherzustellen.
 ---
 
@@ -170,20 +177,23 @@ Der Use-Case View beschreibt die funktionalen Anforderungen von BitFlow aus Sich
 
 ### Architektonisch signifikante Use Cases
 
-- **Schaltung erstellen und bearbeiten**  
+- **Schaltung erstellen und bearbeiten**
   Benutzer platzieren Bausteine per Drag & Drop, verbinden diese über Leitungen und konfigurieren Eingänge. Dieser Use Case betrifft UI, Domain-Modell und Validierungslogik.
 
-- **Simulation starten und ausführen**  
+- **Simulation starten und ausführen**
   Die erstellte Schaltung wird in Echtzeit simuliert. Dieser Use Case ist zentral für Performance- und Availability-Anforderungen und erfordert eine klare Trennung zwischen UI und Simulation.
 
-- **Benutzerdefinierte Bausteine erstellen**  
-  Benutzer fassen bestehende Schaltungen zu neuen Bausteinen zusammen. Dieser Use Case beeinflusst die Bausteinbibliothek, den Compiler sowie die Modifiability der Architektur.
+- **Benutzerdefinierte Bausteine erstellen**
+  Benutzer fassen die aktuelle Schaltung zu einem neuen Baustein zusammen. Dieser Use Case beeinflusst die Bausteinbibliothek, die Wahrheitstabellenerzeugung und die Modifiability der Architektur.
 
-- **Undo / Redo von Aktionen**  
+- **Undo / Redo von Aktionen**
   Benutzer können Bearbeitungsschritte rückgängig machen oder wiederherstellen. Dieser Use Case ist architektonisch relevant für Reliability und Konsistenz des Systemzustands.
 
-- **Projekt speichern und laden**  
+- **Projekt speichern und laden**
   Schaltungen werden persistent gespeichert und wiederhergestellt. Dieser Use Case betrifft Storage, Datenmodell und Schnittstellen zwischen Frontend und Persistenz.
+
+- **Live-Kollaboration starten und beitreten**
+  Benutzer erstellen SignalR-Sessions, teilen Einladungslinks und synchronisieren Schaltungszustände sowie Cursorpositionen. Dieser Use Case betrifft Realtime-Kommunikation, Session-Verwaltung und Speichern-Rechte.
 
 ---
 
@@ -197,7 +207,8 @@ Das logische Modell von BitFlow ist in mehrere klar abgegrenzte Bereiche unterte
 
 Die wichtigsten logischen Bereiche sind:
 - **UI-nahe Komponenten** für Benutzerinteraktion,
-- **Application Services** zur Orchestrierung von Use Cases,
+- **Frontend-Services** zur Kommunikation mit Backend, LocalStorage und SignalR,
+- **Backend-Services** zur Orchestrierung von Authentifizierung, Projekten, Komponenten und Kollaboration,
 - **Domain-Modelle** zur Abbildung von Schaltungen und Bausteinen,
 - **Simulation** zur Berechnung von Signalzuständen,
 - **Persistenz- und Bibliothekskomponenten** für Speicherung und Wiederverwendung.
@@ -214,40 +225,45 @@ Abhängigkeiten verlaufen dabei ausschließlich von höher- zu niedrigerliegende
 - **Verantwortlichkeiten:** Darstellung, Benutzerinteraktion, Weiterleitung von Aktionen an Application Services.
 
 #### Application Package
-- **Beschreibung:** Vermittelt zwischen UI und Domain.
-- **Beispiele:** `EditorService`, `SimulationService`, `UndoRedoService`
-- **Verantwortlichkeiten:** Use-Case-Steuerung, Validierung, Koordination von Abläufen.
+- **Beschreibung:** Vermittelt zwischen UI, Backend-API, LocalStorage und Collaboration-Hub.
+- **Beispiele:** `projectService`, `authService`, `preferencesService`, `collaborationService`, `useHistory`
+- **Verantwortlichkeiten:** Use-Case-Steuerung, API-Kommunikation, Sessionverwaltung, lokale Präferenzen und Undo/Redo.
 
 #### Domain Package
 - **Beschreibung:** Zentrales Fachmodell von BitFlow.
-- **Beispiele:** `Circuit`, `Component`, `CustomComponent`, `Wire`, `Pin`
+- **Beispiele:** `Circuit`, `Gate`, `CustomComponent`, `Wire`, `Pin`, `Net`, `Annotation`
 - **Verantwortlichkeiten:** Repräsentation der Schaltung, Struktur, Konsistenzregeln.
 
 #### Simulation Package
 - **Beschreibung:** Kapselt die Simulationslogik.
-- **Beispiele:** `SimulationEngine`, `SimulationStrategy`
-- **Verantwortlichkeiten:** Berechnung von Signalzuständen, Zustandsänderungen.
+- **Beispiele:** `evaluateCircuit`, `gateLibrary`, `customComponentFactory`, `netModel`, `wireUtils`
+- **Verantwortlichkeiten:** Berechnung von Signalzuständen, Gatterdefinitionen, Netzerzeugung und Wahrheitstabellenerzeugung.
 
 #### Library Package
 - **Beschreibung:** Zentrale Registry für verfügbare Bausteine.
-- **Beispiele:** `ComponentLibrary`, `ComponentFactory`
+- **Beispiele:** `GATE_TEMPLATES`, `createGate`, `createCustomGate`, `CustomComponentDialog`, `CustomComponentImportDialog`
 - **Verantwortlichkeiten:** Verwaltung und Erzeugung von Standard- und benutzerdefinierten Bausteinen.
 
 #### Storage Package
 - **Beschreibung:** Abstraktion der Persistenzmechanismen.
-- **Beispiele:** `StorageRepository`, `ProjectSerializer`
-- **Verantwortlichkeiten:** Speichern, Laden, Import/Export von Projekten.
+- **Beispiele:** `ProjectController`, `ProjectService`, `ProjectRepository`, `BitFlowDbContext`, `localStorage`
+- **Verantwortlichkeiten:** Speichern, Laden und Löschen von Projekten, Benutzer- und Komponentendaten sowie lokale UI-Präferenzen.
+
+#### Realtime Package
+- **Beschreibung:** Kapselt Live-Kollaboration.
+- **Beispiele:** `CollaborationHub`, `CollaborationSessionStore`, `CollaborationClient`, `useCollaborationSession`
+- **Verantwortlichkeiten:** Session-Erstellung, Beitritt, Teilnehmerstatus, Cursorupdates und Schaltungssynchronisation.
 
 ---
 
 ### 5.3 Use-Case Realizations
 
-Die Realisierung der Use Cases erfolgt über Application Services, die als zentrale Einstiegspunkte dienen.  
+Die Realisierung der Use Cases erfolgt über Application Services, die als zentrale Einstiegspunkte dienen.
 Beispielsweise wird der Use Case *„Simulation starten“* wie folgt umgesetzt:
 
-1. UI löst Aktion über einen Application Service aus.  
-2. Service validiert den aktuellen Schaltungszustand.  
-3. Simulation Engine wird initialisiert und gestartet.  
+1. UI löst Aktion über einen Application Service aus.
+2. Service validiert den aktuellen Schaltungszustand.
+3. Simulation Engine wird initialisiert und gestartet.
 4. Zustandsänderungen werden über Observer an die UI zurückgemeldet.
 
 Dieses Vorgehen stellt sicher, dass UI, Domain und Simulation lose gekoppelt bleiben und unabhängig weiterentwickelt werden können.
@@ -257,7 +273,7 @@ Dieses Vorgehen stellt sicher, dass UI, Domain und Simulation lose gekoppelt ble
 
 ## 6. Process View
 
-Die Process View beschreibt die Laufzeitarchitektur von BitFlow, insbesondere Threads, asynchrone Abläufe und Interaktionen zwischen UI und Simulation. Sequenzdiagramme sind in den einzelnen [Use-Cases](https://github.com/SimonJ2222/BitFlow/blob/main/docs/use_cases/software_requirements_specification.md#3-specific-requirements) zu finden.
+Die Process View beschreibt die Laufzeitarchitektur von BitFlow, insbesondere Threads, asynchrone Abläufe und Interaktionen zwischen UI und Simulation. Sequenzdiagramme sind in den einzelnen [Use-Cases](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/use_cases/software_requirements_specification.md#3-specific-requirements) zu finden.
 
 ### 6.1 Hauptprozesse
 
@@ -270,27 +286,34 @@ Die Process View beschreibt die Laufzeitarchitektur von BitFlow, insbesondere Th
 - Fehleranzeigen und Nutzerinteraktion
 Der UI-Thread darf nie blockiert werden, daher laufen schwere Berechnungen woanders.
 
-2. Simulationsprozess (WebWorker / eigener Thread)
-- Berechnet Signalflüsse
-- Verarbeitet Ereignisse (Event-Driven Simulation)
-- Stoppt nicht bei Fehlern, sondern sendet Rückmeldung an UI
-- Neustart erfolgt automatisch bei Abstürzen (Availability-Taktik)
-Vorteil: UI bleibt responsiv, Simulation skaliert besser.
+2. Simulationslogik im Frontend
+- Berechnet Signalflüsse über `evaluateCircuit`
+- nutzt Netze und Pin-Gruppen aus `wireUtils` und `netModel`
+- unterstützt kombinatorische Gatter, Flip-Flops, generische Wahrheitstabellen und Custom Components
+- begrenzt Iterationen abhängig von der Schaltungsgröße
+Ein separater WebWorker ist aktuell nicht implementiert.
 
-3. Autosave-Prozess (Timer-basiert, asynchron)
-- Speichert alle 30 Sekunden
-Kann sowohl lokal als auch über API laufen
+3. Speicherprozess (benutzergesteuert, asynchron)
+- Speichert auf Klick oder vor Navigation nach Bestätigung
+- sendet Projekt, Schaltung, Input-Signale, Netze und Custom Components über `PUT /api/projects/{id}`
+- markiert den Editorzustand als „Gespeichert“ oder „Speichern fehlgeschlagen“
 
-4. Compiler-Prozess für benutzerdefinierte Bausteine
-- Validiert neue Bausteindefinitionen
-- Erzeugt „Compiled Logic“
-- Gibt im Fehlerfall Meldungen zurück
+4. Custom-Component-Erzeugung
+- liest Eingangs- und Ausgangsgatter der aktuellen Schaltung
+- erzeugt eine Wahrheitstabelle durch Simulation aller Eingangskombinationen
+- fügt den Baustein zur Projektbibliothek hinzu
+
+5. Kollaborationsprozess
+- erstellt und verwaltet SignalR-Sessions
+- überträgt Schaltungsstände und Cursorpositionen
+- beendet Sessions, wenn der Host die Session verlässt
 
 ### 6.2 Kommunikationsmodell
 
-- Message Passing zwischen UI und Simulation (JSON-Events).
-- Observer/Subscriber-Pattern im UI für Zustandsänderungen.
-- Asynchrone Aufrufe an Storage-Services.
+- React-State und Hooks für UI- und Simulationszustände.
+- HTTP/JSON zwischen Frontend-Service und ASP.NET-Core-API.
+- SignalR/WebSocket-Fallbacks für Collaboration-Events.
+- Asynchrone Aufrufe an Storage- und Collaboration-Services.
 
 ---
 
@@ -303,25 +326,30 @@ Der Deployment View beschreibt die physische Verteilung der Softwarekomponenten 
 ```mermaid
 graph TD
     Browser["Client Browser"]
-    UI["Frontend Single-Page-Application"]
-    Sim["Simulation"]
-    API["Backend API"]
-    DB[(Database)]
+    UI["Nginx + React Single-Page-Application"]
+    Sim["In-Browser Simulation"]
+    API["ASP.NET Core Backend API"]
+    Hub["SignalR CollaborationHub"]
+    DB[(SQLite Database / Docker Volume)]
 
     Browser --> UI
     UI --> Sim
     UI <--> API
+    UI <--> Hub
     API --> DB
+    Hub --> API
 
 ```
 
 ### 7.2 Beschreibung
 
 - Die Benutzeroberfläche wird als Single Page Application im Browser ausgeführt.
-- Die Simulationslogik läuft in einem separaten Simulationsdienst bzw. Ausführungskontext, um die Benutzeroberfläche responsiv zu halten.
-- Ein optionales Backend stellt Funktionen für Authentifizierung, Benutzerverwaltung und persistente Speicherung bereit.
-- Die Datenbank speichert Benutzerkonten und Projektinformationen.
+- Die Simulationslogik läuft aktuell im Browser und ist in eigene Frontend-Module gekapselt.
+- Das Backend stellt Funktionen für Authentifizierung, Benutzerverwaltung, Projektpersistenz und Komponenten bereit.
+- Die Datenbank speichert Benutzerkonten, Sessions, Projektinformationen und globale benutzerdefinierte Bausteine.
+- Live-Kollaboration läuft über den SignalR-Hub; Collaboration-Sessions werden zur Laufzeit im Speicher gehalten.
 - Die Kommunikation zwischen Frontend und Backend erfolgt über HTTP-basierte Schnittstellen.
+- In Docker leitet Nginx `/api/` und `/hubs/` an den Backend-Container weiter.
 
 Diese Deployment-Struktur unterstützt insbesondere die Anforderungen an **Performance**, **Availability** und **Portability**.
 
@@ -333,9 +361,12 @@ Diese Deployment-Struktur unterstützt insbesondere die Anforderungen an **Perfo
 
 Die Implementierung ist in klar getrennte Schichten gegliedert, die Änderungen erleichtern, Testbarkeit erhöhen und die Simulation isolieren:
 - UI Layer (React/TypeScript)
-- Domain Layer (Simulation, Schaltung, Bausteine)
+- Frontend Service Layer (API, Auth, Projekte, Kollaboration, Präferenzen)
+- Domain Layer (Simulation, Schaltung, Bausteine, Netze)
 - Library Layer (Standard- & Custom-Bausteine)
-- Storage Layer
+- Backend API Layer (Controller, Services, Repositories)
+- Storage Layer (SQLite/EF Core und LocalStorage für Client-Präferenzen)
+- Realtime Layer (SignalR)
 - Diese Layer kommunizieren nur über definierte Schnittstellen.
 
 ### 8.2 Layers
@@ -343,19 +374,23 @@ Die Implementierung ist in klar getrennte Schichten gegliedert, die Änderungen 
 1. UI Layer
 - Beinhaltet:
 - Editor-Canvas
-- Bauteil-Panel
+- Bibliothek/Panel-Dock/Floating-Panels
 - Inspector
-- Fehlermeldungen
+- SimulationPanel und SignalViewer
+- CollaborationPanel
+- UnsavedChangesDialog
 - Undo/Redo UI
 
 2. Domain Layer
 
-- Component
+- Gate
 - Wire
 - Circuit
-- Simulator
-- Compiler
-- Validation
+- Net
+- CustomComponent
+- Annotation
+- evaluateCircuit
+- customComponentFactory
 
 Umfasst die eigentliche Logik.
 
@@ -365,11 +400,25 @@ Umfasst die eigentliche Logik.
 - Benutzerdefinierte Bausteine
 - Factory Pattern zur Erzeugung
 
-4. Storage Layer
+4. Backend API Layer
 
-- Lokale Speicherung
-- Backend-APIs
-- Repository Pattern
+- AuthController/UserController
+- ProjectController
+- ComponentController
+- UserService, ProjectService, ComponentService
+- Repositories
+
+5. Storage Layer
+
+- SQLite über Entity Framework Core
+- JSON-Dokumente für Schaltungen, Input-Signale und Custom Components
+- LocalStorage für Sessiondaten, Präferenzen und Panel-Zustände
+
+6. Realtime Layer
+
+- CollaborationHub
+- CollaborationSessionStore
+- SignalR-Client im Frontend
 ---
 
 ### 8.3 Layer Kommunikation
@@ -381,8 +430,11 @@ Controller["REST-Controller\n(ASP.NET Core)"]
 Service["Service-Layer"]
 Repository["Repository-Layer"]
 Database["SQLite Database"]
+Hub["SignalR-Hub"]
+CollabStore["In-Memory Session Store"]
 
 Frontend --> Controller --> Service --> Repository --> Database
+Frontend <--> Hub --> CollabStore
 ```
 ---
 
@@ -394,32 +446,42 @@ BitFlow verwendet persistente Speicherung zur Ablage von Benutzerprojekten und z
 
 - **User**
   - user_id
+  - name
   - email
+  - normalized_email
   - password_hash
+
+- **Session**
+  - token
+  - user_id
+  - created_at
+  - expires_at
 
 - **Project**
   - project_id
-  - user_id
+  - owner_id
   - name
+  - description
+  - circuit_json
+  - input_signals_json
+  - custom_components_json
+  - created_at
   - last_modified
-
-- **Circuit**
-  - circuit_id
-  - project_id
-  - serialized_structure
 
 - **ComponentDefinition**
   - component_id
+  - owner_id
   - name
-  - type (standard / custom)
-  - definition_data
+  - component_json
+  - created_at
 
 ### 9.2 Beschreibung
 
 - Projekte und Schaltungen werden strukturiert serialisiert gespeichert.
 - Benutzerdefinierte Bausteine werden als eigene Definitionen persistiert.
-- Die Persistenz kann lokal (z. B. Browser Storage) oder serverseitig erfolgen.
-- Das Datenmodell unterstützt Versionierung und Wiederherstellung (Autosave).
+- Projektinterne Schaltungsdaten liegen als JSON im Projekt.
+- Globale benutzerdefinierte Bausteine liegen in der Tabelle `Components`.
+- Das Circuit-JSON enthält eine `version`; ein automatisches Autosave/Recovery ist aktuell nicht implementiert.
 
 Dieses Datenmodell unterstützt die Anforderungen an **Reliability** und **Modifiability**.
 
@@ -461,14 +523,14 @@ Hier werden die wichtigsten Architekturtaktiken zusammengefasst, die BitFlow nut
 
 - Klare Trennung von UI, Domain, Storage, Simulation.
 - Bausteine als austauschbare Komponenten mit einheitlicher Schnittstelle.
-- Compiler erlaubt neue benutzerdefinierte Bausteine.
+- Wahrheitstabellenerzeugung erlaubt neue benutzerdefinierte Bausteine.
 - Information Hiding schützt interne Details.
 
 2. Performance
 
-- Event-Driven Simulation (nur relevante Signaländerungen).
+- Deterministische In-Browser-Simulation mit begrenzten Iterationen.
 - Batch-Updates im UI statt Einzelupdates.
-- Asynchrone Simulation in separatem Prozess.
+- Asynchrone Backend- und SignalR-Kommunikation.
 
 3. Usability
 
@@ -479,7 +541,7 @@ Hier werden die wichtigsten Architekturtaktiken zusammengefasst, die BitFlow nut
 4. Testability
 
 - Modulare Architektur (SRP).
-- Simulation, Storage und Compiler über Interfaces mockbar.
+- Simulation, Storage und Collaboration-Client sind über klar getrennte Module testbar.
 - Deterministische Simulation erlaubt reproduzierbare Tests.
 - Klare API-Grenze zwischen UI und Domain.
 
@@ -487,5 +549,6 @@ Hier werden die wichtigsten Architekturtaktiken zusammengefasst, die BitFlow nut
 
 - Validierung vor Simulation.
 - Fehlerbehandlung ohne UI-Stillstand.
-- Automatisches Recovering und Autosave.
+- Navigationsschutz bei ungespeicherten Änderungen.
+- Servervalidierung für Authentifizierung, Projektbesitz und JSON-Payloads.
 

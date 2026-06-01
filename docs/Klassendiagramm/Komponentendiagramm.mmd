@@ -1,134 +1,115 @@
+%% Dokumentversion: 1.1
+%% Stand: 2026-06-01
+%% Status: Aktualisiert auf den aktuellen Projektstand
+
 graph TB
 
-%% ==========================
-%% Main Structure
-%% ==========================
-subgraph "BitFlow Frontend (React + TypeScript)"
-    App["App (Main Entry Point)"] --> Router["Router / Navigation"]
-    App --> LandingPageModule["LandingPage"]
-    App --> AuthModule["Authentication"]
-    App --> ProjectManagerModule["ProjectManager"]
-    App --> EditorModule["Editor"]
-    App --> SettingsModule["Settings"]
-    App --> ApiService["API Service"]
+subgraph Frontend["BitFlow Frontend (React 19 + TypeScript + Vite)"]
+    App["App / Routing"]
+    Shell["AppShell + ProtectedRoute"]
+    Auth["Auth-Modul\nLogin, Register, Reset, Profile"]
+    Projects["ProjectsPage\nProjektübersicht"]
+    Editor["EditorPage\nSchaltplaneditor"]
+    Settings["SettingsPage\nTheme + Shortcuts"]
 
-    %% ==========================
-    %% Landing Page (Public)
-    %% ==========================
-    subgraph "LandingPage (Public)"
-        Navbar["Navbar"]
-        LandingPageView["LandingPageView (Intro / Welcome Section)"]
-        LoginButton["LoginButton"]
-        RegisterButton["RegisterButton"]
+    App --> Shell
+    App --> Auth
+    Shell --> Projects
+    Shell --> Editor
+    Shell --> Settings
 
-        LandingPageModule --> Navbar
-        LandingPageModule --> LandingPageView
-        LandingPageModule --> LoginButton
-        LandingPageModule --> RegisterButton
-    end
-
-    %% ==========================
-    %% Authentication
-    %% ==========================
-    subgraph "Authentication (Login / Registration / Profile)"
-        LoginPage["LoginPage"]
-        RegisterPage["RegisterPage"]
-        ResetPasswordPage["ResetPasswordPage"]
-        ProfilePage["ProfilePage"]
-
-        AuthModule --> LoginPage
-        AuthModule --> RegisterPage
-        AuthModule --> ResetPasswordPage
-        AuthModule --> ProfilePage
-    end
-
-    %% ==========================
-    %% Project Management
-    %% ==========================
-    subgraph "ProjectManager (Private)"
-        ProjectList["ProjectList"]
-        ProjectDetail["ProjectDetail"]
-        ImportExportDialog["ImportExportDialog"]
-
-        ProjectManagerModule --> ProjectList
-        ProjectManagerModule --> ProjectDetail
-        ProjectManagerModule --> ImportExportDialog
-    end
-
-    %% ==========================
-    %% Editor
-    %% ==========================
-    subgraph "Editor (Workspace / Simulation)"
-        Canvas["Canvas (Circuit Display)"]
-        Toolbar["Toolbar (Controls)"]
-        Library["Library (Logic Components)"]
-        Inspector["Inspector (Properties Panel)"]
+    subgraph EditorModule["Editor-Modul"]
+        Toolbar["Toolbar"]
+        Canvas["SVG Canvas"]
+        Library["Library\nStandard- und Custom-Bausteine"]
+        Inspector["Inspector\nGate-/Kommentar-Eigenschaften"]
         SimulationPanel["SimulationPanel"]
         SignalViewer["SignalViewer"]
-        UndoRedoManager["UndoRedoManager"]
-        GroupAsComponentDialog["GroupAsComponentDialog (Create Component from Circuit)"]
-        CustomComponentEditor["CustomComponentEditor (Define Logic / Truth Table)"]
-        SimulationCore["SimulationCore (Logic Engine / Signal Evaluation)"]
+        PanelSystem["PanelDock / FloatingPanel / PanelLauncher"]
+        CustomDialog["CustomComponentDialog"]
+        ImportDialog["CustomComponentImportDialog"]
+        CollaborationPanel["CollaborationPanel"]
 
-        Canvas --> Toolbar
-        Canvas --> Library
-        Canvas --> SignalViewer
-        Toolbar --> UndoRedoManager
-        Toolbar --> GroupAsComponentDialog
-        Library --> CustomComponentEditor
-        SimulationPanel --> SimulationCore
-
-        EditorModule --> Canvas
-        EditorModule --> SimulationPanel
-        EditorModule --> Inspector
-        EditorModule --> UndoRedoManager
-        EditorModule --> GroupAsComponentDialog
-        EditorModule --> CustomComponentEditor
-        EditorModule --> SimulationCore
+        Editor --> Toolbar
+        Editor --> Canvas
+        Editor --> PanelSystem
+        PanelSystem --> Library
+        PanelSystem --> Inspector
+        PanelSystem --> SimulationPanel
+        PanelSystem --> SignalViewer
+        PanelSystem --> CollaborationPanel
+        Toolbar --> CustomDialog
+        Toolbar --> ImportDialog
     end
 
-    %% ==========================
-    %% Settings
-    %% ==========================
-    subgraph "Settings"
-        DarkModeToggle["DarkModeToggle"]
-        UserPreferences["UserPreferences"]
-
-        SettingsModule --> DarkModeToggle
-        SettingsModule --> UserPreferences
+    subgraph FrontendServices["Frontend Services und Hooks"]
+        ApiService["apiService\nHTTP + Bearer Token"]
+        AuthService["authService"]
+        ProjectService["projectService"]
+        PreferencesService["preferencesService"]
+        CollaborationClient["CollaborationClient\nSignalR"]
+        UseHistory["useHistory\nUndo/Redo"]
+        UseCollaboration["useCollaborationSession"]
+        LocalStorage["localStorage\nSession, Preferences, Panels"]
     end
 
-    %% ==========================
-    %% Shared Services
-    %% ==========================
-    LocalStorage["LocalStorage / IndexedDB"]
+    Auth --> AuthService
+    Projects --> ProjectService
+    Editor --> ProjectService
+    Editor --> UseHistory
+    Editor --> UseCollaboration
+    Settings --> PreferencesService
+    AuthService --> ApiService
+    ProjectService --> ApiService
+    PreferencesService --> LocalStorage
+    AuthService --> LocalStorage
+    UseCollaboration --> CollaborationClient
 
-    ApiService --> App
-    LocalStorage --> App
-    LocalStorage --> EditorModule
-    LocalStorage --> SettingsModule
+    subgraph Simulation["Simulation und Schaltungsmodell"]
+        GateLibrary["gateLibrary\nGattertemplates"]
+        Evaluate["evaluateCircuit"]
+        NetModel["netModel"]
+        WireUtils["wireUtils"]
+        CustomFactory["customComponentFactory"]
+        Types["Circuit / Gate / Wire / Pin / Net"]
+    end
+
+    Editor --> GateLibrary
+    Editor --> Evaluate
+    Editor --> NetModel
+    Editor --> WireUtils
+    CustomDialog --> CustomFactory
+    SimulationPanel --> Evaluate
+    SignalViewer --> Types
 end
 
+subgraph Backend["BitFlow Backend (ASP.NET Core 8)"]
+    Controllers["REST Controller\nAuth, Projects, Components"]
+    Services["Services\nUser, Project, Component"]
+    Repositories["Repositories"]
+    DbContext["BitFlowDbContext\nEF Core 8"]
+    SQLite[("SQLite\nUsers, Sessions, Projects, Components")]
+    Hub["CollaborationHub\nSignalR"]
+    SessionStore["CollaborationSessionStore\nIn-Memory"]
 
-%% ==========================
-%% Backend API
-%% ==========================
-subgraph "Backend API"
-    AspNet["ASP.NET Core REST API"]
+    Controllers --> Services
+    Services --> Repositories
+    Repositories --> DbContext
+    DbContext --> SQLite
+    Hub --> SessionStore
+    Hub --> Services
 end
 
+subgraph Deployment["Deployment"]
+    Nginx["Nginx Container\nSPA + Proxy"]
+    ApiContainer["Backend Container"]
+    Volume["bitflow-data Volume"]
 
-%% ==========================
-%% Routing & Relationships
-%% ==========================
-Router --> LandingPageModule
-Router --> AuthModule
-Router --> ProjectManagerModule
-Router --> EditorModule
-Router --> SettingsModule
+    Nginx --> ApiContainer
+    ApiContainer --> Volume
+end
 
-LandingPageModule --> AuthModule
-AuthModule --> ProjectManagerModule
-
-App --> AspNet
-ApiService --> AspNet
+ApiService <--> Controllers
+CollaborationClient <--> Hub
+Nginx --> App
+ApiContainer --> Controllers

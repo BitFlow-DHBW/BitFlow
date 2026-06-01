@@ -1,10 +1,12 @@
-# Aktuelles Datenbankdesign
+**Dokumentversion:** 1.1
+**Stand:** 2026-06-01
+**Status:** Aktualisiert auf den aktuellen Projektstand
 
-Stand: 2026-05-28
+# Aktuelles Datenbankdesign
 
 ## Überblick
 
-BitFlow speichert seine Backend-Daten mit Entity Framework Core 8 in einer SQLite-Datenbank. Die Datenbankverbindung wird über `ConnectionStrings:BitFlowDb` konfiguriert.
+BitFlow speichert seine Backend-Daten mit Entity Framework Core 8 in einer SQLite-Datenbank. Die Datenbankverbindung wird über `ConnectionStrings:BitFlowDb` konfiguriert. Live-Kollaborationssessions werden dagegen nicht in SQLite persistiert, sondern zur Laufzeit im `CollaborationSessionStore` gehalten.
 
 - Lokal: `Data/bitflow.db`
 - Docker: `/app/Data/bitflow.db`, persistiert im Volume `bitflow-data`
