@@ -1364,6 +1364,14 @@ a svg {
   pointer-events: none;
 }
 
+.wire.is-preview-valid {
+  stroke: var(--success);
+}
+
+.wire.is-preview-invalid {
+  stroke: var(--danger);
+}
+
 .wire.is-selected {
   stroke: var(--warning);
   stroke-width: 5;
@@ -1550,6 +1558,20 @@ a svg {
 
 .pin.is-live {
   fill: var(--success);
+}
+
+.pin.is-snap-valid {
+  fill: color-mix(in srgb, var(--success) 38%, var(--surface));
+  filter: drop-shadow(0 0 5px var(--success));
+  stroke: var(--success);
+  stroke-width: 3;
+}
+
+.pin.is-snap-invalid {
+  fill: color-mix(in srgb, var(--danger) 28%, var(--surface));
+  filter: drop-shadow(0 0 5px var(--danger));
+  stroke: var(--danger);
+  stroke-width: 3;
 }
 
 .gate-node.is-selected .schematic-symbol .symbol-body {

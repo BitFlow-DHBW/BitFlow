@@ -8,6 +8,7 @@ interface GateCompProps {
   selected: boolean;
   selectedTool: EditorTool | null;
   preview?: boolean;
+  snapTarget?: { pinId: string; status: 'valid' | 'invalid' } | null;
   onGatePointerDown: (event: React.PointerEvent<SVGGElement>, gate: Gate) => void;
   onGateClick: (event: React.MouseEvent<SVGGElement>, gate: Gate) => void;
   onPinPointerDown: (event: React.PointerEvent<SVGCircleElement>, pin: Pin) => void;
@@ -20,6 +21,7 @@ export function GateComp({
   selected,
   selectedTool,
   preview = false,
+  snapTarget = null,
   onGatePointerDown,
   onGateClick,
   onPinPointerDown,
@@ -43,13 +45,14 @@ export function GateComp({
       {pins.map((pin) => {
         const position = pinPosition(gate, pin);
         const live = pin.direction === 'output' ? Boolean(signals[pin.id]) : false;
+        const snapStatus = snapTarget?.pinId === pin.id ? snapTarget.status : null;
         return (
           <circle
             key={pin.id}
             cx={position.x}
             cy={position.y}
             r={6}
-            className={`pin ${pin.direction} ${live ? 'is-live' : ''}`}
+            className={`pin ${pin.direction} ${live ? 'is-live' : ''} ${snapStatus ? `is-snap-${snapStatus}` : ''}`}
             onPointerDown={(event) => onPinPointerDown(event, pin)}
             onPointerUp={(event) => onPinPointerUp(event, pin)}
           />

@@ -8,6 +8,7 @@ interface WireCompProps {
   to: Point;
   active?: boolean;
   preview?: boolean;
+  previewStatus?: 'valid' | 'invalid';
   selected?: boolean;
   onSelect?: (event: React.MouseEvent<SVGPathElement>) => void;
 }
@@ -24,10 +25,20 @@ export function wireBranchPoint(from: Point, to: Point): Point {
   };
 }
 
-export function WireComp({ from, to, active = false, preview = false, selected = false, onSelect }: WireCompProps) {
+export function WireComp({
+  from,
+  to,
+  active = false,
+  preview = false,
+  previewStatus,
+  selected = false,
+  onSelect,
+}: WireCompProps) {
   return (
     <path
-      className={`wire ${active ? 'is-live' : ''} ${preview ? 'is-preview' : ''} ${selected ? 'is-selected' : ''}`}
+      className={`wire ${active ? 'is-live' : ''} ${preview ? 'is-preview' : ''} ${
+        previewStatus ? `is-preview-${previewStatus}` : ''
+      } ${selected ? 'is-selected' : ''}`}
       d={wirePath(from, to)}
       fill="none"
       onClick={onSelect}

@@ -57,7 +57,7 @@ import { projectService } from '../../../services/projectService';
 import { createCustomGate, createGate, createStarterCircuit, gateRectPx, snapToGrid } from '../../../simulation/gateLibrary';
 import { evaluateCircuit } from '../../../simulation/evaluateCircuit';
 import { buildCircuitNets } from '../../../simulation/netModel';
-import { createPinLookup, getWirePoints } from '../../../simulation/wireUtils';
+import { createPinLookup, getWirePoints, validateWireTarget, type PinLookup } from '../../../simulation/wireUtils';
 import type {
   Annotation,
   Circuit,
@@ -105,6 +105,14 @@ function sameEndpoint(a: WireEndpoint, b: WireEndpoint): boolean {
     return snapToGrid(a.point.x) === snapToGrid(b.point.x) && snapToGrid(a.point.y) === snapToGrid(b.point.y);
   }
   return false;
+}
+
+function canCreateWire(start: WireEndpoint, target: WireEndpoint, circuit: Circuit, pinLookup: PinLookup): boolean {
+  if (sameEndpoint(start, target)) return false;
+  if (target.kind !== 'pin') return true;
+
+  const targetPin = pinLookup.get(target.pinId)?.pin;
+  return Boolean(targetPin && validateWireTarget(start, targetPin, circuit, pinLookup).valid);
 }
 
 function endpointUsesPin(endpoint: WireEndpoint | undefined, pinIds: Set<string>): boolean {
@@ -826,7 +834,7 @@ function EditorWorkspace({
     if (!wireDraft) return;
     const nextEndpoint = normalizePointEndpoint(endpoint);
 
-    if (sameEndpoint(wireDraft.start, nextEndpoint)) {
+    if (!canCreateWire(wireDraft.start, nextEndpoint, history.state, pinMap)) {
       setWireDraft(null);
       return;
     }

@@ -15,7 +15,15 @@ import {
 } from '../canvasViewBox';
 import { isInteractiveSourceGate } from '../../../schematic/symbolGeometry';
 import { GRID_SIZE, snapToGrid } from '../../../simulation/gateLibrary';
-import { buildLiveWireIds, createPinLookup, getWirePoints, normalizeWireEndpoint } from '../../../simulation/wireUtils';
+import {
+  buildLiveWireIds,
+  createPinLookup,
+  findNearestConnectablePin,
+  getPinSnapRadius,
+  getWirePoints,
+  normalizeWireEndpoint,
+  validateWireTarget,
+} from '../../../simulation/wireUtils';
 import type {
   Circuit,
   DragState,
@@ -86,6 +94,11 @@ interface SelectionDragState {
   moved: boolean;
 }
 
+interface WireSnapFeedback {
+  pinId: string;
+  status: 'valid' | 'invalid';
+}
+
 export function Canvas({
   circuit,
   signals,
@@ -132,6 +145,7 @@ export function Canvas({
   const [isPanning, setIsPanning] = useState(false);
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [selectionArea, setSelectionArea] = useState<SelectionArea | null>(null);
+  const [wireSnapFeedback, setWireSnapFeedback] = useState<WireSnapFeedback | null>(null);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -199,6 +213,10 @@ export function Canvas({
   const zoomLevel = getViewBoxZoom(viewBox, canvasSize);
   const selectedObjectCount = selectedGateIds.length + selectedAnnotationIds.length;
 
+  useEffect(() => {
+    if (!wireDraft) setWireSnapFeedback(null);
+  }, [wireDraft]);
+
   function getPointFromClient(clientX: number, clientY: number): Point {
     const svg = svgRef.current;
     const matrix = svg?.getScreenCTM();
@@ -233,7 +251,45 @@ export function Canvas({
     event.stopPropagation();
     onSelectGate(null);
     onSelectAnnotation(null);
+    setWireSnapFeedback(null);
     onWireStart(endpoint, point);
+  }
+
+  function findWirePinSnap(point: Point) {
+    if (!wireDraft) return null;
+    return findNearestConnectablePin(point, wireDraft.start, circuit, {
+      radius: getPinSnapRadius(zoomLevel),
+      pinLookup: pinMap,
+    });
+  }
+
+  function previewWireAt(point: Point) {
+    const snap = findWirePinSnap(point);
+    const feedback = snap?.valid
+      ? { pinId: snap.valid.pin.id, status: 'valid' as const }
+      : snap?.invalid
+        ? { pinId: snap.invalid.pin.id, status: 'invalid' as const }
+        : null;
+
+    setWireSnapFeedback(feedback);
+    onWirePreview(snap?.valid?.point ?? { x: snapToGrid(point.x), y: snapToGrid(point.y) });
+  }
+
+  function endWireAt(point: Point) {
+    const snap = findWirePinSnap(point);
+    setWireSnapFeedback(null);
+
+    if (snap?.valid) {
+      onWireEnd({ kind: 'pin', pinId: snap.valid.pin.id });
+      return;
+    }
+
+    if (snap?.invalid) {
+      onWireCancel();
+      return;
+    }
+
+    onWireEnd({ kind: 'point', point });
   }
 
   function startAnnotationDrag(event: React.PointerEvent<SVGGElement>, annotation: Annotation) {
@@ -456,7 +512,7 @@ export function Canvas({
             gatePointerRef.current.moved = gatePointerRef.current.moved || distanceX > 4 || distanceY > 4;
           }
           if (mode === 'edit' && dragState) onDragMove(point);
-          if (mode === 'edit' && wireDraft) onWirePreview({ x: snapToGrid(point.x), y: snapToGrid(point.y) });
+          if (mode === 'edit' && wireDraft) previewWireAt(point);
         }}
         onPointerUp={(event) => {
           if (endAreaSelection(event)) return;
@@ -469,7 +525,7 @@ export function Canvas({
           gatePointerRef.current = null;
           onDragEnd();
           if (mode === 'edit' && wireDraft) {
-            onWireEnd({ kind: 'point', point: getPoint(event) });
+            endWireAt(getPoint(event));
           }
         }}
         onPointerLeave={(event) => {
@@ -477,7 +533,10 @@ export function Canvas({
           if (endPan(event, false)) return;
           gatePointerRef.current = null;
           onDragEnd();
-          if (wireDraft) onWireCancel();
+          if (wireDraft) {
+            setWireSnapFeedback(null);
+            onWireCancel();
+          }
         }}
         onClick={(event) => {
           if (!isCanvasTarget(event)) return;
@@ -575,7 +634,7 @@ export function Canvas({
           );
         })}
 
-        {wireDraft && <WireComp from={wireDraft.from} to={wireDraft.to} preview />}
+        {wireDraft && <WireComp from={wireDraft.from} to={wireDraft.to} preview previewStatus={wireSnapFeedback?.status} />}
 
         {circuit.gates.map((gate) => (
           <GateComp
@@ -614,8 +673,14 @@ export function Canvas({
             onPinPointerUp={(event, pin) => {
               if (mode !== 'edit' || !wireDraft) return;
               event.stopPropagation();
-              onWireEnd({ kind: 'pin', pinId: pin.id });
+              setWireSnapFeedback(null);
+              if (validateWireTarget(wireDraft.start, pin, circuit, pinMap).valid) {
+                onWireEnd({ kind: 'pin', pinId: pin.id });
+              } else {
+                onWireCancel();
+              }
             }}
+            snapTarget={wireSnapFeedback}
           />
         ))}
 

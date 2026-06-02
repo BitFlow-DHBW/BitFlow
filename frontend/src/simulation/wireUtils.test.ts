@@ -4,9 +4,13 @@ import {
   buildLiveWireIds,
   createPinLookup,
   endpointNodeId,
+  findNearestConnectablePin,
+  getPinAbsolutePosition,
+  getPinSnapRadius,
   getWirePoints,
   normalizeWireEndpoint,
   resolveWireEndpoint,
+  validateConnection,
 } from './wireUtils';
 import { circuitWith, gate, wire } from '../test/builders';
 import type { Wire } from '../types/circuit';
@@ -22,6 +26,83 @@ describe('wire utilities and net model', () => {
       pin: input.outputs[0],
       point: { x: 168, y: 144 },
     });
+  });
+
+  it('calculates absolute pin positions independently of React components', () => {
+    const output = gate('OUTPUT', 'output_position', 240, 96);
+
+    expect(getPinAbsolutePosition(output, output.inputs[0])).toEqual({ x: 240, y: 120 });
+  });
+
+  it('snaps to the nearest valid pin and ignores a closer invalid pin', () => {
+    const source = gate('INPUT', 'source_snap', 0, 0);
+    const invalid = gate('INPUT', 'invalid_snap', 144, 0);
+    const nearestValid = gate('OUTPUT', 'valid_snap_near', 192, 0);
+    const fartherValid = gate('OUTPUT', 'valid_snap_far', 240, 0);
+    const circuit = circuitWith([source, invalid, nearestValid, fartherValid]);
+
+    const snap = findNearestConnectablePin(
+      { x: 214, y: 24 },
+      { kind: 'pin', pinId: source.outputs[0].id },
+      circuit,
+      { radius: 64 },
+    );
+
+    expect(snap.valid).toMatchObject({
+      pin: nearestValid.inputs[0],
+      point: { x: 192, y: 24 },
+    });
+    expect(snap.invalid).toMatchObject({ pin: invalid.outputs[0] });
+  });
+
+  it('reports nearby matching directions as invalid snap candidates', () => {
+    const source = gate('INPUT', 'source_invalid', 0, 0);
+    const target = gate('INPUT', 'target_invalid', 144, 0);
+    const circuit = circuitWith([source, target]);
+
+    const snap = findNearestConnectablePin(
+      { x: 214, y: 24 },
+      { kind: 'pin', pinId: source.outputs[0].id },
+      circuit,
+      { radius: 12 },
+    );
+
+    expect(snap.valid).toBeNull();
+    expect(snap.invalid).toMatchObject({
+      pin: target.outputs[0],
+      validation: { valid: false, reason: 'matching-directions' },
+    });
+  });
+
+  it('rejects same-direction, self and duplicate pin connections in either direction', () => {
+    const source = gate('INPUT', 'source_validation');
+    const secondSource = gate('INPUT', 'second_source_validation');
+    const target = gate('OUTPUT', 'target_validation');
+    const existingWire = wire('wire_validation', source, 0, target);
+    const circuit = circuitWith([source, secondSource, target], [existingWire]);
+
+    expect(validateConnection(source.outputs[0], source.outputs[0], circuit)).toEqual({
+      valid: false,
+      reason: 'same-pin',
+    });
+    expect(validateConnection(source.outputs[0], secondSource.outputs[0], circuit)).toEqual({
+      valid: false,
+      reason: 'matching-directions',
+    });
+    expect(validateConnection(source.outputs[0], target.inputs[0], circuit)).toEqual({
+      valid: false,
+      reason: 'duplicate',
+    });
+    expect(validateConnection(target.inputs[0], source.outputs[0], circuit)).toEqual({
+      valid: false,
+      reason: 'duplicate',
+    });
+  });
+
+  it('keeps the zoom-aware snap radius bounded in SVG coordinates', () => {
+    expect(getPinSnapRadius(1)).toBe(20);
+    expect(getPinSnapRadius(3)).toBe(8);
+    expect(getPinSnapRadius(0.25)).toBe(48);
   });
 
   it('normalizes modern and legacy wire endpoints', () => {

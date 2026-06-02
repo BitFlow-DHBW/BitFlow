@@ -144,6 +144,56 @@ describe('Canvas', () => {
     expect(container.querySelector('.wire.is-preview')).toBeInTheDocument();
   });
 
+  it('snaps wire previews and pointer-up to a nearby valid pin before applying the grid', () => {
+    const input = gate('INPUT', 'input_snap');
+    const output = gate('OUTPUT', 'output_snap', 240, 0);
+    const props = canvasProps({
+      circuit: circuitWith([input, output]),
+      wireDraft: {
+        start: { kind: 'pin', pinId: input.outputs[0].id },
+        from: { x: 72, y: 24 },
+        to: { x: 72, y: 24 },
+      },
+    });
+    const { container } = render(<Canvas {...props} />);
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+
+    fireEvent.pointerMove(svg, { clientX: 221, clientY: 24 });
+
+    expect(props.onWirePreview).toHaveBeenCalledWith({ x: 240, y: 24 });
+    expect(container.querySelector('.wire.is-preview')).toHaveClass('is-preview-valid');
+    expect(container.querySelector('.pin.is-snap-valid')).toBeInTheDocument();
+
+    fireEvent.pointerUp(svg, { clientX: 221, clientY: 24 });
+
+    expect(props.onWireEnd).toHaveBeenCalledWith({ kind: 'pin', pinId: output.inputs[0].id });
+  });
+
+  it('shows invalid pin feedback and cancels release near a matching direction', () => {
+    const source = gate('INPUT', 'input_invalid_snap');
+    const target = gate('INPUT', 'output_invalid_snap', 144, 0);
+    const props = canvasProps({
+      circuit: circuitWith([source, target]),
+      wireDraft: {
+        start: { kind: 'pin', pinId: source.outputs[0].id },
+        from: { x: 72, y: 24 },
+        to: { x: 72, y: 24 },
+      },
+    });
+    const { container } = render(<Canvas {...props} />);
+    const svg = screen.getByRole('img', { name: 'Schaltungseditor' });
+
+    fireEvent.pointerMove(svg, { clientX: 215, clientY: 24 });
+
+    expect(container.querySelector('.wire.is-preview')).toHaveClass('is-preview-invalid');
+    expect(container.querySelector('.pin.is-snap-invalid')).toBeInTheDocument();
+
+    fireEvent.pointerUp(svg, { clientX: 215, clientY: 24 });
+
+    expect(props.onWireCancel).toHaveBeenCalled();
+    expect(props.onWireEnd).not.toHaveBeenCalled();
+  });
+
   it('disables editing interactions in simulate mode and toggles source gates on click release', () => {
     const input = gate('INPUT', 'input_sim');
     const props = canvasProps({ circuit: circuitWith([input]), mode: 'simulate', selectedGateId: input.id });
