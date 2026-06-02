@@ -23,27 +23,27 @@ Browserbasierter Logikgatter-Simulator mit speicherbaren Schaltnetzen, Simulatio
 
 ```
 BitFlow/
-├── backend/              # Node/Express API
-│   ├── BitFlow.API       # API code
-│   └── BitFlow.API.Tests # API Tests
-├── frontend/            # Angular SPA
+├── backend/               # Node/Express API
+│   ├── BitFlow.API        # API Code
+│   └── BitFlow.API.Tests  # API Tests
+├── frontend/
 │   ├── src/
-│   │   ├── app/         # App shell, routing, auth contexts and guards
-│   │   ├── assets/      # images / icons
-│   │   ├── components/  # shared UI components
-│   │   ├── hooks/       # custom React hooks (collaboration, history)
-│   │   ├── modules/     # feature modules: auth, editor, landing, projects, settings
-│   │   ├── schematic/   # SVG primitives and symbol geometry (schematic rendering)
-│   │   ├── services/    # API layer and domain services (auth, project, collaboration)
-│   │   ├── simulation/  # circuit evaluation, gate library, net model
-│   │   ├── storage/     # localStorage wrapper and helpers
-│   │   ├── test/        # test setup and builders
-│   │   ├── types/       # TypeScript domain types (circuit, collaboration, domain)
-│   │   ├── utils/       # misc helpers (id, clipboard, keyboard shortcuts)
+│   │   ├── app/           # App Hülle, Routing, Authentifizierung
+│   │   ├── assets/        # Icon
+│   │   ├── components/    # geteilte UI Komponenten
+│   │   ├── hooks/         # React Hooks (Zusammenarbeit, Undu/Redo)
+│   │   ├── modules/       # Feature-Module: auth, editor, landing, projects, settings
+│   │   ├── schematic/     # SVG
+│   │   ├── services/      # API Layer & Domain-Service
+│   │   ├── simulation/    # Logik, Gatter-Bibliothek
+│   │   ├── storage/       # localStorage
+│   │   ├── test/          # Test Setup & Builder
+│   │   ├── types/         # TypeScript Domain-Typen (circuit, collaboration, domain)
+│   │   ├── utils/         # Helper (id, clipboard, keyboard shortcuts)
 │   │   ├── main.tsx
 │   │   ├── index.css
 │   │   └── vite-env.d.ts
-└── docs/                # Gesamte Projektdokumentation
+└── docs/                  # Gesamte Projektdokumentation
 ```
 
 
