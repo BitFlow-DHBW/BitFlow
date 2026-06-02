@@ -47,7 +47,29 @@ public sealed class CollaborationHub(CollaborationSessionStore sessions, UserSer
 
     public async Task LeaveSession(string sessionId)
     {
-        await HandleLeaveResultAsync(sessions.LeaveSession(sessionId, Context.ConnectionId));
+        try
+        {
+            await HandleLeaveResultAsync(sessions.LeaveSession(sessionId, Context.ConnectionId));
+        }
+        catch (ApiException exception)
+        {
+            throw new HubException(exception.Message);
+        }
+    }
+
+    public async Task EndSession(string sessionId)
+    {
+        try
+        {
+            var result = sessions.EndSession(sessionId, Context.ConnectionId);
+            await Clients.GroupExcept(GroupName(sessionId), Context.ConnectionId)
+                .SendAsync("SessionEnded", new SessionEndedDto(sessionId, "Session wurde vom Host beendet."));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(result.SessionId));
+        }
+        catch (ApiException exception)
+        {
+            throw new HubException(exception.Message);
+        }
     }
 
     public async Task UpdateCircuit(string sessionId, JsonElement currentCircuit)

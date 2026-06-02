@@ -48,6 +48,7 @@ describe('CollaborationPanel', () => {
         message={null}
         onCopyInviteLink={vi.fn()}
         onLeaveSession={vi.fn()}
+        onCloseSession={vi.fn()}
       />,
     );
 
@@ -57,6 +58,7 @@ describe('CollaborationPanel', () => {
   it('renders host session details and action buttons', () => {
     const copyInviteLink = vi.fn();
     const leaveSession = vi.fn();
+    const closeSession = vi.fn();
 
     render(
       <CollaborationPanel
@@ -66,6 +68,7 @@ describe('CollaborationPanel', () => {
         message={null}
         onCopyInviteLink={copyInviteLink}
         onLeaveSession={leaveSession}
+        onCloseSession={closeSession}
       />,
     );
 
@@ -77,10 +80,11 @@ describe('CollaborationPanel', () => {
     expect(screen.getByText('Guest User')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /einladungslink kopieren/i }));
-    fireEvent.click(screen.getByRole('button', { name: /session verlassen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /session schließen/i }));
 
     expect(copyInviteLink).toHaveBeenCalledTimes(1);
-    expect(leaveSession).toHaveBeenCalledTimes(1);
+    expect(closeSession).toHaveBeenCalledTimes(1);
+    expect(leaveSession).not.toHaveBeenCalled();
   });
 
   it('hides invite actions for participants without an invite link', () => {
@@ -92,6 +96,7 @@ describe('CollaborationPanel', () => {
         message={null}
         onCopyInviteLink={vi.fn()}
         onLeaveSession={vi.fn()}
+        onCloseSession={vi.fn()}
       />,
     );
 
@@ -111,6 +116,7 @@ describe('CollaborationPanel', () => {
         message={null}
         onCopyInviteLink={vi.fn()}
         onLeaveSession={vi.fn()}
+        onCloseSession={vi.fn()}
       />,
     );
 
@@ -127,6 +133,7 @@ describe('CollaborationPanel', () => {
         message="Session wurde vom Host beendet."
         onCopyInviteLink={vi.fn()}
         onLeaveSession={vi.fn()}
+        onCloseSession={vi.fn()}
       />,
     );
 

@@ -11,6 +11,7 @@ interface CollaborationPanelProps {
   message: string | null;
   onCopyInviteLink: () => void;
   onLeaveSession: () => void;
+  onCloseSession: () => void;
 }
 
 export function CollaborationPanel({
@@ -21,6 +22,7 @@ export function CollaborationPanel({
   message,
   onCopyInviteLink,
   onLeaveSession,
+  onCloseSession,
 }: CollaborationPanelProps) {
   if (!session && !message) return null;
 
@@ -59,8 +61,12 @@ export function CollaborationPanel({
                 <Icon name={copyStatus === 'copied' ? 'check' : 'copy'} />
               </button>
             )}
-            <button className="ghost-button small" type="button" onClick={onLeaveSession}>
-              Session verlassen
+            <button
+              className="ghost-button small"
+              type="button"
+              onClick={role === 'host' ? onCloseSession : onLeaveSession}
+            >
+              {role === 'host' ? 'Session schließen' : 'Session verlassen'}
             </button>
             {copyStatus !== 'idle' && (
               <span className={`copy-feedback ${copyStatus === 'failed' ? 'is-error' : ''}`} role="status">

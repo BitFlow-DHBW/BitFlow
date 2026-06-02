@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon';
 import { useAuth } from '../auth/AuthContext';
 import { projectService } from '../../services/projectService';
@@ -11,11 +11,13 @@ function formatDate(value: string): string {
 
 export function ProjectsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const userId = user?.id;
   const [projects, setProjects] = useState<Project[]>([]);
   const [name, setName] = useState('Meine erste Schaltung');
   const [description, setDescription] = useState('');
+  const notification = (location.state as { notification?: string } | null)?.notification;
 
   const loadProjects = useCallback(async () => {
     if (!userId) {
@@ -55,6 +57,7 @@ export function ProjectsPage() {
           <p>Erstelle, verwalte und öffne deine digitalen Schaltungen.</p>
         </div>
       </section>
+      {notification && <p className="form-success" role="status">{notification}</p>}
 
       <div className="projects-layout">
         <section className="project-grid" aria-label="Projektliste">

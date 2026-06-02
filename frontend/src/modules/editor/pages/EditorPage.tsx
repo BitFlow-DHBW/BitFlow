@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Canvas } from '../components/Canvas';
+import { CloseSessionDialog } from '../components/CloseSessionDialog';
 import { CollaborationPanel, type InviteCopyStatus } from '../components/CollaborationPanel';
 import { CustomComponentDialog } from '../components/CustomComponentDialog';
 import { CustomComponentImportDialog } from '../components/CustomComponentImportDialog';
@@ -269,6 +270,8 @@ function EditorWorkspace({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveState, setSaveState] = useState('Gespeichert');
   const [inviteCopyStatus, setInviteCopyStatus] = useState<InviteCopyStatus>('idle');
+  const [closeSessionDialogOpen, setCloseSessionDialogOpen] = useState(false);
+  const [closeSessionPending, setCloseSessionPending] = useState(false);
   const workbenchRef = useRef<HTMLDivElement | null>(null);
   const [panelStates, setPanelStates] = useState<EditorPanelState[]>(() => readStoredPanelStates());
   const [workbenchSize, setWorkbenchSize] = useState<PanelContainerSize>({ width: 1280, height: 720 });
@@ -392,8 +395,8 @@ function EditorWorkspace({
   });
 
   const inviteLink = useMemo(
-    () => (collaboration.session ? buildInviteLink(collaboration.session.sessionId) : null),
-    [collaboration.session],
+    () => (collaboration.session && collaboration.role === 'host' ? buildInviteLink(collaboration.session.sessionId) : null),
+    [collaboration.role, collaboration.session],
   );
 
   useEffect(() => {
@@ -411,16 +414,36 @@ function EditorWorkspace({
   useEffect(() => {
     if (collaboration.status !== 'ended') return;
     setHasUnsavedChanges(false);
-    navigate('/projects', { replace: true });
-  }, [collaboration.status, navigate]);
+    navigate('/projects', {
+      replace: true,
+      state: { notification: collaboration.message ?? 'Die Session wurde vom Host geschlossen.' },
+    });
+  }, [collaboration.message, collaboration.status, navigate]);
+
+  useEffect(() => {
+    if (!initialSessionId || collaboration.status !== 'error') return;
+    setHasUnsavedChanges(false);
+    navigate('/projects', {
+      replace: true,
+      state: { notification: collaboration.message ?? 'Diese Session existiert nicht mehr oder wurde geschlossen.' },
+    });
+  }, [collaboration.message, collaboration.status, initialSessionId, navigate]);
 
   async function handleLeaveSession() {
-    const closesSession = collaboration.role === 'host';
-    await collaboration.leaveSession();
-    if (!closesSession) return;
+    const left = await collaboration.leaveSession();
+    if (!left) return;
 
     setHasUnsavedChanges(false);
-    navigate('/projects', { replace: true });
+    navigate('/projects', { replace: true, state: { notification: 'Du hast die Session verlassen.' } });
+  }
+
+  async function handleCloseSession() {
+    setCloseSessionPending(true);
+    const closed = await collaboration.closeSession();
+    setCloseSessionPending(false);
+    if (!closed) return;
+
+    setCloseSessionDialogOpen(false);
   }
 
   const publishCollaborationState = useCallback(
@@ -1268,6 +1291,7 @@ function EditorWorkspace({
           message={collaboration.message}
           onCopyInviteLink={() => void handleCopyInviteLink()}
           onLeaveSession={() => void handleLeaveSession()}
+          onCloseSession={() => setCloseSessionDialogOpen(true)}
         />
         {!collaboration.session && !collaboration.message && (
           <section className="editor-panel session-empty-panel">
@@ -1433,6 +1457,14 @@ function EditorWorkspace({
           onCancel={closeUnsavedChangesDialog}
           onDiscard={continueWithoutSaving}
           onSaveAndLeave={() => void saveAndContinueNavigation()}
+        />
+      )}
+
+      {closeSessionDialogOpen && (
+        <CloseSessionDialog
+          pending={closeSessionPending}
+          onCancel={() => setCloseSessionDialogOpen(false)}
+          onConfirm={() => void handleCloseSession()}
         />
       )}
 

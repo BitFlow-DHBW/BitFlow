@@ -158,6 +158,14 @@ describe('Canvas', () => {
 
     expect(props.onGateDragStart).not.toHaveBeenCalled();
     expect(props.onToggleInput).toHaveBeenCalledWith(input.id);
+    expect(props.onSelectGate).not.toHaveBeenCalled();
+    expect(props.onSelectWire).not.toHaveBeenCalled();
+    expect(props.onSelectAnnotation).not.toHaveBeenCalled();
+
+    fireEvent.click(container.querySelector('[data-role="canvas-grid"]') as SVGRectElement);
+
+    expect(props.onCanvasClick).not.toHaveBeenCalled();
+    expect(props.onSelectGate).not.toHaveBeenCalled();
   });
 
   it('starts dragging annotations in edit mode', () => {

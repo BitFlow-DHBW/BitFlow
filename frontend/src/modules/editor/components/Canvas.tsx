@@ -326,9 +326,11 @@ export function Canvas({
       moved: false,
     };
     setIsPanning(true);
-    onSelectGate(null);
-    onSelectWire(null);
-    onSelectAnnotation(null);
+    if (mode === 'edit') {
+      onSelectGate(null);
+      onSelectWire(null);
+      onSelectAnnotation(null);
+    }
   }
 
   function endPan(event?: React.PointerEvent<SVGSVGElement>, suppressClick = true) {
@@ -479,6 +481,7 @@ export function Canvas({
         }}
         onClick={(event) => {
           if (!isCanvasTarget(event)) return;
+          if (mode !== 'edit') return;
           if (suppressCanvasClickRef.current) {
             suppressCanvasClickRef.current = false;
             return;
@@ -592,10 +595,12 @@ export function Canvas({
                 moved: false,
                 toggleOnRelease: mode === 'simulate' && event.button === 0 && isInteractiveSourceGate(selectedGate),
               };
-              onSelectWire(null);
-              if (!preserveSelection) {
-                onSelectGate(selectedGate.id);
-                onSelectAnnotation(null);
+              if (mode === 'edit') {
+                onSelectWire(null);
+                if (!preserveSelection) {
+                  onSelectGate(selectedGate.id);
+                  onSelectAnnotation(null);
+                }
               }
               if (mode === 'edit') onGateDragStart(selectedGate, point);
             }}

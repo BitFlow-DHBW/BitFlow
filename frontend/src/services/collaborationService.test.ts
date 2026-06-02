@@ -232,14 +232,16 @@ describe('CollaborationClient', () => {
     await expect(client.createSession(session.currentCircuit, 'Host')).resolves.toBe(session);
     await expect(client.joinSession('session_test', 'Guest')).resolves.toBe(session);
     await client.leaveSession('session_test');
+    await client.endSession('session_test');
     await client.updateCircuit('session_test', session.currentCircuit);
     await client.updateCursor('session_test', { x: 10, y: 20 });
 
     expect(connection.invoke).toHaveBeenNthCalledWith(1, 'CreateSession', session.currentCircuit, 'Host');
     expect(connection.invoke).toHaveBeenNthCalledWith(2, 'JoinSession', 'session_test', 'Guest');
     expect(connection.invoke).toHaveBeenNthCalledWith(3, 'LeaveSession', 'session_test');
-    expect(connection.invoke).toHaveBeenNthCalledWith(4, 'UpdateCircuit', 'session_test', session.currentCircuit);
-    expect(connection.invoke).toHaveBeenNthCalledWith(5, 'UpdateCursor', 'session_test', { x: 10, y: 20 });
+    expect(connection.invoke).toHaveBeenNthCalledWith(4, 'EndSession', 'session_test');
+    expect(connection.invoke).toHaveBeenNthCalledWith(5, 'UpdateCircuit', 'session_test', session.currentCircuit);
+    expect(connection.invoke).toHaveBeenNthCalledWith(6, 'UpdateCursor', 'session_test', { x: 10, y: 20 });
   });
 
   it('builds a SignalR client with the collaboration hub URL and auth token', () => {

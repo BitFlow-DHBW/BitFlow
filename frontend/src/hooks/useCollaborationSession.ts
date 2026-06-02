@@ -123,16 +123,20 @@ export function useCollaborationSession({
     [applySessionSnapshot],
   );
 
+  const resetLocalSession = useCallback(() => {
+    clearThrottle(cursorThrottleRef.current);
+    clearThrottle(circuitThrottleRef.current);
+    setSession(null);
+    setLocalParticipantId(null);
+  }, [setLocalParticipantId, setSession]);
+
   const endLocalSession = useCallback(
     (event: SessionEndedEvent) => {
-      clearThrottle(cursorThrottleRef.current);
-      clearThrottle(circuitThrottleRef.current);
-      setSession(null);
-      setLocalParticipantId(null);
+      resetLocalSession();
       setStatus('ended');
-      setMessage(event.reason || 'Session wurde vom Host beendet.');
+      setMessage(event.reason || 'Die Session wurde vom Host geschlossen.');
     },
-    [setLocalParticipantId, setSession],
+    [resetLocalSession],
   );
 
   const ensureClient = useCallback(async () => {
@@ -190,31 +194,58 @@ export function useCollaborationSession({
         onRemoteStateRef.current(nextSession.currentCircuit);
         return nextSession;
       } catch (error) {
+        resetLocalSession();
         setStatus('error');
-        setMessage(error instanceof Error ? error.message : 'Session konnte nicht betreten werden.');
+        setMessage(
+          error instanceof Error && error.message
+            ? `Diese Session existiert nicht mehr oder wurde geschlossen. ${error.message}`
+            : 'Diese Session existiert nicht mehr oder wurde geschlossen.',
+        );
         return null;
       }
     },
-    [displayName, ensureClient, handleSessionJoined],
+    [displayName, ensureClient, handleSessionJoined, resetLocalSession],
   );
 
   const leaveSession = useCallback(async () => {
     const activeSession = sessionRef.current;
-    if (!activeSession) return;
+    if (!activeSession) return false;
 
     try {
       await clientRef.current?.leaveSession(activeSession.sessionId);
-    } finally {
-      clearThrottle(cursorThrottleRef.current);
-      clearThrottle(circuitThrottleRef.current);
       if (sessionRef.current?.sessionId === activeSession.sessionId) {
-        setSession(null);
-        setLocalParticipantId(null);
+        resetLocalSession();
         setStatus('idle');
-        setMessage('Session verlassen.');
+        setMessage('Du hast die Session verlassen.');
       }
+      return true;
+    } catch (error) {
+      if (sessionRef.current?.sessionId !== activeSession.sessionId) return true;
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Session konnte nicht verlassen werden.');
+      return false;
     }
-  }, [setLocalParticipantId, setSession]);
+  }, [resetLocalSession]);
+
+  const closeSession = useCallback(async () => {
+    const activeSession = sessionRef.current;
+    if (!activeSession) return false;
+
+    try {
+      await clientRef.current?.endSession(activeSession.sessionId);
+      if (sessionRef.current?.sessionId === activeSession.sessionId) {
+        resetLocalSession();
+        setStatus('idle');
+        setMessage('Die Session wurde geschlossen.');
+      }
+      return true;
+    } catch (error) {
+      if (sessionRef.current?.sessionId !== activeSession.sessionId) return true;
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : 'Session konnte nicht geschlossen werden.');
+      return false;
+    }
+  }, [resetLocalSession]);
 
   const broadcastCircuit = useCallback((state: CollaborationCircuitState, immediate = false) => {
     const activeSession = sessionRef.current;
@@ -276,6 +307,7 @@ export function useCollaborationSession({
     createSession,
     joinSession,
     leaveSession,
+    closeSession,
     broadcastCircuit,
     sendCursor,
   };

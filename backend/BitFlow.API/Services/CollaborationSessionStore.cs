@@ -112,12 +112,29 @@ public sealed class CollaborationSessionStore
     {
         lock (syncRoot)
         {
-            if (!sessions.TryGetValue(sessionId, out var session) || !session.IsActive)
+            var session = GetActiveSession(sessionId);
+            var participant = RequireParticipant(session, connectionId);
+            if (participant.IsHost)
             {
-                return CollaborationLeaveResult.NotFound(sessionId);
+                throw new ApiException(StatusCodes.Status403Forbidden, "Der Host muss die Session schließen.");
             }
 
-            return LeaveSessionUnsafe(session, connectionId);
+            return RemoveParticipantUnsafe(session, participant);
+        }
+    }
+
+    public CollaborationLeaveResult EndSession(string sessionId, string connectionId)
+    {
+        lock (syncRoot)
+        {
+            var session = GetActiveSession(sessionId);
+            var participant = RequireParticipant(session, connectionId);
+            if (!participant.IsHost)
+            {
+                throw new ApiException(StatusCodes.Status403Forbidden, "Nur der Host darf die Session schließen.");
+            }
+
+            return EndSessionUnsafe(session, participant);
         }
     }
 
@@ -130,7 +147,7 @@ public sealed class CollaborationSessionStore
             {
                 if (session.Participants.Values.Any(participant => participant.ConnectionId == connectionId))
                 {
-                    results.Add(LeaveSessionUnsafe(session, connectionId));
+                    results.Add(LeaveSessionForDisconnectUnsafe(session, connectionId));
                 }
             }
 
@@ -138,7 +155,7 @@ public sealed class CollaborationSessionStore
         }
     }
 
-    private CollaborationLeaveResult LeaveSessionUnsafe(CollaborationSessionState session, string connectionId)
+    private CollaborationLeaveResult LeaveSessionForDisconnectUnsafe(CollaborationSessionState session, string connectionId)
     {
         var participant = session.Participants.Values.FirstOrDefault(entry => entry.ConnectionId == connectionId);
 
@@ -147,16 +164,30 @@ public sealed class CollaborationSessionStore
             return CollaborationLeaveResult.NotFound(session.SessionId);
         }
 
-        var participantDto = ToDto(participant);
         if (participant.IsHost)
         {
-            session.IsActive = false;
-            sessions.Remove(session.SessionId);
-            return CollaborationLeaveResult.Ended(session.SessionId, participantDto);
+            return EndSessionUnsafe(session, participant);
         }
 
+        return RemoveParticipantUnsafe(session, participant);
+    }
+
+    private CollaborationLeaveResult RemoveParticipantUnsafe(
+        CollaborationSessionState session,
+        CollaborationParticipantState participant)
+    {
+        var participantDto = ToDto(participant);
         session.Participants.Remove(participant.ParticipantId);
         return CollaborationLeaveResult.ParticipantLeft(session.SessionId, participantDto);
+    }
+
+    private CollaborationLeaveResult EndSessionUnsafe(
+        CollaborationSessionState session,
+        CollaborationParticipantState host)
+    {
+        session.IsActive = false;
+        sessions.Remove(session.SessionId);
+        return CollaborationLeaveResult.Ended(session.SessionId, ToDto(host));
     }
 
     private CollaborationSessionState GetActiveSession(string sessionId)

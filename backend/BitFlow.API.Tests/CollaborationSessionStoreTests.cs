@@ -50,17 +50,67 @@ public sealed class CollaborationSessionStoreTests
     }
 
     [Fact]
-    public void HostLeaveEndsSession()
+    public void HostCanEndSessionAndOldInviteLinkCannotBeJoined()
     {
         var store = new CollaborationSessionStore();
         var session = store.CreateSession("user_host", "connection_host", "Ada", Circuit("initial"));
         store.JoinSession(session.SessionId, "user_guest", "Bea", "connection_guest");
 
-        var result = store.LeaveSession(session.SessionId, "connection_host");
+        var result = store.EndSession(session.SessionId, "connection_host");
 
         Assert.True(result.Found);
         Assert.True(result.SessionEnded);
         Assert.Equal("Ada", result.Participant?.DisplayName);
+        Assert.Throws<BitFlow.API.Infrastructure.ApiException>(
+            () => store.JoinSession(session.SessionId, "user_other", "Cleo", "connection_other"));
+    }
+
+    [Fact]
+    public void HostCannotUseParticipantLeave()
+    {
+        var store = new CollaborationSessionStore();
+        var session = store.CreateSession("user_host", "connection_host", "Ada", Circuit("initial"));
+
+        Assert.Throws<BitFlow.API.Infrastructure.ApiException>(
+            () => store.LeaveSession(session.SessionId, "connection_host"));
+    }
+
+    [Fact]
+    public void ParticipantCannotEndSession()
+    {
+        var store = new CollaborationSessionStore();
+        var session = store.CreateSession("user_host", "connection_host", "Ada", Circuit("initial"));
+        store.JoinSession(session.SessionId, "user_guest", "Bea", "connection_guest");
+
+        Assert.Throws<BitFlow.API.Infrastructure.ApiException>(
+            () => store.EndSession(session.SessionId, "connection_guest"));
+    }
+
+    [Fact]
+    public void ParticipantDisconnectOnlyRemovesParticipant()
+    {
+        var store = new CollaborationSessionStore();
+        var session = store.CreateSession("user_host", "connection_host", "Ada", Circuit("initial"));
+        store.JoinSession(session.SessionId, "user_guest", "Bea", "connection_guest");
+
+        var result = Assert.Single(store.LeaveSessionsForConnection("connection_guest"));
+        var joined = store.JoinSession(session.SessionId, "user_other", "Cleo", "connection_other");
+
+        Assert.False(result.SessionEnded);
+        Assert.Equal(2, joined.Participants.Count);
+    }
+
+    [Fact]
+    public void HostDisconnectEndsSession()
+    {
+        var store = new CollaborationSessionStore();
+        var session = store.CreateSession("user_host", "connection_host", "Ada", Circuit("initial"));
+
+        var result = Assert.Single(store.LeaveSessionsForConnection("connection_host"));
+
+        Assert.True(result.SessionEnded);
+        Assert.Throws<BitFlow.API.Infrastructure.ApiException>(
+            () => store.JoinSession(session.SessionId, "user_guest", "Bea", "connection_guest"));
     }
 
     [Fact]

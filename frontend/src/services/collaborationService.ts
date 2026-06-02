@@ -93,6 +93,10 @@ export class CollaborationClient {
     return this.connection.invoke('LeaveSession', sessionId);
   }
 
+  endSession(sessionId: string): Promise<void> {
+    return this.connection.invoke('EndSession', sessionId);
+  }
+
   updateCircuit(sessionId: string, currentCircuit: CollaborationCircuitState): Promise<void> {
     return this.connection.invoke('UpdateCircuit', sessionId, currentCircuit);
   }

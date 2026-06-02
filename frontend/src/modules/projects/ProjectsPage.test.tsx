@@ -65,4 +65,14 @@ describe('ProjectsPage', () => {
 
     expect(projectMocks.createProject).toHaveBeenCalledWith('Decoder', '2-to-4 decoder');
   });
+
+  it('shows session notifications passed by editor navigation', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/projects', state: { notification: 'Die Session wurde geschlossen.' } }]}>
+        <ProjectsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Die Session wurde geschlossen.');
+  });
 });

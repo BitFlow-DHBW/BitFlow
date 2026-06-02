@@ -86,6 +86,7 @@ function makeClient(): TestClient {
     createSession: vi.fn().mockResolvedValue(hostSessionSnapshot()),
     joinSession: vi.fn().mockResolvedValue(guestSessionSnapshot()),
     leaveSession: vi.fn().mockResolvedValue(undefined),
+    endSession: vi.fn().mockResolvedValue(undefined),
     updateCircuit: vi.fn().mockResolvedValue(undefined),
     updateCursor: vi.fn().mockResolvedValue(undefined),
   };
@@ -291,7 +292,49 @@ describe('useCollaborationSession', () => {
     expect(harness.result.status).toBe('idle');
     expect(harness.result.session).toBeNull();
     expect(harness.result.localParticipantId).toBeNull();
-    expect(harness.result.message).toBe('Session verlassen.');
+    expect(harness.result.message).toBe('Du hast die Session verlassen.');
+  });
+
+  it('keeps the active state when leaving fails', async () => {
+    const client = makeClient();
+    vi.mocked(client.leaveSession!).mockRejectedValue(new Error('Leave fehlgeschlagen'));
+    const harness = renderHarness({ client });
+
+    await act(async () => {
+      await harness.result.createSession();
+      await harness.result.leaveSession();
+    });
+
+    expect(harness.result.status).toBe('error');
+    expect(harness.result.session?.sessionId).toBe('session_test');
+    expect(harness.result.message).toBe('Leave fehlgeschlagen');
+  });
+
+  it('closes a host session and returns to local editor mode', async () => {
+    const harness = renderHarness();
+
+    await act(async () => {
+      await harness.result.createSession();
+      await harness.result.closeSession();
+    });
+
+    expect(harness.client.endSession).toHaveBeenCalledWith('session_test');
+    expect(harness.result.status).toBe('idle');
+    expect(harness.result.session).toBeNull();
+    expect(harness.result.localParticipantId).toBeNull();
+    expect(harness.result.message).toBe('Die Session wurde geschlossen.');
+  });
+
+  it('clears local state after a failed invite-link join', async () => {
+    const client = makeClient();
+    vi.mocked(client.joinSession!).mockRejectedValue(new Error('Session wurde nicht gefunden.'));
+    const harness = renderHarness({ autoJoinSessionId: 'session_closed', client });
+
+    await waitFor(() => expect(harness.result.status).toBe('error'));
+
+    expect(harness.result.session).toBeNull();
+    expect(harness.result.localParticipantId).toBeNull();
+    expect(harness.result.message).toContain('Diese Session existiert nicht mehr oder wurde geschlossen.');
   });
 
   it('does not overwrite a host-ended state while leave is resolving', async () => {
