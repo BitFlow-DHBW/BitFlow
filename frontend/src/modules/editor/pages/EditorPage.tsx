@@ -394,16 +394,17 @@ function EditorWorkspace({
     onRemoteState: applyRemoteEditorState,
   });
 
+  const activeSessionId = collaboration.session?.sessionId ?? null;
   const inviteLink = useMemo(
-    () => (collaboration.session && collaboration.role === 'host' ? buildInviteLink(collaboration.session.sessionId) : null),
-    [collaboration.role, collaboration.session],
+    () => (activeSessionId && collaboration.role === 'host' ? buildInviteLink(activeSessionId) : null),
+    [activeSessionId, collaboration.role],
   );
 
   useEffect(() => {
-    if (!collaboration.session && !collaboration.message) return;
+    if (!activeSessionId && !collaboration.message) return;
     setActiveDockPanels((current) => ({ ...current, left: 'session' }));
     setPanelStates((current) => updatePanelOpen(current, 'session', true));
-  }, [collaboration.message, collaboration.session]);
+  }, [activeSessionId, collaboration.message]);
 
   useEffect(() => {
     setInviteCopyStatus('idle');
