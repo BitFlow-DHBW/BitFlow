@@ -62,7 +62,7 @@ Die folgenden Werte stammen aus der YouTrack-Personenauswertung.
 
 | Demo-Highlight | Kurzbeschreibung | Screenshot / Hinweis |
 |---|---|---|
-| Benutzerkonto und Projektübersicht | Anmeldung, Startseite und Projektverwaltung zeigen den Einstieg in BitFlow und die grundlegende Nutzerführung außerhalb des Editors. | ![Anmeldeseite]([pfad/zum/bild.png](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/anmeldung.png) |
+| Benutzerkonto und Projektübersicht | Anmeldung, Startseite und Projektverwaltung zeigen den Einstieg in BitFlow und die grundlegende Nutzerführung außerhalb des Editors. | ![Anmeldeseite]([pfad/zum/bild.png])(https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/anmeldung.png) |
 | Editor-Oberfläche | Die Projektansicht zeigt Canvas, Toolbar, Panels und responsive UI-Elemente als zentrale Arbeitsumgebung für Schaltungen. | TODO: Screenshot Editor-UI einfügen |
 | Generische Gatter | Logikbausteine können flexibel mit konfigurierbaren Ein- und Ausgängen erstellt und im Editor verwendet werden. | TODO: Screenshot generische Gatter einfügen |
 | Custom-Gatter und Import | Eigene Bausteine können aus bestehenden Schaltungen bzw. Definitionen erstellt und wieder importiert oder weiterverwendet werden. | TODO: Screenshot Custom-Gatter / Import einfügen |
