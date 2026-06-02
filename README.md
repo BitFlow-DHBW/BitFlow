@@ -19,18 +19,6 @@ Browserbasierter Logikgatter-Simulator mit speicherbaren Schaltnetzen, Simulatio
 
 ---
 
-## Tech-Stack
-
-| Schicht | Technologie |
-|---|---|
-| Frontend | React 19, TypeScript, Vite> |
-| Backend | C#, ASP.NET Core Web API |
-| Styling | Tailwind CSS |
-| Testing | Jest (Frontend), xUnit (Backend), Posstman (API-Tests) |
-| Versionsverwaltung | Git |
-| Projektmanagement | Youtrack |
-| Deployment/Hosting | GitHub Pages (für Frontend) oder ASP.NET-kompatibler Webserver |
-
 ## Projektstruktur
 
 ```
