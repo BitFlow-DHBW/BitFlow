@@ -58,22 +58,4 @@ BitFlow/
 └── docs/                # Gesamte Projektdokumentation
 ```
 
-## Dokumentation
 
-| Dokument | Pfad |
-|---|---|
-| Software Requirements Specification | [`docs/use-cases/software-requirement-specification.md`](docs/use-cases/software-requirement-specification.md) |
-| Software Architecture Document (SAD) | [`docs/RUP SAD.md`](<docs/RUP SAD.md>) |
-| Testplan | [`docs/Testplan.md`](docs/Testplan.md) |
-| Mockups | [`docs/mockups/`](docs/mockups/) |
-| Use Cases UC1–UC10 | [`docs/rup_srs_ucrss/`](docs/rup_srs_ucrss/) |
-| Handout | [`docs/BitFlow-Handout.pdf`](docs/BitFlow-Handout.pdf) |
-
-## Team
-
-| Person | Hauptbeitrag |
-|---|---|
-| Florian Blum | Demo-Vorbereitung, Wochenaufgaben |
-| Moritz Czekalski | Kabel-Programmierung |
-| Simon Just | Dokumentation, Blogbeiträge & Kommentare |
-| Mohid Syed | Gatter-Programmierung |
