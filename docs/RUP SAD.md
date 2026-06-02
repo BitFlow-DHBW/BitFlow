@@ -21,11 +21,16 @@ Date | Version | Description | Author
 # Table of Contents
 
 1. Introduction
-&emsp;1.1 Purpose
-&emsp;1.2 Scope
-&emsp;1.3 Definitions, Acronyms and Abbreviations
-&emsp;1.4 References
-&emsp;1.5 Overview
+
+    1.1 Purpose
+  
+    1.2 Scope
+
+    1.3 Definitions, Acronyms and Abbreviations
+
+    1.4 References
+
+    1.5 Overview
 
 2. Architectural Representation
 
@@ -34,17 +39,22 @@ Date | Version | Description | Author
 4. Use-Case View
 
 5. Logical View
-&emsp;5.1 Overview
-&emsp;5.2 Architecturally Significant Design Packages
-&emsp;5.3 Use-Case Realizations
+
+    5.1 Overview
+   
+    5.2 Architecturally Significant Design Packages
+  
+    5.3 Use-Case Realizations
 
 6. Process View
 
 7. Deployment View
 
 8. Implementation View
-&emsp;8.1 Overview
-&emsp;8.2 Layers
+
+    8.1 Overview
+   
+    8.2 Layers
 
 9. Data View (optional)
 
