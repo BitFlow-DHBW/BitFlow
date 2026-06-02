@@ -25,24 +25,24 @@ Die folgenden Werte stammen aus der YouTrack-Personenauswertung.
 | Mohid Syed | 65h 45m | Product Owner, Frontend, Drag & Drop, Gatter-/Input-Logik |
 | Florian Blum | 30h 5m | Canvas, UI, Demo- und Editor-Funktionen |
 | Moritz Czekalski | 72h 51m | Wires/Verbindungen, Refactoring, Testing/Metriken |
-| **Gesamt** | **233h 56m** |  |
+| **Gesamt** | **233h 56m** |
 
 ### 1.2 Arbeitsstunden pro Workflow
 
-| Workflow | Dokumentierter Zeitaufwand | Status / Hinweis |
-|---|---:|---|
-| Requirement Analysis | 21h 5m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Project Management | 16h 4m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Architecture & Design | 26h 40m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Frontend Development | 64h 56m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Backend Development | 12h 34m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Testing | 7h 16m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Documentation | 34h 6m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Review / Refactoring | 20h 15m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| CI/CD | 11h 19m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Metriken | 5h 52m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| Präsentation / Demo-Vorbereitung | 13h 49m | Aus der aktuellen CSV nicht eindeutig ableitbar |
-| **Gesamtaufwand** | **233h 56m** | Gesamtwert aus `Zeittabelle.csv`; keine Workflow-Aufteilung ableitbar |
+| Workflow | Dokumentierter Zeitaufwand |
+|---|---|
+| Requirement Analysis | 21h 5m |
+| Project Management | 16h 4m |
+| Architecture & Design | 26h 40m |
+| Frontend Development | 64h 56m | 
+| Backend Development | 12h 34m | 
+| Testing | 7h 16m |
+| Documentation | 34h 6m |
+| Review / Refactoring | 20h 15m | 
+| CI/CD | 11h 19m |
+| Metriken | 5h 52m | 
+| Präsentation / Demo-Vorbereitung | 13h 49m |
+| **Gesamtaufwand** | **233h 26m** | Gesamtwert aus `Zeittabelle.csv`; keine Workflow-Aufteilung ableitbar |
 
 ### 1.3 Arbeitsstunden pro RUP-Phase
 
