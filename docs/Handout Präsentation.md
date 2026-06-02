@@ -62,13 +62,13 @@ Die folgenden Werte stammen aus der YouTrack-Personenauswertung.
 
 | Demo-Highlight | Kurzbeschreibung | Screenshot / Hinweis |
 |---|---|---|
-| Benutzerkonto und Projektübersicht | Anmeldung, Startseite und Projektverwaltung zeigen den Einstieg in BitFlow und die grundlegende Nutzerführung außerhalb des Editors. | ![Anmeldeseite](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/anmeldung.png) |
-| Editor-Oberfläche | Die Projektansicht zeigt Canvas, Toolbar, Panels und responsive UI-Elemente als zentrale Arbeitsumgebung für Schaltungen. | TODO: Screenshot Editor-UI einfügen |
-| Generische Gatter | Logikbausteine können flexibel mit konfigurierbaren Ein- und Ausgängen erstellt und im Editor verwendet werden. | TODO: Screenshot generische Gatter einfügen |
-| Custom-Gatter und Import | Eigene Bausteine können aus bestehenden Schaltungen bzw. Definitionen erstellt und wieder importiert oder weiterverwendet werden. | TODO: Screenshot Custom-Gatter / Import einfügen |
-| Mehrbenutzer-Modus | Eine kollaborative Session kann erstellt werden; weitere Nutzer treten per Invite-Link bei und sehen Cursor- sowie Schaltungsänderungen live. | TODO: Screenshot Session-Panel / Multiuser einfügen |
-| Volladdierer aus Halbaddierern | Als komplexeres Beispiel wird ein Volladdierer aus wiederverwendbaren Halbaddierer-Bausteinen aufgebaut und simuliert. | TODO: Screenshot Volladdierer-Demo einfügen |
-| Simulation und Signale | Die Schaltung wird lokal ausgewertet; Signalzustände werden direkt im Editor sichtbar und reagieren auf Änderungen der Eingänge. | TODO: Screenshot Simulation / Signalzustände einfügen |
+| Benutzerkonto und Projektübersicht | Anmeldung, Startseite und Projektverwaltung zeigen den Einstieg in BitFlow und die grundlegende Nutzerführung außerhalb des Editors. | ![Anmeldeseite](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/anmeldung.png) ![Registrierung](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/registrierung.png)|
+| Editor-Oberfläche | Die Projektansicht zeigt Canvas, Toolbar, Panels und responsive UI-Elemente als zentrale Arbeitsumgebung für Schaltungen. |![Editor-UI](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/darkmode.png) |
+| Generische Gatter | Logikbausteine können flexibel mit konfigurierbaren Ein- und Ausgängen erstellt und im Editor verwendet werden. | ![generisch](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/generisch-2.png) ![Generisch](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/generisch-1.png)|
+| Custom-Gatter und Import | Eigene Bausteine können aus bestehenden Schaltungen bzw. Definitionen erstellt und wieder importiert oder weiterverwendet werden. | ![Custom Gate](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/custom-1.png) ![Custom Gate](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/custom-2.png)  ![Custom Gate](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/custom-3.png) |
+| Mehrbenutzer-Modus | Eine kollaborative Session kann erstellt werden; weitere Nutzer treten per Invite-Link bei und sehen Cursor- sowie Schaltungsänderungen live. | ![MehrbenutzerModus](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/kollaborationsmodus.png) |
+| Volladdierer aus Halbaddierern | Als komplexeres Beispiel wird ein Volladdierer aus wiederverwendbaren Halbaddierer-Bausteinen aufgebaut und simuliert. |  |
+| Simulation und Signale | Die Schaltung wird lokal ausgewertet; Signalzustände werden direkt im Editor sichtbar und reagieren auf Änderungen der Eingänge. | ![Simulation](https://github.com/BitFlow-DHBW/BitFlow/blob/main/docs/demo/Screenshots/custom-2.png) |
 ---
 
 ## 3. Highlights des Projekts
