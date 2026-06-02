@@ -24,8 +24,8 @@ Die folgenden Werte stammen aus der YouTrack-Personenauswertung.
 | Simon Just | 65h 15m | Scrum, Dokumentation, Projektorganisation, Use Cases |
 | Mohid Syed | 65h 45m | Product Owner, Frontend, Drag & Drop, Gatter-/Input-Logik |
 | Florian Blum | 30h 5m | Canvas, UI, Demo- und Editor-Funktionen |
-| Moritz Czekalski | 72h 51m | Wires/Verbindungen, Refactoring, Testing/Metriken |
-| **Gesamt** | **233h 56m** |
+| Moritz Czekalski | 72h 21m | Wires/Verbindungen, Refactoring, Testing/Metriken |
+| **Gesamt** | **233h 26m** |
 
 ### 1.2 Arbeitsstunden pro Workflow
 
@@ -42,7 +42,6 @@ Die folgenden Werte stammen aus der YouTrack-Personenauswertung.
 | CI/CD | 11h 19m |
 | Metriken | 5h 52m | 
 | Präsentation / Demo-Vorbereitung | 13h 49m |
-| **Gesamtaufwand** | **233h 26m** | Gesamtwert aus `Zeittabelle.csv`; keine Workflow-Aufteilung ableitbar |
 
 ### 1.3 Arbeitsstunden pro RUP-Phase
 
@@ -53,8 +52,6 @@ Die folgenden Werte stammen aus der YouTrack-Personenauswertung.
 | Elaboration | 01.11.2025 - 31.12.2025: Architekturprototyp, SAD/ASR, Klassendiagramme, Mockups und Ausarbeitung zentraler Use Cases | 52h 40m |
 | Construction | 01.01.2026 - 30.04.2026: Produktentwicklung und Tests, u. a. Canvas, Gates, Wires, Simulation, Backend, Testing und CI/CD | 49h 15m |
 | Transition | 01.05.2026 - 03.06.2026: Stabilisierung, Bugfixes, Review, Abschlussdokumentation, Demo-, Handout- und Präsentationsvorbereitung | 93h 51m |
-
-| **Gesamt** |  | **233h 26m** |
 
 ---
 
